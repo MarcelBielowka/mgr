@@ -53,7 +53,6 @@ for h in extrema(unique(SubsampleS1_h.hour))[1]:1:extrema(unique(SubsampleS1_h.h
         lower = "c(0,0)")
     DistSolarMASSNormal = fitdistr(temp.promieniowanie_Wm2[temp.hour.==h], "normal",
         lower = "c(0,0)")
-    if ()
     DistSolar = Distributions.Normal(DistSolarMASS[1][1], DistSolarMASS[1][2])
 
     KSTest = @suppress HypothesisTests.ExactOneSampleKSTest(temp.promieniowanie_Wm2[temp.hour.==h], DistSolar)
