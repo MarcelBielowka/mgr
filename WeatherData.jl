@@ -3,19 +3,22 @@ using HypothesisTests, RCall, Pipe, Statistics
 using Suppressor
 
 # reading data, extracting dates
-dfWeatherDataSample = CSV.File("C:/Users/Marcel/Desktop/mgr/data/weather_data_sample.csv") |>
+dfWeatherDataSampleAll = CSV.File("C:/Users/Marcel/Desktop/mgr/data/weather_data_sample.csv") |>
     DataFrame
-dfWeatherDataSample["date"] =
-    Dates.DateTime.(dfWeatherDataSample["date"], DateFormat("y-m-d H:M"))
-dfWeatherDataSample["date_nohour"] = Dates.Date.(dfWeatherDataSample["date"])
-dfWeatherDataSample["month"] = Dates.month.(dfWeatherDataSample["date"])
-dfWeatherDataSample["hour"] = Dates.hour.(dfWeatherDataSample["date"])
+dfWeatherDataSampleAll["date"] =
+    Dates.DateTime.(dfWeatherDataSampleAll["date"], DateFormat("y-m-d H:M"))
+dfWeatherDataSampleAll["date_nohour"] = Dates.Date.(dfWeatherDataSampleAll["date"])
+dfWeatherDataSampleAll["month"] = Dates.month.(dfWeatherDataSampleAll["date"])
+dfWeatherDataSampleAll["hour"] = Dates.hour.(dfWeatherDataSampleAll["date"])
+
+plot(dfWeatherDataSampleAll[:date],dfWeatherDataSampleAll[:promieniowanie_Wm2])
+plot(dfWeatherDataSampleAll[:date],dfWeatherDataSampleAll[:predkosc100m])
 
 
 ## extracting data, selecting only necessary
 # and taking hourly averages
-dfWeatherDataSample[ismissing.(dfWeatherDataSample.promieniowanie_Wm2),:]
-dfWeatherDataSample[ismissing.(dfWeatherDataSample.promieniowanie_Wm2),"promieniowanie_Wm2"] = 0
+miss = dfWeatherDataSampleAll[ismissing.(dfWeatherDataSampleAll.promieniowanie_Wm2),:]
+dfWeatherDataSample = dfWeatherDataSampleAll[completecases(dfWeatherDataSampleAll),:]
 
 ## wind data
 SubsampleS1 = dfWeatherDataSample[dfWeatherDataSample.month.<10,:]
@@ -24,12 +27,12 @@ SubsampleS1_h = @pipe groupby(SubsampleS1, [:date_nohour, :hour]) |>
                     combine(_, [:predkosc100m => mean => :predkosc100m,
                             :promieniowanie_Wm2 => mean => :promieniowanie_Wm2])
 # Weibull dsitribution fitting
-h = 14
+h = 13
 @rlibrary MASS
 DistWindMASS = fitdistr(SubsampleS1_h.predkosc100m[SubsampleS1_h.hour.==h], "weibull")
 DistWind = Distributions.Weibull(DistWindMASS[1][1], DistWindMASS[1][2])
 # KS test of fit goodness
-@suppress KS = HypothesisTests.ExactOneSampleKSTest(SubsampleS1_h.predkosc100m[SubsampleS1_h.hour.==h], DistWind)
+KS = HypothesisTests.ExactOneSampleKSTest(SubsampleS1_h.predkosc100m[SubsampleS1_h.hour.==h], DistWind)
 HypothesisTests.ApproximateOneSampleKSTest(SubsampleS1_h.predkosc100m[SubsampleS1_h.hour.==14], DistWind)
 
 # histogram and QQplots
@@ -39,25 +42,41 @@ plot(
  qqplot(DistWind, SubsampleS1_h.predkosc100m[SubsampleS1_h.hour.==h])
 )
 
+Random.seed!(72945)
+SampleWindSpeed = [mean(rand(DistWind, 1000)) for i in 1:100000]
+StatsPlots.histogram(SampleWindSpeed)
+
+ConfInt = quantile!(SampleWindSpeed, [0.025, 0.0975])
+diff(ConfInt)
 
 ## solar irradiation distribution - fitting Weibull as well
-h = 16
-temp = SubsampleS1_h[SubsampleS1_h.promieniowanie_Wm2.>0,:]
-DistSolarMASS = fitdistr(temp.promieniowanie_Wm2[temp.hour.==h], "Weibull", lower = "c(0,0)")
-DistSolarMASS[4]
+h = 10
+# temp = filter(row -> (row.promieniowanie_Wm2>0), SubsampleS1_h)
+temp = filter(row -> (row.hour == h && row.promieniowanie_Wm2>0) , SubsampleS1_h )
+#promieniowanie_ex = extrema(temp.promieniowanie_Wm2)
+#temp[:promieniowanie_unit] = (temp.promieniowanie_Wm2 .- promieniowanie_ex[1]) ./ (promieniowanie_ex[2] - promieniowanie_ex[1])
+
+# unitarisation - as per Lv at all (2)
+# DistSolarMASS = fitdistr(temp.promieniowanie_unit, "beta", start = (R"list(shape1 = 4,shape2 = 2)"))
+DistSolarMASS = fitdistr(temp.promieniowanie_Wm2, "weibull")
+DistSolarMASS = fitdistr(temp.promieniowanie_Wm2, "Weibull", lower = "c(0,0)")
+
+# DistSolar = Distributions.Beta(DistSolarMASS[1][1], DistSolarMASS[1][2])
 DistSolar = Distributions.Weibull(DistSolarMASS[1][1], DistSolarMASS[1][2])
 
 # plotting histogram and QQplot
-StatsPlots.histogram(temp.promieniowanie_Wm2[temp.hour.==h], normalize = true)
+StatsPlots.histogram(temp.promieniowanie_Wm2, normalize = true)
 plot!(DistSolar,lw = 5, color =:red)
 plot(
- qqplot(DistSolar, temp.promieniowanie_Wm2[temp.hour.==h])
+ qqplot(DistSolar, temp.promieniowanie_Wm2)
 )
 
 # KS test of goodness of fit
-HypothesisTests.ExactOneSampleKSTest(temp.promieniowanie_Wm2[temp.hour.==h], DistSolar)
-HypothesisTests.ApproximateOneSampleKSTest(temp.promieniowanie_Wm2[temp.hour.==17], DistSolar)
+HypothesisTests.ExactOneSampleKSTest(temp.promieniowanie_Wm2, DistSolar)
 
+Random.seed!(72945)
+SampleTotalIrr = [mean(rand(DistSolar, 1000)) for i in 1:100000]
+StatsPlots.histogram(SampleTotalIrr)
 
 ## production functions
 function WindProductionForecast(P_nam, V, V_nam, V_cutin, V_cutoff)
@@ -89,10 +108,15 @@ end
 
 
 
-## sampling
+## sampling and forecasting
 Random.seed!(72945)
-SampledWindSpeed = rand(DistWind, 1000)
-SampledSolarIrradiance = rand(DistSolar, 1000)
+SampledWindSpeed = rand(DistWind, 10000)
+SampledSolarIrradiance = rand(DistSolar, 10000)
 
-ForecastWind = WindProductionForecast.(2.0, SampledWindSpeed, 11.5, 3.0, 20.0)
-histogram(ForecastWind)
+ForecastWindProd = WindProductionForecast.(2.0, SampledWindSpeed, 11.5, 3.0, 20.0)
+PointForecast = mean(ForecastWindProd[ForecastWindProd.>0])
+PointForecast = mean(ForecastWindProd[ForecastWindProd.>0.05])
+histogram(ForecastWind[ForecastWindProd.>0.05])
+histogram(ForecastWind[ForecastWindProd.>0])
+
+CSV.write("C:/Users/Marcel/Desktop/mgr/data/grouped.csv", temp)
