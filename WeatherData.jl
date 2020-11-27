@@ -18,6 +18,7 @@ plot(dfWeatherDataSampleAll[:date],dfWeatherDataSampleAll[:predkosc100m])
 ## extracting data, selecting only necessary
 # and taking hourly averages
 miss = dfWeatherDataSampleAll[ismissing.(dfWeatherDataSampleAll.promieniowanie_Wm2),:]
+miss = dfWeatherDataSampleAll[ismissing.(dfWeatherDataSampleAll.predkosc100m),:]
 dfWeatherDataSample = dfWeatherDataSampleAll[completecases(dfWeatherDataSampleAll),:]
 
 ## wind data
@@ -43,10 +44,10 @@ plot(
 )
 
 Random.seed!(72945)
-SampleWindSpeed = [mean(rand(DistWind, 1000)) for i in 1:100000]
+@time SampleWindSpeed = [mean(rand(DistWind, 1000)) for i in 1:100000]
 StatsPlots.histogram(SampleWindSpeed)
 
-ConfInt = quantile!(SampleWindSpeed, [0.025, 0.0975])
+ConfInt = quantile!(SampleWindSpeed, [0.025, 0.975])
 diff(ConfInt)
 
 ## solar irradiation distribution - fitting Weibull as well
