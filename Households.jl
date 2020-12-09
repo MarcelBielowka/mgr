@@ -1,28 +1,45 @@
 using CSV, DataFrames, Dates, Pipe, Statistics
+using Clustering
 
 cd("C:/Users/Marcel/Desktop/mgr/kody")
-cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit/LdnDataSplit"
+cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
 AllHouseholdData = readdir(cMasterDir)
+dfHouseholdData = DataFrames.DataFrame()
 
-
-for FileNum in 1:length(AllHouseholdData)
-    temp = CSV.File(string(cMasterDir,"/",AllHouseholdData[i])) |>
+function ProcessHouseholdData(cMainDir, cFileName)
+    # read file and rename columns
+    dfAllData = CSV.File(string(cMainDir,"/",cFileName)) |>
         DataFrame
+    rename!(dfAllData, [:LCLid, :stdorToU, :DateTime, :Consumption, :Acorn, :Acorn_grouped])
+    # remove the affluent Londoners
+    dfFilteredData = filter(row -> (row.stdorToU == "Std" && row.Consumption != "Null"),
+                        dfAllData)
 
+    # correct types - date time for date and Float for consumption
+    dfFilteredData.DateTime = SubString.(dfFilteredData.DateTime,1,16)
+    dfFilteredData.DateTime = Dates.DateTime.(dfFilteredData.DateTime,
+                DateFormat("y-m-d H:M"))
+    dfFilteredData.Consumption = parse.(Float64, dfFilteredData.Consumption)
+
+    # grouping by date and hour
+    dfFilteredData.Date = Dates.Date.(dfFilteredData.DateTime)
+    dfFilteredData.Hour = Dates.hour.(dfFilteredData.DateTime)
+    dfFilteredData_hourly = @pipe groupby(dfFilteredData, [:LCLid, :Date, :Hour]) |>
+        combine(_, [:Consumption => mean => :Consumption])
+
+    # returning
+    return dfFilteredData_hourly
 end
 
-temp = CSV.File(string(cMasterDir,"/",AllHouseholdData[2])) |>
-    DataFrame
-rename!(temp, [:LCLid, :stdorToU, :DateTime, :Consumption, :Acorn, :Acorn_grouped])
-a = filter(row -> (row.stdorToU == "Std" && row.Consumption != "Null"),
-                    temp)
-a.DateTime = SubString.(a.DateTime,1,16)
-a.DateTime = Dates.DateTime.(a.DateTime,
-            DateFormat("y-m-d H:M"))
-a.Consumption = parse.(Float64, a.Consumption)
+# append all the data together
+for FileNum in 1:length(AllHouseholdData)
+    println("File number ", FileNum, ", file name ", AllHouseholdData[FileNum])
+    dfTemp = ProcessHouseholdData(cMasterDir, AllHouseholdData[FileNum])
+    nrow(dfTemp) > 0 && append!(dfHouseholdData, dfTemp)
+    dfTemp = DataFrames.DataFrame()
+end
 
-a.Date = Dates.Date.(a.DateTime)
-a.Hour = Dates.hour.(a.DateTime)
+# test = ProcessHouseholdData(cMasterDir, "Power-Networks-LCL-June2015(withAcornGps)v2_136.csv")
 
-a_hourly = @pipe groupby(a, [:LCLid, :Date, :Hour]) |>
-    combine(_, [:Consumption => mean => :Consumption])
+filter(row -> (row.LCLid == "MAC000003" && row.Date == Dates.Date("2012-07-21")),
+                    dfHouseholdData)
