@@ -1,5 +1,5 @@
 using CSV, DataFrames, Dates, Pipe, Statistics
-using Clustering
+using Clustering, StatsPlots
 
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
@@ -39,7 +39,17 @@ for FileNum in 1:length(AllHouseholdData)
     dfTemp = DataFrames.DataFrame()
 end
 
-# test = ProcessHouseholdData(cMasterDir, "Power-Networks-LCL-June2015(withAcornGps)v2_136.csv")
+dfHouseholdData.DateAndHour = DateTime.(dfHouseholdData.Date) .+ Dates.Hour.(dfHouseholdData.Hour)
 
-filter(row -> (row.LCLid == "MAC000003" && row.Date == Dates.Date("2012-07-21")),
-                    dfHouseholdData)
+#filter(row -> (row.LCLid == "MAC000003" && row.Date == Dates.Date("2012-07-21")),
+#                    dfHouseholdData)
+
+test = @pipe groupby(dfHouseholdData, [:LCLid, :Hour]) |>
+    combine(_, [:Consumption => mean => :Consumption])
+test2 = unstack(test, :LCLid, :Consumption)
+a = @df test2 StatsPlots.plot(:Hour, cols(2:1000), color = RGB(192/255,0,0), legend = :none,
+    ylim = (0,1))
+
+test3 = unstack(dfHouseholdData, :LCLid, :DateAndHour)
+
+a
