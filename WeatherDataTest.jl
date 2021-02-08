@@ -24,6 +24,17 @@ SubsampleS1_h = @pipe groupby(SubsampleS1, [:date_nohour, :hour]) |>
                     combine(_, [:predkosc100m => mean => :predkosc100m,
                             :promieniowanie_Wm2 => mean => :promieniowanie_Wm2])
 # Weibull dsitribution fitting
+
+DistWindMASS = fitdistr(SubsampleS1_h.predkosc100m[SubsampleS1_h.hour.==1], "gamma")
+DistWindMASS[4]
+DistWind = fit_mle(Gamma, SubsampleS1_h.predkosc100m[SubsampleS1_h.hour.==1])
+DistWind = Distributions.Gamma(DistWindMASS[1][1], DistWindMASS[1][2])
+
+temp = filter(row -> row.predkosc100m > 0, SubsampleS1_h[SubsampleS1_h.hour.==1,:])
+DistWindMASS = fitdistr(temp.predkosc100m, "weibull")
+DistWindMASS[4]
+DistWind = Distributions.Weibull(DistWindMASS[1][1], DistWindMASS[1][2])
+
 @rlibrary MASS
 for h in extrema(unique(SubsampleS1_h.hour))[1]:1:extrema(unique(SubsampleS1_h.hour))[2]
     println(h)
@@ -39,10 +50,10 @@ end
 
 
 # histogram and QQplots
-StatsPlots.histogram(SubsampleS1_h.predkosc100m[SubsampleS1_h.hour.==h], normalize = true)
+StatsPlots.histogram(SubsampleS1_h.predkosc100m[SubsampleS1_h.hour.==1], normalize = true)
 plot!(DistWind,lw = 5, color =:red)
 plot(
- qqplot(DistWind, SubsampleS1_h.predkosc100m[SubsampleS1_h.hour.==h])
+ qqplot(DistWind, SubsampleS1_h.predkosc100m[SubsampleS1_h.hour.==1])
 )
 
 
@@ -60,11 +71,20 @@ for h in extrema(unique(SubsampleS1_h.hour))[1]:1:extrema(unique(SubsampleS1_h.h
     println("Hour $h, solar irradiance dist: Weibull, p-value for K-S Test: $PValue")
 
 end
+
+temp = SubsampleS1_h.promieniowanie_Wm2[SubsampleS1_h.hour.==16]
+temp2 = temp./(maximum(temp))
+
+DistSolar = fit_mle(Normal, SubsampleS1_h.promieniowanie_Wm2[SubsampleS1_h.hour.==16])
+
+DistSolarMASS = fitdistr(temp2, "beta", start = R"list(shape1 = 4, shape2 = 2)")
+DistSolarMASS = fitdistr(temp, "beta", start = R"list(shape1 = 1000, shape2 = 2)")
+
 # plotting histogram and QQplot
-StatsPlots.histogram(temp.promieniowanie_Wm2[temp.hour.==17], normalize = true)
+StatsPlots.histogram(SubsampleS1_h.promieniowanie_Wm2[SubsampleS1_h.hour.==16], normalize = true)
 plot!(DistSolar,lw = 5, color =:red)
 plot(
- qqplot(DistSolar, temp.promieniowanie_Wm2[temp.hour.==17])
+ qqplot(DistSolar, SubsampleS1_h.promieniowanie_Wm2[SubsampleS1_h.hour.==16])
 )
 
 # KS test of goodness of fit
@@ -75,7 +95,7 @@ function WindProductionForecast(P_nam, V, V_nam, V_cutin, V_cutoff)
     if V < V_cutin
         P_output = 0
     elseif V >= V_cutin && V < V_nam
-        P_output = ((V - V_cutin) ^ 3) / -((V_cutin - V_nam)^3)
+        P_output = ((V - V_cutin) ^ 3) / -((V_cutin - V_nam)^3) * P_nam
     elseif V >= V_nam && V < V_cutoff
         P_output = P_nam
     else
