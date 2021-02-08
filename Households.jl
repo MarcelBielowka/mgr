@@ -1,5 +1,6 @@
 using CSV, DataFrames, Dates, Pipe, Statistics
 using Clustering, StatsPlots, Random
+using FreqTables
 
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
@@ -40,25 +41,51 @@ for FileNum in 1:length(AllHouseholdData)
 end
 
 dfHouseholdData.DateAndHour = DateTime.(dfHouseholdData.Date) .+ Dates.Hour.(dfHouseholdData.Hour)
-dfHouseholdDataShort = filter(row -> (row.Date > Dates.Date("2011-12-31") && row.Date < Dates.Date("2014-01-01")),
+dfHouseholdDataShort = filter(row -> (row.Date > Dates.Date("2012-12-31") && row.Date < Dates.Date("2014-01-01")),
     dfHouseholdData)
-#filter(row -> (row.LCLid == "MAC000003" && row.Date == Dates.Date("2012-07-21")),
-#                    dfHouseholdData)
+dfHouseholdDataShort.Month = Dates.month.(dfHouseholdDataShort.Date)
+dfHouseholdDataShort.DayOfWeek = Dates.dayofweek.(dfHouseholdDataShort.Date)
 
-test = @pipe groupby(dfHouseholdDataShort, [:LCLid, :Hour]) |>
-    combine(_, [:Consumption => mean => :Consumption])
-test2 = unstack(test, :LCLid, :Consumption)
-test3 = dropmissing(test2)
-a = @df test2 StatsPlots.plot(:Hour, cols(2:3300), color = RGB(192/255,0,0),
+FreqTableReadings = FreqTables.freqtable(dfHouseholdDataShort.LCLid, dfHouseholdDataShort.Date)
+m = [count(col.==24) for col in eachcol(FreqTableReadings)]
+any(dfHouseholdDataShort.Consumption .< 0)
+
+dfHouseholdDataByMonth = groupby(dfHouseholdDataShort,
+    [:Month, :DayOfWeek], sort = true)
+
+# dfHouseholdDataByMonth[1]
+
+JanMon = unstack(dfHouseholdDataByMonth[1], :LCLid, :Consumption)
+a = @df JanMon StatsPlots.plot(:Hour, cols(2:3300), color = RGB(192/255,0,0),
     legend = :none, linealpha = 0.05, ylim = (0,2),
     title = "Short data, average daily profile")
 
 Random.seed!(72945)
-testProfiles = Clustering.kmeans(Matrix(test3[:,2:size(test3)[2]]), 3)
+testProfiles = Clustering.kmeans(Matrix(JanMon[:,2:size(test3)[2]]), 3)
 testProfilesValues = testProfiles.centers
-StatsPlots.plot!(test2.Hour, testProfilesValues, color = RGB(100/255, 100/255, 100/255), 
+StatsPlots.plot!(test2.Hour, testProfilesValues, color = RGB(100/255, 100/255, 100/255),
     legend = :none, linealpha = 0.6, lw = 5)
 
-Matrix(test2[:,2:size(test2)[2]])
 
-test3 = unstack(dfHouseholdData, :LCLid, :DateAndHour)
+#test = @pipe groupby(dfHouseholdDataShort, [:LCLid, :Hour]) |>
+#    combine(_, [:Consumption => mean => :Consumption])
+#test2 = unstack(test, :LCLid, :Consumption)
+#test3 = dropmissing(test2)
+#a = @df test2 StatsPlots.plot(:Hour, cols(2:3300), color = RGB(192/255,0,0),
+#    legend = :none, linealpha = 0.05, ylim = (0,2),
+#    title = "Short data, average daily profile")
+
+#Random.seed!(72945)
+#testProfiles = Clustering.kmeans(Matrix(test3[:,2:size(test3)[2]]), 3)
+#testProfilesValues = testProfiles.centers
+#StatsPlots.plot!(test2.Hour, testProfilesValues, color = RGB(100/255, 100/255, 100/255),
+#    legend = :none, linealpha = 0.6, lw = 5)
+
+#Matrix(test2[:,2:size(test2)[2]])
+
+#test3 = unstack(dfHouseholdData, :LCLid, :DateAndHour)
+
+aaa = filter(row -> (row.Date == Dates.Date("2013-01-14") && row.LCLid == "MAC002754"),
+    dfHouseholdDataShort)
+
+unique(dfHouseholdDataShort)
