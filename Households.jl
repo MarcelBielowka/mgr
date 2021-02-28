@@ -2,6 +2,7 @@ using CSV, DataFrames, Dates, Pipe, Statistics
 using Clustering, StatsPlots, Random
 using FreqTables, Impute, Distances
 
+Random.seed!(72945)
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
 AllHouseholdData = readdir(cMasterDir)
@@ -83,7 +84,8 @@ for i in 1:length(dfHouseholdDataByMonth)
         unstack(dfHouseholdDataByMonth[i], :LCLid, :Consumption))
 end
 
-
+SelectedDays = (rand(1:12, 3), rand(1:7, 3))
+dfHouseholdDataByMonth[(SelectedDays[1][1], SelectedDays[2][1])]
 
 # dfHouseholdDataByMonth[1]
 
