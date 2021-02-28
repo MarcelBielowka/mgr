@@ -47,6 +47,14 @@ function ReadData()
 
     dfWeatherDataNoMissing = dropmissing(dfWeatherData)
 
+    # dfWeatherDataNoMissing.Irradiation[dfWeatherDataNoMissing.Irradiation .< 2] = 0
+
+#    dfWeatherDataNoMissing.ClearnessIndex = ClearnessIndex.(
+#        dfWeatherDataNoMissing.Irradiation, Dates.dayofyear.(dfWeatherDataNoMissing.date_nohour),
+#        dfWeatherDataNoMissing.hour, Dates.isleapyear.(dfWeatherDataNoMissing.date_nohour)
+#    )
+    dfWeatherDataNoMissing.ClearnessIndex = dfWeatherDataNoMissing.Irradiation./1366.1
+
     return dfWeatherDataNoMissing
 end
 
@@ -56,6 +64,7 @@ function RetrieveGroupedData(dfWeatherData; kelvins::Bool = true)
     if kelvins
         dfWeatherData.Temperature = dfWeatherData.Temperature .+ 273.15
     end
+
     dfWeatherData.MonthPart =
         Dates.day.(dfWeatherData.date_nohour) .> Dates.daysinmonth.(dfWeatherData.date_nohour)/2
 
@@ -75,11 +84,19 @@ function RetrieveGroupedData(dfWeatherData; kelvins::Bool = true)
             println("Current month: $month, period: $PeriodNum , hour: $hour")
 
             DistWindMASS = fitdistr(dfCurrentHour.WindSpeed[dfCurrentHour.WindSpeed.>0], "weibull", lower = R"c(0,0)")
-            DistSolarMASS = fitdistr(dfCurrentHour.Irradiation, "normal")
+            if length(dfCurrentHour.ClearnessIndex[dfCurrentHour.ClearnessIndex.>0.01]) > 30
+                try
+                    DistSolarMASS = fitdistr(dfCurrentHour.ClearnessIndex, "beta", start = start = R"list(shape1 = 1, shape2 = 1)")
+                catch
+                    DistSolarMASS = fitdistr(dfCurrentHour.ClearnessIndex[dfCurrentHour.ClearnessIndex .> 0.0001], "beta", start = start = R"list(shape1 = 1, shape2 = 1)")
+                end
+            else
+                DistSolarMASS = nothing
+            end
             DistTempMASS = fitdistr(dfCurrentHour.Temperature, "normal")
 
             push!(WeatherDistParameters, (month, MonthPeriod, hour) => ["WindParam" => [DistWindMASS[1][1] DistWindMASS[1][2]],
-                                                                          "SolarParam" => [DistSolarMASS[1][1] DistSolarMASS[1][2]],
+                                                                          "SolarParam" => !isnothing(DistSolarMASS) ? [DistSolarMASS[1][1] DistSolarMASS[1][2]] : nothing,
                                                                           "TempParam" => [DistTempMASS[1][1] DistTempMASS[1][2]],
                                                                    ])
         end
@@ -102,6 +119,61 @@ function WindProductionForecast(P_nam, V, V_nam, V_cutin, V_cutoff)
     end
     return P_output
 end
+
+
+
+##
+# Solar prod functions
+
+# Theta
+function GetTheta(DayOfYear, IsLeapYear)
+    if IsLeapYear && DayOfYear > Dates.dayofyear(Date("2020-02-28"))
+        Θ = 2*π*(DayOfYear - 2)/365
+    else
+        Θ = 2*π*(DayOfYear - 1)/365
+    end
+    return Θ
+end
+
+function GetEccentricityCorrection(Θ)
+    E0 = 1.00011 + 0.034221*cos(Θ) + 0.00128*sin(Θ) -
+        0.000719*cos(2*Θ) + 0.000077*sin(2*Θ)
+    return E0
+end
+
+function GetZenithAngle(Θ, DayOfYear, HourOfDay;
+                        Latitude = (50 + 17/60), Longitude = (19 + 8/60),
+                        LongitudeStandard = 15)
+    δ = 0.006918 - 0.399912 * cos(Θ) + 0.070257 * sin(Θ) -                                      # solar declination
+        0.006759 * cos(2*Θ) +  0.000907 * sin(2*Θ) + 0.00148 * sin(3*Θ) -
+        0.002697 * cos(3*Θ)
+
+    Et = 0.000075 + 0.001868 * cos(Θ) - 0.032077 * sin(Θ) -
+        0.14615*cos(2*Θ) - 0.04084*sin(2*Θ)                                                     # equation of time
+
+    SolarHour = HourOfDay + (LongitudeStandard-Longitude) / 15 + Et                                           # solar hour
+
+    ω = 2*π/24*(SolarHour - 12)                                                                 # hour angle
+
+    CosZenithAngle = sin(Latitude) * sin(δ) + cos(Latitude) * cos(δ) * cos(ω)
+    return δ, Et, SolarHour, ω, CosZenithAngle
+end
+
+# index clearness
+function ClearnessIndex(IncidentalIrradiance, DayOfYear, HourOfDay, IsLeapYear;
+                        Latitude = (50 + 17/60), Longitude = (19 + 8/60),
+                        LongitudeStandard = 15)   # Paulescu et al, ch 5 + Badescu et al ch. 3.4
+    Θ = GetTheta(DayOfYear, IsLeapYear)                                                               # Θ, argument Et i E0
+
+    E0 = GetEccentricityCorrection(Θ)
+
+    CosZenithAngle = GetZenithAngle(Θ, DayOfYear, HourOfDay)[5]
+
+    k = max(IncidentalIrradiance / (1366 * E0 * CosZenithAngle), 0)
+    k = min(k,1)
+    return k
+end
+
 
 
 ##

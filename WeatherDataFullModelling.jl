@@ -29,9 +29,11 @@ WindForecastDist = [mean(rand(WindDistHour, 1000)) for i in 1:10000]
 ProductionForecastWind = WindProductionForecast.(2.0, WindForecastDist, 11.5, 3.0, 20.0)
 mean(ProductionForecastWind)
 ProductionForecastWindPoint = WindProductionForecast(2.0, mean(WindForecastDist), 11.5, 3.0, 20.0)
+ProductionForecastWindPoint = WindProductionForecast(2.0, 20, 11.5, 3.0, 20.0)
 
 histogram(WindForecastDist, normalize = true)
 histogram(ProductionForecastWind, normalize = true)
+
 
 #dfWeatherData.Temperature = dfWeatherData.Temperature .+ 273.15
 #dfWeatherData.MonthPart =
