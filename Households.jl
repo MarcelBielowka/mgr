@@ -1,6 +1,6 @@
 using CSV, DataFrames, Dates, Pipe, Statistics
 using Clustering, StatsPlots, Random
-using FreqTables
+using FreqTables, Impute, Distances
 
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
@@ -43,25 +43,68 @@ end
 dfHouseholdData.DateAndHour = DateTime.(dfHouseholdData.Date) .+ Dates.Hour.(dfHouseholdData.Hour)
 dfHouseholdDataShort = filter(row -> (row.Date > Dates.Date("2012-12-31") && row.Date < Dates.Date("2014-01-01")),
     dfHouseholdData)
-dfHouseholdDataShort.Month = Dates.month.(dfHouseholdDataShort.Date)
-dfHouseholdDataShort.DayOfWeek = Dates.dayofweek.(dfHouseholdDataShort.Date)
+dfHouseholdData = nothing
 
 FreqTableReadings = FreqTables.freqtable(dfHouseholdDataShort.LCLid, dfHouseholdDataShort.Date)
 m = [count(col.==24) for col in eachcol(FreqTableReadings)]
 any(dfHouseholdDataShort.Consumption .< 0)
 
-dfHouseholdDataByMonth = groupby(dfHouseholdDataShort,
+dfHouseholdDataByHousehold = @pipe groupby(dfHouseholdDataShort, :LCLid)
+iCompleteHouseholds = findall([length(unique(dfHouseholdDataByHousehold[i].Date)) for i in 1:length(dfHouseholdDataByHousehold)] .==365)
+# iCompleteHouseholds = findall([nrow(dfHouseholdDataByHousehold[i]) for i in 1:length(dfHouseholdDataByHousehold)] .==8760)
+dfHouseholdDataCompleteHouseholds = dfHouseholdDataByHousehold[iCompleteHouseholds]
+dfHouseholdDataShortComplete = combine(dfHouseholdDataCompleteHouseholds,
+    [:Date, :Hour, :DateAndHour, :Consumption])
+
+dfHouseholdDataByHousehold = nothing
+iCompleteHouseholds = nothing
+dfHouseholdDataCompleteHouseholds = nothing
+dfHouseholdDataShort = nothing
+dfHouseholdDataShortComplete.Month = Dates.month.(dfHouseholdDataShortComplete.Date)
+dfHouseholdDataShortComplete.DayOfWeek = Dates.dayofweek.(dfHouseholdDataShortComplete.Date)
+
+dfHouseholdDataByMonth = groupby(dfHouseholdDataShortComplete,
     [:Month, :DayOfWeek], sort = true)
+
+c = @pipe groupby(dfHouseholdDataShortComplete, :LCLid) |>
+    combine(_, [:Consumption => mean
+                :Consumption => var
+                :Consumption => minimum
+                :Consumption => maximum])
+
+HouseholdDataMonthWide = Dict{}()
+
+KeyMapping = sort(dfHouseholdDataByMonth.keymap, by = values)
+
+for i in 1:length(dfHouseholdDataByMonth)
+    CurrentMonth, CurrentDayOfWeek = KeyMapping.keys[i]
+    println("Current month: $CurrentMonth, current day: $CurrentDayOfWeek")
+    push!(HouseholdDataMonthWide, (CurrentMonth, CurrentDayOfWeek) =>
+        unstack(dfHouseholdDataByMonth[i], :LCLid, :Consumption))
+end
+
+
 
 # dfHouseholdDataByMonth[1]
 
 JanMon = unstack(dfHouseholdDataByMonth[1], :LCLid, :Consumption)
-a = @df JanMon StatsPlots.plot(:Hour, cols(2:3300), color = RGB(192/255,0,0),
-    legend = :none, linealpha = 0.05, ylim = (0,2),
-    title = "Short data, average daily profile")
+for column in eachcol(JanMon)
+    Impute.impute!(column, Impute.Interpolate())
+    Impute.impute!(column, Impute.LOCF())
+    Impute.impute!(column, Impute.NOCB())
+end
+disallowmissing!(JanMon)
+
+#a = @df JanMon StatsPlots.plot(:Hour, cols(2:3300), color = RGB(192/255,0,0),
+#    legend = :none, linealpha = 0.05, ylim = (0,2),
+#    title = "Short data, average daily profile")
 
 Random.seed!(72945)
-testProfiles = Clustering.kmeans(Matrix(JanMon[:,2:size(test3)[2]]), 3)
+testProfiles = Clustering.kmeans(Matrix(JanMon[:,6:size(JanMon)[2]]), 7)
+# pairwise(SqEuclidean(), Matrix(JanMon[:,6:size(JanMon)[2]]))
+a = Clustering.silhouettes(testProfiles.assignments, testProfiles.counts,
+    pairwise(SqEuclidean(), Matrix(JanMon[:,6:size(JanMon)[2]])))
+mean(a)
 testProfilesValues = testProfiles.centers
 StatsPlots.plot!(test2.Hour, testProfilesValues, color = RGB(100/255, 100/255, 100/255),
     legend = :none, linealpha = 0.6, lw = 5)
