@@ -2,7 +2,6 @@ using CSV, DataFrames, Dates, Pipe, Statistics
 using Clustering, StatsPlots, Random
 using FreqTables, Impute, Distances
 
-Random.seed!(72945)
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
 AllHouseholdData = readdir(cMasterDir)
@@ -63,8 +62,15 @@ dfHouseholdDataCompleteHouseholds = nothing
 dfHouseholdDataShort = nothing
 dfHouseholdDataShortComplete.Month = Dates.month.(dfHouseholdDataShortComplete.Date)
 dfHouseholdDataShortComplete.DayOfWeek = Dates.dayofweek.(dfHouseholdDataShortComplete.Date)
+dfHouseholdDataFinal = unstack(dfHouseholdDataShortComplete, :LCLid, :Consumption)
+for column in eachcol(dfHouseholdDataFinal)
+    Impute.impute!(column, Impute.Interpolate())
+    Impute.impute!(column, Impute.LOCF())
+    Impute.impute!(column, Impute.NOCB())
+end
+disallowmissing!(dfHouseholdDataFinal)
 
-dfHouseholdDataByMonth = groupby(dfHouseholdDataShortComplete,
+dfHouseholdDataByMonth = groupby(dfHouseholdDataFinal,
     [:Month, :DayOfWeek], sort = true)
 
 c = @pipe groupby(dfHouseholdDataShortComplete, :LCLid) |>
@@ -72,41 +78,23 @@ c = @pipe groupby(dfHouseholdDataShortComplete, :LCLid) |>
                 :Consumption => var
                 :Consumption => minimum
                 :Consumption => maximum])
-
-HouseholdDataMonthWide = Dict{}()
-
-KeyMapping = sort(dfHouseholdDataByMonth.keymap, by = values)
-
-for i in 1:length(dfHouseholdDataByMonth)
-    CurrentMonth, CurrentDayOfWeek = KeyMapping.keys[i]
-    println("Current month: $CurrentMonth, current day: $CurrentDayOfWeek")
-    push!(HouseholdDataMonthWide, (CurrentMonth, CurrentDayOfWeek) =>
-        unstack(dfHouseholdDataByMonth[i], :LCLid, :Consumption))
-end
-
 SelectedDays = (rand(1:12, 3), rand(1:7, 3))
 dfHouseholdDataByMonth[(SelectedDays[1][1], SelectedDays[2][1])]
 
-# dfHouseholdDataByMonth[1]
-
-JanMon = unstack(dfHouseholdDataByMonth[1], :LCLid, :Consumption)
-for column in eachcol(JanMon)
-    Impute.impute!(column, Impute.Interpolate())
-    Impute.impute!(column, Impute.LOCF())
-    Impute.impute!(column, Impute.NOCB())
+for testNumber in 1:3
+    
 end
-disallowmissing!(JanMon)
 
 #a = @df JanMon StatsPlots.plot(:Hour, cols(2:3300), color = RGB(192/255,0,0),
 #    legend = :none, linealpha = 0.05, ylim = (0,2),
 #    title = "Short data, average daily profile")
 
 Random.seed!(72945)
-testProfiles = Clustering.kmeans(Matrix(JanMon[:,6:size(JanMon)[2]]), 7)
+testProfiles = Clustering.kmeans(Matrix(a[:,6:size(a)[2]]), 2)
 # pairwise(SqEuclidean(), Matrix(JanMon[:,6:size(JanMon)[2]]))
-a = Clustering.silhouettes(testProfiles.assignments, testProfiles.counts,
-    pairwise(SqEuclidean(), Matrix(JanMon[:,6:size(JanMon)[2]])))
-mean(a)
+b = Clustering.silhouettes(testProfiles.assignments, testProfiles.counts,
+    pairwise(SqEuclidean(), Matrix(a[:,6:size(a)[2]])))
+mean(b)
 testProfilesValues = testProfiles.centers
 StatsPlots.plot!(test2.Hour, testProfilesValues, color = RGB(100/255, 100/255, 100/255),
     legend = :none, linealpha = 0.6, lw = 5)
