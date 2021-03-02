@@ -63,6 +63,7 @@ dfHouseholdDataShort = nothing
 dfHouseholdDataShortComplete.Month = Dates.month.(dfHouseholdDataShortComplete.Date)
 dfHouseholdDataShortComplete.DayOfWeek = Dates.dayofweek.(dfHouseholdDataShortComplete.Date)
 dfHouseholdDataFinal = unstack(dfHouseholdDataShortComplete, :LCLid, :Consumption)
+filter(row -> (row.LCLid .== "MAC004268" && row.Date .== Date("2013-06-29") && row.Hour .== 9), dfHouseholdDataShortComplete)
 for column in eachcol(dfHouseholdDataFinal)
     Impute.impute!(column, Impute.Interpolate())
     Impute.impute!(column, Impute.LOCF())
@@ -78,19 +79,38 @@ c = @pipe groupby(dfHouseholdDataShortComplete, :LCLid) |>
                 :Consumption => var
                 :Consumption => minimum
                 :Consumption => maximum])
+Random.seed!(72945)
 SelectedDays = (rand(1:12, 3), rand(1:7, 3))
 dfHouseholdDataByMonth[(SelectedDays[1][1], SelectedDays[2][1])]
+p = sort(repeat([i for i in 2:7], 3))
+t = [repeat(SelectedDays, 7) ]
 
-for testNumber in 1:3
-    
+dfHouseholdDataByMonth[(SelectedDays[1,1], SelectedDays[1,2])]
+
+b = Iterators.product(SelectedDays, a) |> collect
+a = [2 3 4 5 6 7]'
+
+
+TestSillhouettesOutput = Dict{}()
+
+for testNumber in 1:3, NumberOfTestClusters in 2:7
+    println("Month ", (SelectedDays[1][testNumber], " , day ", SelectedDays[2][testNumber]), ", number of clusters $NumberOfTestClusters" )
+    CurrentPeriod = dfHouseholdDataByMonth[(SelectedDays[1][testNumber], SelectedDays[2][testNumber])]
+    TestClusters = Clustering.kmeans(
+        Matrix(CurrentPeriod[:,6:size(CurrentPeriod)[2]]), NumberOfTestClusters)
+    TestSillhouettes = Clustering.silhouettes(TestClusters.assignments, TestClusters.counts,
+            pairwise(SqEuclidean(), Matrix(CurrentPeriod[:,6:size(CurrentPeriod)[2]])))
+    SilhouetteScore = mean(TestSillhouettes)
+    push!(TestSillhouettesOutput, (SelectedDays[1][testNumber], SelectedDays[2][testNumber], NumberOfTestClusters) =>
+        SilhouetteScore)
 end
 
 #a = @df JanMon StatsPlots.plot(:Hour, cols(2:3300), color = RGB(192/255,0,0),
 #    legend = :none, linealpha = 0.05, ylim = (0,2),
 #    title = "Short data, average daily profile")
 
-Random.seed!(72945)
-testProfiles = Clustering.kmeans(Matrix(a[:,6:size(a)[2]]), 2)
+a = dfHouseholdDataByMonth[(SelectedDays[1][1], SelectedDays[2][1])]
+testProfiles = Clustering.kmeans(Matrix(a[:,6:size(a)[2]]), 5)
 # pairwise(SqEuclidean(), Matrix(JanMon[:,6:size(JanMon)[2]]))
 b = Clustering.silhouettes(testProfiles.assignments, testProfiles.counts,
     pairwise(SqEuclidean(), Matrix(a[:,6:size(a)[2]])))
@@ -98,27 +118,3 @@ mean(b)
 testProfilesValues = testProfiles.centers
 StatsPlots.plot!(test2.Hour, testProfilesValues, color = RGB(100/255, 100/255, 100/255),
     legend = :none, linealpha = 0.6, lw = 5)
-
-
-#test = @pipe groupby(dfHouseholdDataShort, [:LCLid, :Hour]) |>
-#    combine(_, [:Consumption => mean => :Consumption])
-#test2 = unstack(test, :LCLid, :Consumption)
-#test3 = dropmissing(test2)
-#a = @df test2 StatsPlots.plot(:Hour, cols(2:3300), color = RGB(192/255,0,0),
-#    legend = :none, linealpha = 0.05, ylim = (0,2),
-#    title = "Short data, average daily profile")
-
-#Random.seed!(72945)
-#testProfiles = Clustering.kmeans(Matrix(test3[:,2:size(test3)[2]]), 3)
-#testProfilesValues = testProfiles.centers
-#StatsPlots.plot!(test2.Hour, testProfilesValues, color = RGB(100/255, 100/255, 100/255),
-#    legend = :none, linealpha = 0.6, lw = 5)
-
-#Matrix(test2[:,2:size(test2)[2]])
-
-#test3 = unstack(dfHouseholdData, :LCLid, :DateAndHour)
-
-aaa = filter(row -> (row.Date == Dates.Date("2013-01-14") && row.LCLid == "MAC002754"),
-    dfHouseholdDataShort)
-
-unique(dfHouseholdDataShort)
