@@ -40,21 +40,28 @@ for FileNum in 1:length(AllHouseholdData)
     dfTemp = DataFrames.DataFrame()
 end
 
-dfHouseholdData.DateAndHour = DateTime.(dfHouseholdData.Date) .+ Dates.Hour.(dfHouseholdData.Hour)
+# Filter only data for 2013, create a date and time column
+# dfHouseholdData.DateAndHour = DateTime.(dfHouseholdData.Date) .+ Dates.Hour.(dfHouseholdData.Hour)
 dfHouseholdDataShort = filter(row -> (row.Date > Dates.Date("2012-12-31") && row.Date < Dates.Date("2014-01-01")),
     dfHouseholdData)
 dfHouseholdData = nothing
 
-FreqTableReadings = FreqTables.freqtable(dfHouseholdDataShort.LCLid, dfHouseholdDataShort.Date)
-m = [count(col.==24) for col in eachcol(FreqTableReadings)]
+# FreqTableReadings = FreqTables.freqtable(dfHouseholdDataShort.LCLid, dfHouseholdDataShort.Date)
+# m = [count(col.==24) for col in eachcol(FreqTableReadings)]
 any(dfHouseholdDataShort.Consumption .< 0)
 
+# choosing only households which have readings for each of the 365 days of 2013
+# grouping the households by HouseholdID
+# and selecting only those which have 365 unique dates in readings
 dfHouseholdDataByHousehold = @pipe groupby(dfHouseholdDataShort, :LCLid)
 iCompleteHouseholds = findall([length(unique(dfHouseholdDataByHousehold[i].Date)) for i in 1:length(dfHouseholdDataByHousehold)] .==365)
-# iCompleteHouseholds = findall([nrow(dfHouseholdDataByHousehold[i]) for i in 1:length(dfHouseholdDataByHousehold)] .==8760)
 dfHouseholdDataCompleteHouseholds = dfHouseholdDataByHousehold[iCompleteHouseholds]
-dfHouseholdDataShortComplete = combine(dfHouseholdDataCompleteHouseholds,
-    [:Date, :Hour, :DateAndHour, :Consumption])
+dfHouseholdDataShortCompleteDoubles = combine(dfHouseholdDataCompleteHouseholds,
+    # [:Date, :Hour, :DateAndHour, :Consumption])
+    [:Date, :Hour, :Consumption])
+
+dfHouseholdDataShortComplete = @pipe groupby(dfHouseholdDataShortCompleteDoubles, [:LCLid, :Date, :Hour]) |>
+    combine(_, :Consumption => mean => :Consumption)
 
 dfHouseholdDataByHousehold = nothing
 iCompleteHouseholds = nothing
@@ -62,8 +69,27 @@ dfHouseholdDataCompleteHouseholds = nothing
 dfHouseholdDataShort = nothing
 dfHouseholdDataShortComplete.Month = Dates.month.(dfHouseholdDataShortComplete.Date)
 dfHouseholdDataShortComplete.DayOfWeek = Dates.dayofweek.(dfHouseholdDataShortComplete.Date)
+
+dfHouseholdDataShortComplete = @pipe groupby(dfHouseholdDataShortCompleteDoubles, [:LCLid, :Date, :Hour]) |>
+    combine(_, :Consumption => mean => :Consumption)
+
+
+# investigating double entries
+iNonUniqueIndices = findall(nonunique(dfHouseholdDataShortCompleteTest[:,[:LCLid, :DateAndHour]]).==true)
+for i in 1:length(iNonUniqueIndices)
+    temp = dfHouseholdDataShortComplete[iNonUniqueIndices[i]-1:iNonUniqueIndices[i], :]
+    println(i)
+    println(temp)
+end
+
+
+q = filter(row -> (row.LCLid .== "MAC004383" && row.Date .== Date("2013-08-19") && row.Hour .== 22 ), dfHouseholdDataShortComplete)
+r = filter(row -> (row.LCLid .== "MAC004673" && row.Date .== Date("2013-02-03") && row.Hour .== 9), dfHouseholdDataShortComplete)
+
 dfHouseholdDataFinal = unstack(dfHouseholdDataShortComplete, :LCLid, :Consumption)
 filter(row -> (row.LCLid .== "MAC004268" && row.Date .== Date("2013-06-29") && row.Hour .== 9), dfHouseholdDataShortComplete)
+
+# data imputation
 for column in eachcol(dfHouseholdDataFinal)
     Impute.impute!(column, Impute.Interpolate())
     Impute.impute!(column, Impute.LOCF())
