@@ -41,7 +41,6 @@ for FileNum in 1:length(AllHouseholdData)
 end
 
 # Filter only data for 2013, create a date and time column
-# dfHouseholdData.DateAndHour = DateTime.(dfHouseholdData.Date) .+ Dates.Hour.(dfHouseholdData.Hour)
 dfHouseholdDataShort = filter(row -> (row.Date > Dates.Date("2012-12-31") && row.Date < Dates.Date("2014-01-01")),
     dfHouseholdData)
 dfHouseholdData = nothing
@@ -57,12 +56,20 @@ dfHouseholdDataByHousehold = @pipe groupby(dfHouseholdDataShort, :LCLid)
 iCompleteHouseholds = findall([length(unique(dfHouseholdDataByHousehold[i].Date)) for i in 1:length(dfHouseholdDataByHousehold)] .==365)
 dfHouseholdDataCompleteHouseholds = dfHouseholdDataByHousehold[iCompleteHouseholds]
 dfHouseholdDataShortCompleteDoubles = combine(dfHouseholdDataCompleteHouseholds,
-    # [:Date, :Hour, :DateAndHour, :Consumption])
     [:Date, :Hour, :Consumption])
+iNonUniqueIndices = findall(nonunique(dfHouseholdDataShortCompleteDoubles[:,[:LCLid, :Date, :Hour]]).==true)
 
 dfHouseholdDataShortComplete = @pipe groupby(dfHouseholdDataShortCompleteDoubles, [:LCLid, :Date, :Hour]) |>
     combine(_, :Consumption => mean => :Consumption)
+iNonUniqueIndicesCorrected = findall(nonunique(dfHouseholdDataShortComplete[:,[:LCLid, :Date, :Hour]]).==true)
 
+# Add a couple of columns
+# dfHouseholdDataShortComplete.DateAndHour = DateTime.(dfHouseholdDataShortComplete.Date) .+ Dates.Hour.(dfHouseholdDataShortComplete.Hour)
+dfHouseholdDataShortComplete.Month = Dates.month.(dfHouseholdDataShortComplete.Date)
+dfHouseholdDataShortComplete.DayOfWeek = Dates.dayofweek.(dfHouseholdDataShortComplete.Date)
+
+
+# Clear old dfs to release RAM
 dfHouseholdDataByHousehold = nothing
 iCompleteHouseholds = nothing
 dfHouseholdDataCompleteHouseholds = nothing
@@ -70,24 +77,8 @@ dfHouseholdDataShort = nothing
 dfHouseholdDataShortComplete.Month = Dates.month.(dfHouseholdDataShortComplete.Date)
 dfHouseholdDataShortComplete.DayOfWeek = Dates.dayofweek.(dfHouseholdDataShortComplete.Date)
 
-dfHouseholdDataShortComplete = @pipe groupby(dfHouseholdDataShortCompleteDoubles, [:LCLid, :Date, :Hour]) |>
-    combine(_, :Consumption => mean => :Consumption)
-
-
-# investigating double entries
-iNonUniqueIndices = findall(nonunique(dfHouseholdDataShortCompleteTest[:,[:LCLid, :DateAndHour]]).==true)
-for i in 1:length(iNonUniqueIndices)
-    temp = dfHouseholdDataShortComplete[iNonUniqueIndices[i]-1:iNonUniqueIndices[i], :]
-    println(i)
-    println(temp)
-end
-
-
-q = filter(row -> (row.LCLid .== "MAC004383" && row.Date .== Date("2013-08-19") && row.Hour .== 22 ), dfHouseholdDataShortComplete)
-r = filter(row -> (row.LCLid .== "MAC004673" && row.Date .== Date("2013-02-03") && row.Hour .== 9), dfHouseholdDataShortComplete)
-
+# unstack data to wide - needed for clustering
 dfHouseholdDataFinal = unstack(dfHouseholdDataShortComplete, :LCLid, :Consumption)
-filter(row -> (row.LCLid .== "MAC004268" && row.Date .== Date("2013-06-29") && row.Hour .== 9), dfHouseholdDataShortComplete)
 
 # data imputation
 for column in eachcol(dfHouseholdDataFinal)
@@ -96,6 +87,10 @@ for column in eachcol(dfHouseholdDataFinal)
     Impute.impute!(column, Impute.NOCB())
 end
 disallowmissing!(dfHouseholdDataFinal)
+
+# Clear old dfs to release RAM
+dfHouseholdDataShortCompleteDoubles = nothing
+dfHouseholdDataShortComplete = nothing
 
 dfHouseholdDataByMonth = groupby(dfHouseholdDataFinal,
     [:Month, :DayOfWeek], sort = true)
