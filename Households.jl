@@ -35,7 +35,9 @@ function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
     SelectedDays = (rand(1:12, 3), rand(1:7, 3))
     TestClusteringData = RunTestClustering(dfHouseholdDataToCluster, SelectedDays)
 
-    FinalClusteringData = RunFinalClustering
+    FinalClusteringData = RunFinalClustering(dfHouseholdDataToCluster, TestClusteringData[2])
+
+    return FinalClusteringData, dfHouseholdDataShort, TestClusteringData[1]
 end
 
 
@@ -149,7 +151,7 @@ function RunFinalClustering(dfHouseholdDataByMonth, OptimalNumberOfClusters)
         push!(HouseholdProfiles, (Month, Day) => ClustersOnDay.centers)
     end
 
-    return(HouseholdProfiles)
+    return HouseholdProfiles
 end
 
 #dfHouseholdDataShortComplete.LCLid = string.(dfHouseholdDataShortComplete.LCLid,
