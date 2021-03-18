@@ -70,23 +70,27 @@ end
 # grouping the households by HouseholdID
 # and selecting only those which have 365 unique dates in readings
 function ClearAndModifyHouseholdData(dfHouseholdData)
+    # group by HID and select only those which have measurements for each day of the year,
+    # then combine back
     dfHouseholdDataByHousehold = @pipe groupby(dfHouseholdData, :LCLid)
     iCompleteHouseholds = findall([length(unique(dfHouseholdDataByHousehold[i].Date)) for i in 1:length(dfHouseholdDataByHousehold)] .==365)
-
     dfHouseholdDataCompleteHouseholds = dfHouseholdDataByHousehold[iCompleteHouseholds]
     dfHouseholdDataShortCompleteDoubles = combine(dfHouseholdDataCompleteHouseholds,
         [:Date, :Hour, :Consumption])
 
+    # check if there are some HID with duplicated readings on particular hours of particular days
+    # if so, take the average
     iNonUniqueIndices = findall(nonunique(dfHouseholdDataShortCompleteDoubles[:,[:LCLid, :Date, :Hour]]).==true)
-
     dfHouseholdDataShortComplete = @pipe groupby(dfHouseholdDataShortCompleteDoubles, [:LCLid, :Date, :Hour]) |>
         combine(_, :Consumption => mean => :Consumption)
     iNonUniqueIndicesCorrected = findall(nonunique(dfHouseholdDataShortComplete[:,[:LCLid, :Date, :Hour]]).==true)
+    # if after the combination there are still some douplicated numbers
+    # break the functions
     if length(iNonUniqueIndicesCorrected) != 0
         println("There are some households with missing data. Execution stopped")
         return nothing
     end
-    # Add a couple of columns
+    # Add month and day of week columns
     dfHouseholdDataShortComplete.Month = Dates.month.(dfHouseholdDataShortComplete.Date)
     dfHouseholdDataShortComplete.DayOfWeek = Dates.dayofweek.(dfHouseholdDataShortComplete.Date)
 
@@ -94,6 +98,7 @@ function ClearAndModifyHouseholdData(dfHouseholdData)
     return dfHouseholdDataShortComplete
 end
 
+# we need grouped data for clustering - grouped by month and day of week
 function PrepareDataForClustering(dfHouseholdData)
     dfHouseholdDataToCluster = deepcopy(dfHouseholdData)
     dfHouseholdDataToCluster.IDAndDay = string.(dfHouseholdDataToCluster.LCLid,
@@ -104,6 +109,10 @@ function PrepareDataForClustering(dfHouseholdData)
     return dfHouseholdDataByMonth
 end
 
+# we also need wide data for clustering
+# due to memory overflows we can't transform them this way at once
+# instead, we work with them one by one
+# additional point - data imputation
 function PrepareDaysDataForClustering(dfHouseholdDataByMonth, CurrentMonth, CurrentDayOfWeek)
     CurrentPeriod = @pipe dfHouseholdDataByMonth[CurrentMonth, CurrentDayOfWeek)] |>
         unstack(_, :IDAndDay, :Consumption)
@@ -116,22 +125,30 @@ function PrepareDaysDataForClustering(dfHouseholdDataByMonth, CurrentMonth, Curr
     return CurrentPeriod
 end
 
+# test clustering
 function RunTestClustering(dfHouseholdDataByMonth, SelectedDays; FixedSeed = 72945)
+    # placeholder for the output
     TestSillhouettesOutput = Dict{}()
 
+    # loop over the test dates
     for testNumber in 1:length(SelectedDays[1]), NumberOfTestClusters in 2:7
         println("Month ", SelectedDays[1][testNumber], " , day ", SelectedDays[2][testNumber], ", number of clusters $NumberOfTestClusters" )
+        # get data in wide format
         CurrentPeriod = PrepareDaysDataForClustering(dfHouseholdDataByMonth,
             SelectedDays[1][testNumber], SelectedDays[2][testNumber])
+        # run clustering
         TestClusters = Clustering.kmeans(
             Matrix(CurrentPeriod[:,6:size(CurrentPeriod)[2]]), NumberOfTestClusters)
+        # silhouettes
         TestSillhouettes = Clustering.silhouettes(TestClusters.assignments, TestClusters.counts,
                 pairwise(SqEuclidean(), Matrix(CurrentPeriod[:,6:size(CurrentPeriod)[2]])))
+        # final score
         SilhouetteScore = mean(TestSillhouettes)
         push!(TestSillhouettesOutput, (SelectedDays[1][testNumber], SelectedDays[2][testNumber], NumberOfTestClusters) =>
             SilhouetteScore)
     end
 
+    # getting the data to the output data frame
     tempKeys = keys(TestSillhouettesOutput) |> collect
     TestDays = [tempKeys[i][1:2] for i in 1:length(tempKeys)]
     NumberOfClusters = [tempKeys[i][3] for i in 1:length(tempKeys)]
@@ -146,7 +163,9 @@ function RunTestClustering(dfHouseholdDataByMonth, SelectedDays; FixedSeed = 729
     return dfSillhouettesOutcome, FinalNumberOfClusters
 end
 
+# final clustering
 function RunFinalClustering(dfHouseholdDataByMonth, OptimalNumberOfClusters)
+    # the function runs just like above
     HouseholdProfiles = Dict{}()
     for Month in 1:12, Day in 1:7
         println("Month ", Month, " , day ", Day)
