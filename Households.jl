@@ -120,6 +120,8 @@ dfSillhouettesOutcome = DataFrames.DataFrame(TestDays = TestDays, NumberOfCluste
     SillhouetteScore = SillhouetteScore)
 dfSillhouettesOutcomeAverage = @pipe groupby(dfSillhouettesOutcome, :NumberOfClusters) |>
     combine(_, :SillhouetteScore => mean => :SillhouetteScoreAvg)
+FinalNumberOfClusters = dfSillhouettesOutcomeAverage.NumberOfClusters[
+    dfSillhouettesOutcomeAverage.SillhouetteScoreAvg .== maximum(dfSillhouettesOutcomeAverage.SillhouetteScoreAvg),1][1]
 
 fasfasd = @df dfSillhouettesOutcome StatsPlots.groupedbar(:NumberOfClusters, :SillhouetteScore,
     group = :TestDays,
@@ -132,10 +134,8 @@ ClusteredData = Dict{}()
 
 
 
-# kontynuacja - pogrupuj wedlug dnia tygodnia i miesiaca,
-# dla kazdego przeprowadz imputacje,
-# dokonaj klasteryzacji
-# i idz do domu
+
+
 
 # unstack data to wide - needed for clustering
 # dfHouseholdDataFinal = unstack(dfHouseholdDataShortComplete, :LCLid, :Consumption)
