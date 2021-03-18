@@ -12,7 +12,7 @@ function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
     # append all the data together
     for FileNum in 1:length(AllHouseholdData)
         println("File number ", FileNum, ", file name ", AllHouseholdData[FileNum])
-        dfTemp = ProcessHouseholdData(cMasterDir, AllHouseholdData[FileNum])
+        dfTemp = ProcessRawHouseholdData(cMasterDir, AllHouseholdData[FileNum])
         nrow(dfTemp) > 0 && append!(dfHouseholdDataFull, dfTemp)
         dfTemp = DataFrames.DataFrame()
     end
@@ -41,7 +41,7 @@ function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
 end
 
 
-function ProcessHouseholdData(cMainDir, cFileName)
+function ProcessRawHouseholdData(cMainDir, cFileName)
     # read file and rename columns
     dfAllData = CSV.File(string(cMainDir,"/",cFileName)) |>
         DataFrame
@@ -104,19 +104,25 @@ function PrepareDataForClustering(dfHouseholdData)
     return dfHouseholdDataByMonth
 end
 
+function PrepareDaysDataForClustering(dfHouseholdDataByMonth, CurrentMonth, CurrentDayOfWeek)
+    CurrentPeriod = @pipe dfHouseholdDataByMonth[CurrentMonth, CurrentDayOfWeek)] |>
+        unstack(_, :IDAndDay, :Consumption)
+    for column in eachcol(CurrentPeriod)
+        Impute.impute!(column, Impute.Interpolate())
+        Impute.impute!(column, Impute.LOCF())
+        Impute.impute!(column, Impute.NOCB())
+    end
+    disallowmissing!(CurrentPeriod)
+    return CurrentPeriod
+end
+
 function RunTestClustering(dfHouseholdDataByMonth, SelectedDays; FixedSeed = 72945)
     TestSillhouettesOutput = Dict{}()
 
     for testNumber in 1:length(SelectedDays[1]), NumberOfTestClusters in 2:7
         println("Month ", SelectedDays[1][testNumber], " , day ", SelectedDays[2][testNumber], ", number of clusters $NumberOfTestClusters" )
-        CurrentPeriod = @pipe dfHouseholdDataByMonth[(SelectedDays[1][testNumber], SelectedDays[2][testNumber])] |>
-            unstack(_, :IDAndDay, :Consumption)
-        for column in eachcol(CurrentPeriod)
-            Impute.impute!(column, Impute.Interpolate())
-            Impute.impute!(column, Impute.LOCF())
-            Impute.impute!(column, Impute.NOCB())
-        end
-        disallowmissing!(CurrentPeriod)
+        CurrentPeriod = PrepareDaysDataForClustering(dfHouseholdDataByMonth,
+            SelectedDays[1][testNumber], SelectedDays[2][testNumber])
         TestClusters = Clustering.kmeans(
             Matrix(CurrentPeriod[:,6:size(CurrentPeriod)[2]]), NumberOfTestClusters)
         TestSillhouettes = Clustering.silhouettes(TestClusters.assignments, TestClusters.counts,
@@ -144,9 +150,10 @@ function RunFinalClustering(dfHouseholdDataByMonth, OptimalNumberOfClusters)
     HouseholdProfiles = Dict{}()
     for Month in 1:12, Day in 1:7
         println("Month ", Month, " , day ", Day)
-        CurrentDayVols = dfHouseholdDataByMonth[(Month, Day)]
+        CurrentPeriod = PrepareDaysDataForClustering(dfHouseholdDataByMonth,
+            Month, Day)
         ClustersOnDay = Clustering.kmeans(
-            Matrix(CurrentDayVols[:,6:size(CurrentDayVols)[2]]), 2
+            Matrix(CurrentPeriod[:,6:size(CurrentPeriod)[2]]), 2
         )
         push!(HouseholdProfiles, (Month, Day) => ClustersOnDay.centers)
     end
