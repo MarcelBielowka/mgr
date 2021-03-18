@@ -4,8 +4,40 @@ using FreqTables, Impute, Distances
 
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
-AllHouseholdData = readdir(cMasterDir)
-dfHouseholdData = DataFrames.DataFrame()
+
+function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
+    AllHouseholdData = readdir(cMasterDir)
+    dfHouseholdDataFull = DataFrames.DataFrame()
+
+    # append all the data together
+    for FileNum in 1:length(AllHouseholdData)
+        println("File number ", FileNum, ", file name ", AllHouseholdData[FileNum])
+        dfTemp = ProcessHouseholdData(cMasterDir, AllHouseholdData[FileNum])
+        nrow(dfTemp) > 0 && append!(dfHouseholdDataFull, dfTemp)
+        dfTemp = DataFrames.DataFrame()
+    end
+
+    # Filter only data for 2013, create a date and time column
+    dfHouseholdDataShort = filter(row -> (row.Date > Dates.Date("2012-12-31") && row.Date < Dates.Date("2014-01-01")),
+        dfHouseholdData)
+    dfHouseholdData = nothing
+
+    # FreqTableReadings = FreqTables.freqtable(dfHouseholdDataShort.LCLid, dfHouseholdDataShort.Date)
+    # m = [count(col.==24) for col in eachcol(FreqTableReadings)]
+    any(dfHouseholdDataShort.Consumption .< 0) ? break
+
+    dfHouseholdDataShortComplete = ClearAndModifyHouseholdData(dfHouseholdDataShort)
+    isnothing(dfHouseholdDataShort) ? break
+
+    dfHouseholdDataToCluster = PrepareDataForClustering(dfHouseholdDataShortComplete)
+
+    Random.seed!(FixedSeed)
+    SelectedDays = (rand(1:12, 3), rand(1:7, 3))
+    TestClusteringData = RunTestClustering(dfHouseholdDataToCluster, SelectedDays)
+
+    FinalClusteringData = RunFinalClustering
+end
+
 
 function ProcessHouseholdData(cMainDir, cFileName)
     # read file and rename columns
@@ -32,96 +64,98 @@ function ProcessHouseholdData(cMainDir, cFileName)
     return dfFilteredData_hourly
 end
 
-# append all the data together
-for FileNum in 1:length(AllHouseholdData)
-    println("File number ", FileNum, ", file name ", AllHouseholdData[FileNum])
-    dfTemp = ProcessHouseholdData(cMasterDir, AllHouseholdData[FileNum])
-    nrow(dfTemp) > 0 && append!(dfHouseholdData, dfTemp)
-    dfTemp = DataFrames.DataFrame()
-end
-
-# Filter only data for 2013, create a date and time column
-dfHouseholdDataShort = filter(row -> (row.Date > Dates.Date("2012-12-31") && row.Date < Dates.Date("2014-01-01")),
-    dfHouseholdData)
-dfHouseholdData = nothing
-
-# FreqTableReadings = FreqTables.freqtable(dfHouseholdDataShort.LCLid, dfHouseholdDataShort.Date)
-# m = [count(col.==24) for col in eachcol(FreqTableReadings)]
-any(dfHouseholdDataShort.Consumption .< 0)
-
 # choosing only households which have readings for each of the 365 days of 2013
 # grouping the households by HouseholdID
 # and selecting only those which have 365 unique dates in readings
-dfHouseholdDataByHousehold = @pipe groupby(dfHouseholdDataShort, :LCLid)
-iCompleteHouseholds = findall([length(unique(dfHouseholdDataByHousehold[i].Date)) for i in 1:length(dfHouseholdDataByHousehold)] .==365)
-dfHouseholdDataCompleteHouseholds = dfHouseholdDataByHousehold[iCompleteHouseholds]
-dfHouseholdDataShortCompleteDoubles = combine(dfHouseholdDataCompleteHouseholds,
-    [:Date, :Hour, :Consumption])
-iNonUniqueIndices = findall(nonunique(dfHouseholdDataShortCompleteDoubles[:,[:LCLid, :Date, :Hour]]).==true)
+function ClearAndModifyHouseholdData(dfHouseholdData)
+    dfHouseholdDataByHousehold = @pipe groupby(dfHouseholdData, :LCLid)
+    iCompleteHouseholds = findall([length(unique(dfHouseholdDataByHousehold[i].Date)) for i in 1:length(dfHouseholdDataByHousehold)] .==365)
 
-dfHouseholdDataShortComplete = @pipe groupby(dfHouseholdDataShortCompleteDoubles, [:LCLid, :Date, :Hour]) |>
-    combine(_, :Consumption => mean => :Consumption)
-iNonUniqueIndicesCorrected = findall(nonunique(dfHouseholdDataShortComplete[:,[:LCLid, :Date, :Hour]]).==true)
+    dfHouseholdDataCompleteHouseholds = dfHouseholdDataByHousehold[iCompleteHouseholds]
+    dfHouseholdDataShortCompleteDoubles = combine(dfHouseholdDataCompleteHouseholds,
+        [:Date, :Hour, :Consumption])
 
-# Add a couple of columns
-# dfHouseholdDataShortComplete.DateAndHour = DateTime.(dfHouseholdDataShortComplete.Date) .+ Dates.Hour.(dfHouseholdDataShortComplete.Hour)
-dfHouseholdDataShortComplete.Month = Dates.month.(dfHouseholdDataShortComplete.Date)
-dfHouseholdDataShortComplete.DayOfWeek = Dates.dayofweek.(dfHouseholdDataShortComplete.Date)
+    iNonUniqueIndices = findall(nonunique(dfHouseholdDataShortCompleteDoubles[:,[:LCLid, :Date, :Hour]]).==true)
 
-# Clear old dfs to release RAM
-dfHouseholdDataByHousehold = nothing
-iCompleteHouseholds = nothing
-dfHouseholdDataCompleteHouseholds = nothing
-dfHouseholdDataShort = nothing
-dfHouseholdDataShortCompleteDoubles = nothing
-dfHouseholdDataToCluster = deepcopy(dfHouseholdDataShortComplete)
-dfHouseholdDataToCluster.IDAndDay = string.(dfHouseholdDataToCluster.LCLid,
-    dfHouseholdDataToCluster.Month, Dates.day.(dfHouseholdDataToCluster.Date))
-select!(dfHouseholdDataToCluster, Not([:LCLid, :Date]))
+    dfHouseholdDataShortComplete = @pipe groupby(dfHouseholdDataShortCompleteDoubles, [:LCLid, :Date, :Hour]) |>
+        combine(_, :Consumption => mean => :Consumption)
+    iNonUniqueIndicesCorrected = findall(nonunique(dfHouseholdDataShortComplete[:,[:LCLid, :Date, :Hour]]).==true)
+    if length(iNonUniqueIndicesCorrected) != 0
+        println("There are some households with missing data. Execution stopped")
+        return nothing
+    end
+    # Add a couple of columns
+    dfHouseholdDataShortComplete.Month = Dates.month.(dfHouseholdDataShortComplete.Date)
+    dfHouseholdDataShortComplete.DayOfWeek = Dates.dayofweek.(dfHouseholdDataShortComplete.Date)
+
+    # return the outcome
+    return dfHouseholdDataShortComplete
+end
+
+function PrepareDataForClustering(dfHouseholdData)
+    dfHouseholdDataToCluster = deepcopy(dfHouseholdData)
+    dfHouseholdDataToCluster.IDAndDay = string.(dfHouseholdDataToCluster.LCLid,
+        dfHouseholdDataToCluster.Month, Dates.day.(dfHouseholdDataToCluster.Date))
+    select!(dfHouseholdDataToCluster, Not([:LCLid, :Date]))
+    dfHouseholdDataByMonth = @pipe groupby(dfHouseholdDataToCluster,
+        [:Month, :DayOfWeek], sort = true)
+    return dfHouseholdDataByMonth
+end
+
+function RunTestClustering(dfHouseholdDataByMonth, SelectedDays; FixedSeed = 72945)
+    TestSillhouettesOutput = Dict{}()
+
+    for testNumber in 1:length(SelectedDays[1]), NumberOfTestClusters in 2:7
+        println("Month ", SelectedDays[1][testNumber], " , day ", SelectedDays[2][testNumber], ", number of clusters $NumberOfTestClusters" )
+        CurrentPeriod = @pipe dfHouseholdDataByMonth[(SelectedDays[1][testNumber], SelectedDays[2][testNumber])] |>
+            unstack(_, :IDAndDay, :Consumption)
+        for column in eachcol(CurrentPeriod)
+            Impute.impute!(column, Impute.Interpolate())
+            Impute.impute!(column, Impute.LOCF())
+            Impute.impute!(column, Impute.NOCB())
+        end
+        disallowmissing!(CurrentPeriod)
+        TestClusters = Clustering.kmeans(
+            Matrix(CurrentPeriod[:,6:size(CurrentPeriod)[2]]), NumberOfTestClusters)
+        TestSillhouettes = Clustering.silhouettes(TestClusters.assignments, TestClusters.counts,
+                pairwise(SqEuclidean(), Matrix(CurrentPeriod[:,6:size(CurrentPeriod)[2]])))
+        SilhouetteScore = mean(TestSillhouettes)
+        push!(TestSillhouettesOutput, (SelectedDays[1][testNumber], SelectedDays[2][testNumber], NumberOfTestClusters) =>
+            SilhouetteScore)
+    end
+
+    tempKeys = keys(TestSillhouettesOutput) |> collect
+    TestDays = [tempKeys[i][1:2] for i in 1:length(tempKeys)]
+    NumberOfClusters = [tempKeys[i][3] for i in 1:length(tempKeys)]
+    SillhouetteScore = convert.(Float64, values(TestSillhouettesOutput) |> collect)
+    dfSillhouettesOutcome = DataFrames.DataFrame(TestDays = TestDays, NumberOfClusters = NumberOfClusters,
+        SillhouetteScore = SillhouetteScore)
+    dfSillhouettesOutcomeAverage = @pipe groupby(dfSillhouettesOutcome, :NumberOfClusters) |>
+        combine(_, :SillhouetteScore => mean => :SillhouetteScoreAvg)
+    FinalNumberOfClusters = dfSillhouettesOutcomeAverage.NumberOfClusters[
+        dfSillhouettesOutcomeAverage.SillhouetteScoreAvg .== maximum(dfSillhouettesOutcomeAverage.SillhouetteScoreAvg),1][1]
+
+    return dfSillhouettesOutcome, FinalNumberOfClusters
+end
+
+function RunFinalClustering(dfHouseholdDataByMonth, OptimalNumberOfClusters)
+    HouseholdProfiles = Dict{}()
+    for Month in 1:12, Day in 1:7
+        println("Month ", Month, " , day ", Day)
+        CurrentDayVols = dfHouseholdDataByMonth[(Month, Day)]
+        ClustersOnDay = Clustering.kmeans(
+            Matrix(CurrentDayVols[:,6:size(CurrentDayVols)[2]]), 2
+        )
+        push!(HouseholdProfiles, (Month, Day) => ClustersOnDay.centers)
+    end
+
+    return(HouseholdProfiles)
+end
+
 #dfHouseholdDataShortComplete.LCLid = string.(dfHouseholdDataShortComplete.LCLid,
 #    dfHouseholdDataShortComplete.Month, Dates.day.(dfHouseholdDataShortComplete.Date))
 # dfHouseholdDataFinal = unstack(dfHouseholdDataToCluster, :IDAndDay, :Consumption)
 
-dfHouseholdDataByMonth = @pipe groupby(dfHouseholdDataToCluster,
-    [:Month, :DayOfWeek], sort = true)
-dfHouseholdDataByMonth.keymap
-dfHouseholdDataToCluster = nothing
-
-Random.seed!(72945)
-SelectedDays = (rand(1:12, 3), rand(1:7, 3))
-SelectedDays[1][5] = 11
-
-TestSillhouettesOutput = Dict{}()
-
-for testNumber in 1:length(SelectedDays[1]), NumberOfTestClusters in 2:7
-    println("Month ", SelectedDays[1][testNumber], " , day ", SelectedDays[2][testNumber], ", number of clusters $NumberOfTestClusters" )
-    CurrentPeriod = @pipe dfHouseholdDataByMonth[(SelectedDays[1][testNumber], SelectedDays[2][testNumber])] |>
-        unstack(_, :IDAndDay, :Consumption)
-    for column in eachcol(CurrentPeriod)
-        Impute.impute!(column, Impute.Interpolate())
-        Impute.impute!(column, Impute.LOCF())
-        Impute.impute!(column, Impute.NOCB())
-    end
-    disallowmissing!(CurrentPeriod)
-    TestClusters = Clustering.kmeans(
-        Matrix(CurrentPeriod[:,6:size(CurrentPeriod)[2]]), NumberOfTestClusters)
-    TestSillhouettes = Clustering.silhouettes(TestClusters.assignments, TestClusters.counts,
-            pairwise(SqEuclidean(), Matrix(CurrentPeriod[:,6:size(CurrentPeriod)[2]])))
-    SilhouetteScore = mean(TestSillhouettes)
-    push!(TestSillhouettesOutput, (SelectedDays[1][testNumber], SelectedDays[2][testNumber], NumberOfTestClusters) =>
-        SilhouetteScore)
-end
-
-tempKeys = keys(TestSillhouettesOutput) |> collect
-TestDays = [tempKeys[i][1:2] for i in 1:length(tempKeys)]
-NumberOfClusters = [tempKeys[i][3] for i in 1:length(tempKeys)]
-SillhouetteScore = convert.(Float64, values(TestSillhouettesOutput) |> collect)
-dfSillhouettesOutcome = DataFrames.DataFrame(TestDays = TestDays, NumberOfClusters = NumberOfClusters,
-    SillhouetteScore = SillhouetteScore)
-dfSillhouettesOutcomeAverage = @pipe groupby(dfSillhouettesOutcome, :NumberOfClusters) |>
-    combine(_, :SillhouetteScore => mean => :SillhouetteScoreAvg)
-FinalNumberOfClusters = dfSillhouettesOutcomeAverage.NumberOfClusters[
-    dfSillhouettesOutcomeAverage.SillhouetteScoreAvg .== maximum(dfSillhouettesOutcomeAverage.SillhouetteScoreAvg),1][1]
 
 fasfasd = @df dfSillhouettesOutcome StatsPlots.groupedbar(:NumberOfClusters, :SillhouetteScore,
     group = :TestDays,
