@@ -68,18 +68,79 @@ iNonUniqueIndicesCorrected = findall(nonunique(dfHouseholdDataShortComplete[:,[:
 dfHouseholdDataShortComplete.Month = Dates.month.(dfHouseholdDataShortComplete.Date)
 dfHouseholdDataShortComplete.DayOfWeek = Dates.dayofweek.(dfHouseholdDataShortComplete.Date)
 
-
 # Clear old dfs to release RAM
 dfHouseholdDataByHousehold = nothing
 iCompleteHouseholds = nothing
 dfHouseholdDataCompleteHouseholds = nothing
 dfHouseholdDataShort = nothing
-dfHouseholdDataShortComplete.Month = Dates.month.(dfHouseholdDataShortComplete.Date)
-dfHouseholdDataShortComplete.DayOfWeek = Dates.dayofweek.(dfHouseholdDataShortComplete.Date)
+dfHouseholdDataShortCompleteDoubles = nothing
+dfHouseholdDataToCluster = deepcopy(dfHouseholdDataShortComplete)
+dfHouseholdDataToCluster.IDAndDay = string.(dfHouseholdDataToCluster.LCLid,
+    dfHouseholdDataToCluster.Month, Dates.day.(dfHouseholdDataToCluster.Date))
+select!(dfHouseholdDataToCluster, Not([:LCLid, :Date]))
+#dfHouseholdDataShortComplete.LCLid = string.(dfHouseholdDataShortComplete.LCLid,
+#    dfHouseholdDataShortComplete.Month, Dates.day.(dfHouseholdDataShortComplete.Date))
+# dfHouseholdDataFinal = unstack(dfHouseholdDataToCluster, :IDAndDay, :Consumption)
+
+dfHouseholdDataByMonth = @pipe groupby(dfHouseholdDataToCluster,
+    [:Month, :DayOfWeek], sort = true)
+dfHouseholdDataByMonth.keymap
+dfHouseholdDataToCluster = nothing
+
+Random.seed!(72945)
+SelectedDays = (rand(1:12, 3), rand(1:7, 3))
+SelectedDays[1][5] = 11
+
+TestSillhouettesOutput = Dict{}()
+
+for testNumber in 1:length(SelectedDays[1]), NumberOfTestClusters in 2:7
+    println("Month ", SelectedDays[1][testNumber], " , day ", SelectedDays[2][testNumber], ", number of clusters $NumberOfTestClusters" )
+    CurrentPeriod = @pipe dfHouseholdDataByMonth[(SelectedDays[1][testNumber], SelectedDays[2][testNumber])] |>
+        unstack(_, :IDAndDay, :Consumption)
+    for column in eachcol(CurrentPeriod)
+        Impute.impute!(column, Impute.Interpolate())
+        Impute.impute!(column, Impute.LOCF())
+        Impute.impute!(column, Impute.NOCB())
+    end
+    disallowmissing!(CurrentPeriod)
+    TestClusters = Clustering.kmeans(
+        Matrix(CurrentPeriod[:,6:size(CurrentPeriod)[2]]), NumberOfTestClusters)
+    TestSillhouettes = Clustering.silhouettes(TestClusters.assignments, TestClusters.counts,
+            pairwise(SqEuclidean(), Matrix(CurrentPeriod[:,6:size(CurrentPeriod)[2]])))
+    SilhouetteScore = mean(TestSillhouettes)
+    push!(TestSillhouettesOutput, (SelectedDays[1][testNumber], SelectedDays[2][testNumber], NumberOfTestClusters) =>
+        SilhouetteScore)
+end
+
+tempKeys = keys(TestSillhouettesOutput) |> collect
+TestDays = [tempKeys[i][1:2] for i in 1:length(tempKeys)]
+NumberOfClusters = [tempKeys[i][3] for i in 1:length(tempKeys)]
+SillhouetteScore = convert.(Float64, values(TestSillhouettesOutput) |> collect)
+dfSillhouettesOutcome = DataFrames.DataFrame(TestDays = TestDays, NumberOfClusters = NumberOfClusters,
+    SillhouetteScore = SillhouetteScore)
+dfSillhouettesOutcomeAverage = @pipe groupby(dfSillhouettesOutcome, :NumberOfClusters) |>
+    combine(_, :SillhouetteScore => mean => :SillhouetteScoreAvg)
+
+fasfasd = @df dfSillhouettesOutcome StatsPlots.groupedbar(:NumberOfClusters, :SillhouetteScore,
+    group = :TestDays,
+    color = [RGB(192/255, 0, 0) RGB(100/255, 0, 0) RGB(8/255, 0, 0)],
+    xlabel = "Number of clusters",
+    ylabel = "Average silhouette score",
+    legendtitle = "Test Day")
+
+ClusteredData = Dict{}()
+
+
+
+# kontynuacja - pogrupuj wedlug dnia tygodnia i miesiaca,
+# dla kazdego przeprowadz imputacje,
+# dokonaj klasteryzacji
+# i idz do domu
 
 # unstack data to wide - needed for clustering
-dfHouseholdDataFinal = unstack(dfHouseholdDataShortComplete, :LCLid, :Consumption)
-
+# dfHouseholdDataFinal = unstack(dfHouseholdDataShortComplete, :LCLid, :Consumption)
+# dfHouseholdDataFinal = unstack(dfHouseholdDataByMonth[1], :IDAndDay, :Consumption)
+# unstack(dfHouseholdDataByMonth[1], :LCLid, :Consumption)
 # data imputation
 for column in eachcol(dfHouseholdDataFinal)
     Impute.impute!(column, Impute.Interpolate())
@@ -89,7 +150,6 @@ end
 disallowmissing!(dfHouseholdDataFinal)
 
 # Clear old dfs to release RAM
-dfHouseholdDataShortCompleteDoubles = nothing
 dfHouseholdDataShortComplete = nothing
 
 dfHouseholdDataByMonth = groupby(dfHouseholdDataFinal,
@@ -102,6 +162,7 @@ c = @pipe groupby(dfHouseholdDataShortComplete, :LCLid) |>
                 :Consumption => maximum])
 Random.seed!(72945)
 SelectedDays = (rand(1:12, 5), rand(1:7, 5))
+SelectedDays[1][5] = 11
 
 TestSillhouettesOutput = Dict{}()
 
@@ -126,7 +187,7 @@ dfToPlot = DataFrames.DataFrame(TestDays = TestDays, NumberOfClusters = NumberOf
 
 fasfasd = @df dfToPlot StatsPlots.groupedbar(:NumberOfClusters, :SillhouetteScore,
     group = :TestDays,
-    color = [RGB(192/255, 0, 0) RGB(146/255, 0, 0) RGB(100/255, 0, 0) RGB(54/255, 0, 0)],
+    color = [RGB(192/255, 0, 0) RGB(146/255, 0, 0) RGB(100/255, 0, 0) RGB(54/255, 0, 0) RGB(8/255, 0, 0)],
     xlabel = "Number of clusters",
     ylabel = "Average silhouette score",
     legendtitle = "Test Day")
@@ -147,7 +208,7 @@ PlotOfGivenCluster = @df dfHouseholdDataByMonth[(1,1)] StatsPlots.plot(:Hour,
     color = RGB(192/255,0,0), linealpha = 0.05,
     legend = :none)
 
-plot!(HouseholdProfiles[(1,1)], color = RGB(192/255, 0, 0), linealpha = 0.7)
+plot!(HouseholdProfiles[(1,1)], color = RGB(192/255, 192/255, 192/255), linealpha = 0.7)
 
 #a = @df JanMon StatsPlots.plot(:Hour, cols(2:3300), color = RGB(192/255,0,0),
 #    legend = :none, linealpha = 0.05, ylim = (0,2),
