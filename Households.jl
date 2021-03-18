@@ -192,11 +192,6 @@ fasfasd = @df dfSillhouettesOutcome StatsPlots.groupedbar(:NumberOfClusters, :Si
     ylabel = "Average silhouette score",
     legendtitle = "Test Day")
 
-ClusteredData = Dict{}()
-
-
-
-
 
 
 # unstack data to wide - needed for clustering
