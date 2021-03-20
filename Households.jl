@@ -5,6 +5,9 @@ using FreqTables, Impute, Distances
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
 
+a = GetHouseholdsData(cMasterDir)
+a = Juno.@run GetHouseholdsData(cMasterDir)
+
 function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
     AllHouseholdData = readdir(cMasterDir)
     dfHouseholdDataFull = DataFrames.DataFrame()
@@ -22,8 +25,6 @@ function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
         dfHouseholdData)
     dfHouseholdData = nothing
 
-    # FreqTableReadings = FreqTables.freqtable(dfHouseholdDataShort.LCLid, dfHouseholdDataShort.Date)
-    # m = [count(col.==24) for col in eachcol(FreqTableReadings)]
     if any(dfHouseholdDataShort.Consumption .< 0)
         println("Some households have consumption < 0. Execution stopped")
         return nothing
@@ -40,6 +41,7 @@ function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
 
     Random.seed!(FixedSeed)
     SelectedDays = (rand(1:12, 3), rand(1:7, 3))
+    println("The selected days are $SelectedDays")
     TestClusteringData = RunTestClustering(dfHouseholdDataToCluster, SelectedDays)
 
     FinalClusteringData = RunFinalClustering(dfHouseholdDataToCluster, TestClusteringData[2])
@@ -167,6 +169,7 @@ function RunTestClustering(dfHouseholdDataByMonth, SelectedDays; FixedSeed = 729
     FinalNumberOfClusters = dfSillhouettesOutcomeAverage.NumberOfClusters[
         dfSillhouettesOutcomeAverage.SillhouetteScoreAvg .== maximum(dfSillhouettesOutcomeAverage.SillhouetteScoreAvg),1][1]
 
+    println("The optimal number of clusters is $FinalNumberOfClusters")
     return dfSillhouettesOutcome, FinalNumberOfClusters
 end
 
