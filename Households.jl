@@ -1,13 +1,17 @@
+###############################################
+### Load packages and set initial variables ###
+###############################################
 using CSV, DataFrames, Dates, Pipe, Statistics
 using Clustering, StatsPlots, Random
 using FreqTables, Impute, Distances
-
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
 
 FinalHouseholdData = GetHouseholdsData(cMasterDir)
-# a = Juno.@run GetHouseholdsData(dfHouseholdDataFull)
 
+###############################################
+###### The very households weightlifting ######
+###############################################
 
 function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
     dfHouseholdDataFull = ReadRawData(cMasterDir)
@@ -55,6 +59,9 @@ function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
     return ClusteringOutput
 end
 
+###############################################
+########## Reading data from csv files ########
+###############################################
 function ReadRawData(cMasterDir)
     println("Start reading data")
     AllHouseholdData = readdir(cMasterDir)
@@ -71,6 +78,10 @@ function ReadRawData(cMasterDir)
     return dfHouseholdData
 end
 
+###############################################
+##### Choosing only data in time scope,  ######
+######### adding columns and cleaning #########
+###############################################
 function ProcessRawHouseholdData(cMainDir, cFileName)
     # read file and rename columns
     dfAllData = CSV.File(string(cMainDir,"/",cFileName)) |>
@@ -96,6 +107,9 @@ function ProcessRawHouseholdData(cMainDir, cFileName)
     return dfFilteredData_hourly
 end
 
+###############################################
+####### Further cloeaning - see below #########
+###############################################
 # choosing only households which have readings for each of the 365 days of 2013
 # grouping the households by HouseholdID
 # and selecting only those which have 365 unique dates in readings
@@ -128,7 +142,10 @@ function ClearAndModifyHouseholdData(dfHouseholdData)
     return dfHouseholdDataShortComplete, iNonUniqueIndices
 end
 
-# we need grouped data for clustering - grouped by month and day of week
+###############################################
+####### Grouping data by month and day ########
+################ for clustering ###############
+###############################################
 function PrepareDataForClustering(dfHouseholdData)
     dfHouseholdDataToCluster = deepcopy(dfHouseholdData)
     dfHouseholdDataToCluster.IDAndDay = string.(dfHouseholdDataToCluster.LCLid,
@@ -139,6 +156,9 @@ function PrepareDataForClustering(dfHouseholdData)
     return dfHouseholdDataByMonth
 end
 
+###############################################
+#### Transforming data to wide - see below ####
+###############################################
 # we need wide data for clustering
 # due to memory overflows we can't transform them this way at once
 # instead, we work with period by period
@@ -155,7 +175,9 @@ function PrepareDaysDataForClustering(dfHouseholdDataByMonth, CurrentMonth, Curr
     return CurrentPeriod
 end
 
-# test clustering
+###############################################
+############### Test clustering ###############
+###############################################
 function RunTestClustering(dfHouseholdDataByMonth, SelectedDays)
     # placeholder for the output
     TestSillhouettesOutput = Dict{}()
@@ -197,7 +219,9 @@ function RunTestClustering(dfHouseholdDataByMonth, SelectedDays)
     return dfSillhouettesOutcome, FinalNumberOfClusters
 end
 
-# final clustering
+###############################################
+############## Final clustering ###############
+###############################################
 function RunFinalClustering(dfHouseholdDataByMonth, OptimalNumberOfClusters)
     # the function runs just like above
     HouseholdProfiles = Dict{}()
@@ -220,11 +244,9 @@ function RunFinalClustering(dfHouseholdDataByMonth, OptimalNumberOfClusters)
     return HouseholdProfiles
 end
 
-#dfHouseholdDataShortComplete.LCLid = string.(dfHouseholdDataShortComplete.LCLid,
-#    dfHouseholdDataShortComplete.Month, Dates.day.(dfHouseholdDataShortComplete.Date))
-# dfHouseholdDataFinal = unstack(dfHouseholdDataToCluster, :IDAndDay, :Consumption)
-
-
+###############################################
+#################### Plots ####################
+###############################################
 plotSillhouettes = @df FinalHouseholdData["SillhouettesScoreAverage"] StatsPlots.groupedbar(:NumberOfClusters, :SillhouetteScore,
     group = :TestDays,
     color = [RGB(192/255, 0, 0) RGB(100/255, 0, 0) RGB(8/255, 0, 0)],
@@ -232,12 +254,38 @@ plotSillhouettes = @df FinalHouseholdData["SillhouettesScoreAverage"] StatsPlots
     ylabel = "Average silhouette score",
     legendtitle = "Test Day")
 
-dfWideDataToPlot = PrepareDaysDataForClustering(FinalHouseholdData["ClusteredData"],1,1)
+#######
+dfWideDataToPlotJanMon = PrepareDaysDataForClustering(FinalHouseholdData["ClusteredData"],1,1)
+dfWideDataToPlotJulMon = PrepareDaysDataForClustering(FinalHouseholdData["ClusteredData"],7,1)
+dfWideDataToPlotJanSun = PrepareDaysDataForClustering(FinalHouseholdData["ClusteredData"],1,7)
 
-PlotOfGivenCluster = @df dfWideDataToPlot StatsPlots.plot(:Hour,
-    cols(4:ncol(dfWideDataToPlot)),
-    color = RGB(192/255,192/255,192/255), linealpha = 0.05,
-    legend = :none)
+#January Mondays plot
+PlotOfClusterJanMon = @df dfWideDataToPlotJanMon StatsPlots.plot(:Hour,
+    cols(4:3000),
+    color = RGB(150/255,150/255,150/255), linealpha = 0.05,
+    legend = :none,
+    ylim = [0,5],
+    main = "January Monday")
+@df FinalHouseholdData["FinalClusteringOutput"][(1,1)] StatsPlots.plot!(:Hour,
+    cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(1,1)])),
+    color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
 
-@df FinalHouseholdData["FinalClusteringOutput"][(1,1)] StatsPlots.plot!(:Hour, cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(1,1)])),
-    color = RGB(192/255,0,0), linealpha = 0.6, lw = 3)
+PlotOfClusterJanSun = @df dfWideDataToPlotJanSun StatsPlots.plot(:Hour,
+    cols(4:3000),
+    color = RGB(150/255,150/255,150/255), linealpha = 0.05,
+    legend = :none,
+    ylim = [0,5],
+    main = "January Sunday")
+@df FinalHouseholdData["FinalClusteringOutput"][(1,7)] StatsPlots.plot!(:Hour,
+    cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(1,7)])),
+    color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
+
+PlotOfClusterJulMon = @df dfWideDataToPlotJulMon StatsPlots.plot(:Hour,
+    cols(4:3000),
+    color = RGB(150/255,150/255,150/255), linealpha = 0.05,
+    legend = :none,
+    ylim = [0,5],
+    main = "July Monday")
+@df FinalHouseholdData["FinalClusteringOutput"][(7,1)] StatsPlots.plot!(:Hour,
+    cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(7,1)])),
+    color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
