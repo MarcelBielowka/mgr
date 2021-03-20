@@ -58,10 +58,16 @@ function GetHouseholdsData(dfHouseholdDataFull; FixedSeed = 72945)
     TestClusteringData = RunTestClustering(dfHouseholdDataToCluster, SelectedDays)
 
     println("Running final clustering")
-    FinalClusteringData = RunFinalClustering(dfHouseholdDataToCluster, TestClusteringData[2])
+    FinalClusteringOutput = RunFinalClustering(dfHouseholdDataToCluster, TestClusteringData[2])
 
     println("Returning the figures")
-    return FinalClusteringData, dfHouseholdDataShort, TestClusteringData[1]
+    ClusteringOutput = Dict(
+        FinalClusteringOutput => FinalClusteringOutput,
+        ClusteredData => dfHouseholdDataToCluster,
+        SillhouettesScore => TestClusteringData[1]
+    )
+
+    return ClusteringOutput
 end
 
 
@@ -166,7 +172,7 @@ function RunTestClustering(dfHouseholdDataByMonth, SelectedDays)
         # silhouettes
         TestSillhouettes = Clustering.silhouettes(TestClusters.assignments, TestClusters.counts,
                 pairwise(
-                    SqEuclidean(), Matrix(CurrentPeriod[:,4:size(CurrentPeriod)[2]]),
+                    Euclidean(), Matrix(CurrentPeriod[:,4:size(CurrentPeriod)[2]]),
                 dims = 2)
             )
         # final score
@@ -213,12 +219,17 @@ end
 # dfHouseholdDataFinal = unstack(dfHouseholdDataToCluster, :IDAndDay, :Consumption)
 
 
-fasfasd = @df dfSillhouettesOutcome StatsPlots.groupedbar(:NumberOfClusters, :SillhouetteScore,
+plotSillhouettes = @df FinalHouseholdData[3] StatsPlots.groupedbar(:NumberOfClusters, :SillhouetteScore,
     group = :TestDays,
     color = [RGB(192/255, 0, 0) RGB(100/255, 0, 0) RGB(8/255, 0, 0)],
     xlabel = "Number of clusters",
     ylabel = "Average silhouette score",
     legendtitle = "Test Day")
+
+testProfilesValues = testProfiles.centers
+StatsPlots.plot!(test2.Hour, testProfilesValues, color = RGB(100/255, 100/255, 100/255),
+    legend = :none, linealpha = 0.6, lw = 5)
+
 
 
 ##### test site
@@ -242,6 +253,3 @@ r = pairwise(
 sqrt(sum((m[:,"MAC000002114"] .- m[:,"MAC000002121"]).^2))
 mean(m[:,"MAC000002114"]) - mean(m[:,"MAC000002121"])
 ######
-testProfilesValues = testProfiles.centers
-StatsPlots.plot!(test2.Hour, testProfilesValues, color = RGB(100/255, 100/255, 100/255),
-    legend = :none, linealpha = 0.6, lw = 5)
