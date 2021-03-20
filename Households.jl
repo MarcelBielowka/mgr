@@ -6,8 +6,8 @@ cd("C:/Users/Marcel/Desktop/mgr/kody")
 cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
 
 dfHouseholdDataFull = ReadRawData(cMasterDir)
-a = GetHouseholdsData(dfHouseholdDataFull)
-# a = Juno.@run GetHouseholdsData(cMasterDir)
+FinalHouseholdData = GetHouseholdsData(dfHouseholdDataFull)
+# a = Juno.@run GetHouseholdsData(dfHouseholdDataFull)
 
 function ReadRawData(cMasterDir)
     println("Start reading data")
@@ -150,7 +150,7 @@ function PrepareDaysDataForClustering(dfHouseholdDataByMonth, CurrentMonth, Curr
 end
 
 # test clustering
-function RunTestClustering(dfHouseholdDataByMonth, SelectedDays; FixedSeed = 72945)
+function RunTestClustering(dfHouseholdDataByMonth, SelectedDays)
     # placeholder for the output
     TestSillhouettesOutput = Dict{}()
 
@@ -162,11 +162,11 @@ function RunTestClustering(dfHouseholdDataByMonth, SelectedDays; FixedSeed = 729
             SelectedDays[1][testNumber], SelectedDays[2][testNumber])
         # run clustering
         TestClusters = Clustering.kmeans(
-            Matrix(CurrentPeriod[:,6:size(CurrentPeriod)[2]]), NumberOfTestClusters)
+            Matrix(CurrentPeriod[:,4:size(CurrentPeriod)[2]]), NumberOfTestClusters)
         # silhouettes
         TestSillhouettes = Clustering.silhouettes(TestClusters.assignments, TestClusters.counts,
                 pairwise(
-                    SqEuclidean(), Matrix(CurrentPeriod[:,6:size(CurrentPeriod)[2]]),
+                    SqEuclidean(), Matrix(CurrentPeriod[:,4:size(CurrentPeriod)[2]]),
                 dims = 2)
             )
         # final score
@@ -200,7 +200,7 @@ function RunFinalClustering(dfHouseholdDataByMonth, OptimalNumberOfClusters)
         CurrentPeriod = PrepareDaysDataForClustering(dfHouseholdDataByMonth,
             Month, Day)
         ClustersOnDay = Clustering.kmeans(
-            Matrix(CurrentPeriod[:,6:size(CurrentPeriod)[2]]), 2
+            Matrix(CurrentPeriod[:,4:size(CurrentPeriod)[2]]), 2
         )
         push!(HouseholdProfiles, (Month, Day) => ClustersOnDay.centers)
     end
@@ -219,6 +219,29 @@ fasfasd = @df dfSillhouettesOutcome StatsPlots.groupedbar(:NumberOfClusters, :Si
     xlabel = "Number of clusters",
     ylabel = "Average silhouette score",
     legendtitle = "Test Day")
+
+
+##### test site
+m = unstack(dfHouseholdDataShort[(1,1)], :IDAndDay, :Consumption)
+for column in eachcol(m)
+    Impute.impute!(column, Impute.Interpolate())
+    Impute.impute!(column, Impute.LOCF())
+    Impute.impute!(column, Impute.NOCB())
+end
+disallowmissing!(m)
+p =  Clustering.kmeans(
+        Matrix(m[:,4:size(m)[2]]), 3)
+q = pairwise(
+        Euclidean(), Matrix(m[:,4:size(m)[2]]),
+    dims = 2)
+
+r = pairwise(
+        SqEuclidean(), Matrix(m[:,4:size(m)[2]]),
+    dims = 2)
+#####
+
+sqrt(sum((m[:,"MAC000002114"] .- m[:,"MAC000002121"]).^2))
+mean(m[:,"MAC000002114"]) - mean(m[:,"MAC000002121"])
 
 
 
