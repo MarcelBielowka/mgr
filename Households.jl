@@ -5,22 +5,28 @@ using FreqTables, Impute, Distances
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
 
-a = GetHouseholdsData(cMasterDir)
-a = Juno.@run GetHouseholdsData(cMasterDir)
+dfHouseholdDataFull = ReadRawData(cMasterDir)
+a = GetHouseholdsData(dfHouseholdDataFull)
+# a = Juno.@run GetHouseholdsData(cMasterDir)
 
-function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
+function ReadRawData(cMasterDir)
+    println("Start reading data")
     AllHouseholdData = readdir(cMasterDir)
-    dfHouseholdDataFull = DataFrames.DataFrame()
+    dfHouseholdData = DataFrames.DataFrame()
 
     # append all the data together
     for FileNum in 1:length(AllHouseholdData)
         println("File number ", FileNum, ", file name ", AllHouseholdData[FileNum])
         dfTemp = ProcessRawHouseholdData(cMasterDir, AllHouseholdData[FileNum])
-        nrow(dfTemp) > 0 && append!(dfHouseholdDataFull, dfTemp)
+        nrow(dfTemp) > 0 && append!(dfHouseholdData, dfTemp)
         dfTemp = DataFrames.DataFrame()
     end
-    println("Extraction of data from csv stopped. Moving to processing")
+    println("Extraction of data from csv finished. Moving to processing")
+    return dfHouseholdData
+end
 
+function GetHouseholdsData(dfHouseholdDataFull; FixedSeed = 72945)
+    println("Start processing data")
     # Filter only data for 2013
     println("Selecting data")
     dfHouseholdDataShort = filter(row -> (row.Date > Dates.Date("2012-12-31") && row.Date < Dates.Date("2014-01-01")),
@@ -160,7 +166,7 @@ function RunTestClustering(dfHouseholdDataByMonth, SelectedDays; FixedSeed = 729
         # silhouettes
         TestSillhouettes = Clustering.silhouettes(TestClusters.assignments, TestClusters.counts,
                 pairwise(
-                    Euclidean(), Matrix(CurrentPeriod[:,6:size(CurrentPeriod)[2]]),
+                    SqEuclidean(), Matrix(CurrentPeriod[:,6:size(CurrentPeriod)[2]]),
                 dims = 2)
             )
         # final score
