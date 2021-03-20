@@ -62,9 +62,9 @@ function GetHouseholdsData(dfHouseholdDataFull; FixedSeed = 72945)
 
     println("Returning the figures")
     ClusteringOutput = Dict(
-        FinalClusteringOutput => FinalClusteringOutput,
-        ClusteredData => dfHouseholdDataToCluster,
-        SillhouettesScore => TestClusteringData[1]
+        "FinalClusteringOutput" => FinalClusteringOutput,
+        "ClusteredData" => dfHouseholdDataToCluster,
+        "SillhouettesScoreAverage" => TestClusteringData[1]
     )
 
     return ClusteringOutput
@@ -206,9 +206,15 @@ function RunFinalClustering(dfHouseholdDataByMonth, OptimalNumberOfClusters)
         CurrentPeriod = PrepareDaysDataForClustering(dfHouseholdDataByMonth,
             Month, Day)
         ClustersOnDay = Clustering.kmeans(
-            Matrix(CurrentPeriod[:,4:size(CurrentPeriod)[2]]), 2
+            Matrix(CurrentPeriod[:,4:size(CurrentPeriod)[2]]), OptimalNumberOfClusters
         )
-        push!(HouseholdProfiles, (Month, Day) => ClustersOnDay.centers)
+        dfClusteringOutput = hcat(CurrentPeriod.Hour, ClustersOnDay.centers) |> DataFrame
+        rename!(dfClusteringOutput,
+            vcat("Hour", [string("Profile", i) for i in 1:OptimalNumberOfClusters])
+        )
+        dfClusteringOutput.Hour = convert.(Int, dfClusteringOutput.Hour)
+
+        push!(HouseholdProfiles, (Month, Day) => dfClusteringOutput)
     end
 
     return HouseholdProfiles
@@ -219,14 +225,25 @@ end
 # dfHouseholdDataFinal = unstack(dfHouseholdDataToCluster, :IDAndDay, :Consumption)
 
 
-plotSillhouettes = @df FinalHouseholdData[3] StatsPlots.groupedbar(:NumberOfClusters, :SillhouetteScore,
+plotSillhouettes = @df FinalHouseholdData["SillhouettesScoreAverage"] StatsPlots.groupedbar(:NumberOfClusters, :SillhouetteScore,
     group = :TestDays,
     color = [RGB(192/255, 0, 0) RGB(100/255, 0, 0) RGB(8/255, 0, 0)],
     xlabel = "Number of clusters",
     ylabel = "Average silhouette score",
     legendtitle = "Test Day")
 
-testProfilesValues = testProfiles.centers
+dfWideDataToPlot = PrepareDaysDataForClustering(FinalHouseholdData["ClusteredData"],1,1)
+
+PlotOfGivenCluster = @df dfWideDataToPlot StatsPlots.plot(:Hour,
+    cols(4:ncol(dfWideDataToPlot)),
+    color = RGB(192/255,192/255,192/255), linealpha = 0.05,
+    legend = :none)
+
+@df FinalHouseholdData["FinalClusteringOutput"][(1,1)] StatsPlots.plot!(:Hour, cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(1,1)])),
+    color = RGB(192/255,0,0), linealpha = 0.6, lw = 3)
+
+
+
 StatsPlots.plot!(test2.Hour, testProfilesValues, color = RGB(100/255, 100/255, 100/255),
     legend = :none, linealpha = 0.6, lw = 5)
 
@@ -241,7 +258,10 @@ for column in eachcol(m)
 end
 disallowmissing!(m)
 p =  Clustering.kmeans(
-        Matrix(m[:,4:size(m)[2]]), 3)
+        Matrix(m[:,4:size(m)[2]]), 2)
+p.centers[:,2]
+p.centers
+DataFrame(a = m.Hour, [string(b,i) ])
 q = pairwise(
         Euclidean(), Matrix(m[:,4:size(m)[2]]),
     dims = 2)
@@ -253,3 +273,12 @@ r = pairwise(
 sqrt(sum((m[:,"MAC000002114"] .- m[:,"MAC000002121"]).^2))
 mean(m[:,"MAC000002114"]) - mean(m[:,"MAC000002121"])
 ######
+abc = DataFrame(["A" "B"])
+rename!(abc, [:aa, :bbb])
+
+abc = 1:3
+xyz = [string("Profile",i) for i in 1:3]
+DataFrame([string("Profile", i) = 4 for i in 1:length(xyz)])
+DataFrame(parse(xyz[1]) = 1)
+DataFrame()
+[println(xyz[i]) for i in 1:3]
