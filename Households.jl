@@ -5,27 +5,12 @@ using FreqTables, Impute, Distances
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
 
-dfHouseholdDataFull = ReadRawData(cMasterDir)
-FinalHouseholdData = GetHouseholdsData(dfHouseholdDataFull)
+FinalHouseholdData = GetHouseholdsData(cMasterDir)
 # a = Juno.@run GetHouseholdsData(dfHouseholdDataFull)
 
-function ReadRawData(cMasterDir)
-    println("Start reading data")
-    AllHouseholdData = readdir(cMasterDir)
-    dfHouseholdData = DataFrames.DataFrame()
 
-    # append all the data together
-    for FileNum in 1:length(AllHouseholdData)
-        println("File number ", FileNum, ", file name ", AllHouseholdData[FileNum])
-        dfTemp = ProcessRawHouseholdData(cMasterDir, AllHouseholdData[FileNum])
-        nrow(dfTemp) > 0 && append!(dfHouseholdData, dfTemp)
-        dfTemp = DataFrames.DataFrame()
-    end
-    println("Extraction of data from csv finished. Moving to processing")
-    return dfHouseholdData
-end
-
-function GetHouseholdsData(dfHouseholdDataFull; FixedSeed = 72945)
+function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
+    dfHouseholdDataFull = ReadRawData(cMasterDir)
     println("Start processing data")
     # Filter only data for 2013
     println("Selecting data")
@@ -70,6 +55,21 @@ function GetHouseholdsData(dfHouseholdDataFull; FixedSeed = 72945)
     return ClusteringOutput
 end
 
+function ReadRawData(cMasterDir)
+    println("Start reading data")
+    AllHouseholdData = readdir(cMasterDir)
+    dfHouseholdData = DataFrames.DataFrame()
+
+    # append all the data together
+    for FileNum in 1:length(AllHouseholdData)
+        println("File number ", FileNum, ", file name ", AllHouseholdData[FileNum])
+        dfTemp = ProcessRawHouseholdData(cMasterDir, AllHouseholdData[FileNum])
+        nrow(dfTemp) > 0 && append!(dfHouseholdData, dfTemp)
+        dfTemp = DataFrames.DataFrame()
+    end
+    println("Extraction of data from csv finished. Moving to processing")
+    return dfHouseholdData
+end
 
 function ProcessRawHouseholdData(cMainDir, cFileName)
     # read file and rename columns
