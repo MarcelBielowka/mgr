@@ -24,10 +24,17 @@ function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
 
     # FreqTableReadings = FreqTables.freqtable(dfHouseholdDataShort.LCLid, dfHouseholdDataShort.Date)
     # m = [count(col.==24) for col in eachcol(FreqTableReadings)]
-    any(dfHouseholdDataShort.Consumption .< 0) ? break
+    if any(dfHouseholdDataShort.Consumption .< 0)
+        println("Some households have consumption < 0. Execution stopped")
+        return nothing
+    end
 
-    dfHouseholdDataShortComplete = ClearAndModifyHouseholdData(dfHouseholdDataShort)
-    isnothing(dfHouseholdDataShort) ? break
+    # Select only households with readings in each day of 2013
+    # and remove duplicates
+    dfHouseholdDataShortComplete = ClearAndModifyHouseholdData(dfHouseholdDataShort)[1]
+    if isnothing(dfHouseholdDataShort)
+        return nothing
+    end
 
     dfHouseholdDataToCluster = PrepareDataForClustering(dfHouseholdDataShortComplete)
 
@@ -95,7 +102,7 @@ function ClearAndModifyHouseholdData(dfHouseholdData)
     dfHouseholdDataShortComplete.DayOfWeek = Dates.dayofweek.(dfHouseholdDataShortComplete.Date)
 
     # return the outcome
-    return dfHouseholdDataShortComplete
+    return dfHouseholdDataShortComplete, iNonUniqueIndices
 end
 
 # we need grouped data for clustering - grouped by month and day of week
@@ -109,12 +116,12 @@ function PrepareDataForClustering(dfHouseholdData)
     return dfHouseholdDataByMonth
 end
 
-# we also need wide data for clustering
+# we need wide data for clustering
 # due to memory overflows we can't transform them this way at once
-# instead, we work with them one by one
+# instead, we work with period by period
 # additional point - data imputation
 function PrepareDaysDataForClustering(dfHouseholdDataByMonth, CurrentMonth, CurrentDayOfWeek)
-    CurrentPeriod = @pipe dfHouseholdDataByMonth[CurrentMonth, CurrentDayOfWeek)] |>
+    CurrentPeriod = @pipe dfHouseholdDataByMonth[(CurrentMonth, CurrentDayOfWeek)] |>
         unstack(_, :IDAndDay, :Consumption)
     for column in eachcol(CurrentPeriod)
         Impute.impute!(column, Impute.Interpolate())
