@@ -159,7 +159,10 @@ function RunTestClustering(dfHouseholdDataByMonth, SelectedDays; FixedSeed = 729
             Matrix(CurrentPeriod[:,6:size(CurrentPeriod)[2]]), NumberOfTestClusters)
         # silhouettes
         TestSillhouettes = Clustering.silhouettes(TestClusters.assignments, TestClusters.counts,
-                pairwise(SqEuclidean(), Matrix(CurrentPeriod[:,6:size(CurrentPeriod)[2]])))
+                pairwise(
+                    Euclidean(), Matrix(CurrentPeriod[:,6:size(CurrentPeriod)[2]]),
+                dims = 2)
+            )
         # final score
         SilhouetteScore = mean(TestSillhouettes)
         push!(TestSillhouettesOutput, (SelectedDays[1][testNumber], SelectedDays[2][testNumber], NumberOfTestClusters) =>
