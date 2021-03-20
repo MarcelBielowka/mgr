@@ -19,15 +19,19 @@ function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
         nrow(dfTemp) > 0 && append!(dfHouseholdDataFull, dfTemp)
         dfTemp = DataFrames.DataFrame()
     end
+    println("Extraction of data from csv stopped. Moving to processing")
 
-    # Filter only data for 2013, create a date and time column
+    # Filter only data for 2013
+    println("Selecting data")
     dfHouseholdDataShort = filter(row -> (row.Date > Dates.Date("2012-12-31") && row.Date < Dates.Date("2014-01-01")),
-        dfHouseholdData)
-    dfHouseholdData = nothing
+        dfHouseholdDataFull)
+    dfHouseholdDataFull = nothing
 
     if any(dfHouseholdDataShort.Consumption .< 0)
         println("Some households have consumption < 0. Execution stopped")
         return nothing
+    else
+        println("None of the households has consumption below 0. All is fine")
     end
 
     # Select only households with readings in each day of 2013
@@ -35,17 +39,22 @@ function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
     dfHouseholdDataShortComplete = ClearAndModifyHouseholdData(dfHouseholdDataShort)[1]
     if isnothing(dfHouseholdDataShort)
         return nothing
+    else
+        println("None of the households has duplicated values. All is fine")
     end
 
+    println("Splitting data by month and day of week")
     dfHouseholdDataToCluster = PrepareDataForClustering(dfHouseholdDataShortComplete)
 
     Random.seed!(FixedSeed)
     SelectedDays = (rand(1:12, 3), rand(1:7, 3))
-    println("The selected days are $SelectedDays")
+    println("Days selected for test runs are $SelectedDays")
     TestClusteringData = RunTestClustering(dfHouseholdDataToCluster, SelectedDays)
 
+    println("Running final clustering")
     FinalClusteringData = RunFinalClustering(dfHouseholdDataToCluster, TestClusteringData[2])
 
+    println("Returning the figures")
     return FinalClusteringData, dfHouseholdDataShort, TestClusteringData[1]
 end
 
