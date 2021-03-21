@@ -11,8 +11,13 @@ Random.seed!(72945)
 
 # extract data
 dfWeatherDataUngrouped = ReadData()
+dfWeatherDataUngrouped.ClearnessIndex = ClearnessIndex.(
+    dfWeatherDataUngrouped.Irradiation, Dates.dayofyear.(dfWeatherDataUngrouped.date_nohour),
+    dfWeatherDataUngrouped.hour, Dates.isleapyear.(dfWeatherDataUngrouped.date_nohour)
+)
 #group data
-WeatherDistParameters, dfWeatherDataGropued = RetrieveGroupedData(dfWeatherDataUngrouped)
+#WeatherDistParameters, dfWeatherDataGropued = RetrieveGroupedData(dfWeatherDataUngrouped)
+DistSolarMASS = fitdistr(dfWeatherDataGrouped[7].WindSpeed[dfWeatherDataGrouped[7].WindSpeed.>0], "weibull")
 WeatherDistParameters
 dfWeatherDataGropued
 
