@@ -1,5 +1,8 @@
 using CSV, DataFrames, Plots, Dates, Distributions, Random, StatsPlots
 using HypothesisTests, RCall, Pipe, Statistics, Missings
+using PyCall, Conda
+Conda.add("scipy")
+st = pyimport("scipy.stats")
 
 ## read and clean data
 
@@ -74,35 +77,36 @@ function RetrieveGroupedData(dfWeatherData; kelvins::Bool = true)
 
     WeatherDistParameters = Dict{}()
 
-    for PeriodNum in 1:24
-        CurrentPeriod = GroupsMapping.vals[PeriodNum]
-        dfCurrentPeriod = dfWeatherDataGrouped[CurrentPeriod]
-        month, MonthPeriod = GroupsMapping.keys[PeriodNum]
+#    for PeriodNum in 1:24
+#        CurrentPeriod = GroupsMapping.vals[PeriodNum]
+#        dfCurrentPeriod = dfWeatherDataGrouped[CurrentPeriod]
+#        month, MonthPeriod = GroupsMapping.keys[PeriodNum]
+#
+#        for hour in extrema(dfWeatherDataGrouped[1].hour)[1]:extrema(dfWeatherDataGrouped[1].hour)[2]
+#            dfCurrentHour = filter(row -> row.hour .== hour, dfCurrentPeriod)
+#            println("Current month: $month, period: $PeriodNum , hour: $hour")
+#
+#            DistWindMASS = fitdistr(dfCurrentHour.WindSpeed[dfCurrentHour.WindSpeed.>0], "weibull", lower = R"c(0,0)")
+#            if length(dfCurrentHour.ClearnessIndex[dfCurrentHour.ClearnessIndex.>0.01]) > 30
+#                try
+#                    DistSolarMASS = fitdistr(dfCurrentHour.ClearnessIndex, "beta", start = start = R"list(shape1 = 1, shape2 = 1)")
+#                catch
+#                    DistSolarMASS = fitdistr(dfCurrentHour.ClearnessIndex[dfCurrentHour.ClearnessIndex .> 0.0001], "beta", start = start = R"list(shape1 = 1, shape2 = 1)")
+#                end
+#            else
+#                DistSolarMASS = nothing
+#            end
+#            DistTempMASS = fitdistr(dfCurrentHour.Temperature, "normal")
+#
+#            push!(WeatherDistParameters, (month, MonthPeriod, hour) => ["WindParam" => [DistWindMASS[1][1] DistWindMASS[1][2]],
+#                                                                          "SolarParam" => !isnothing(DistSolarMASS) ? [DistSolarMASS[1][1] DistSolarMASS[1][2]] : nothing,
+#                                                                          "TempParam" => [DistTempMASS[1][1] DistTempMASS[1][2]],
+#                                                                   ])
+#        end
+#    end
 
-        for hour in extrema(dfWeatherDataGrouped[1].hour)[1]:extrema(dfWeatherDataGrouped[1].hour)[2]
-            dfCurrentHour = filter(row -> row.hour .== hour, dfCurrentPeriod)
-            println("Current month: $month, period: $PeriodNum , hour: $hour")
-
-            DistWindMASS = fitdistr(dfCurrentHour.WindSpeed[dfCurrentHour.WindSpeed.>0], "weibull", lower = R"c(0,0)")
-            if length(dfCurrentHour.ClearnessIndex[dfCurrentHour.ClearnessIndex.>0.01]) > 30
-                try
-                    DistSolarMASS = fitdistr(dfCurrentHour.ClearnessIndex, "beta", start = start = R"list(shape1 = 1, shape2 = 1)")
-                catch
-                    DistSolarMASS = fitdistr(dfCurrentHour.ClearnessIndex[dfCurrentHour.ClearnessIndex .> 0.0001], "beta", start = start = R"list(shape1 = 1, shape2 = 1)")
-                end
-            else
-                DistSolarMASS = nothing
-            end
-            DistTempMASS = fitdistr(dfCurrentHour.Temperature, "normal")
-
-            push!(WeatherDistParameters, (month, MonthPeriod, hour) => ["WindParam" => [DistWindMASS[1][1] DistWindMASS[1][2]],
-                                                                          "SolarParam" => !isnothing(DistSolarMASS) ? [DistSolarMASS[1][1] DistSolarMASS[1][2]] : nothing,
-                                                                          "TempParam" => [DistTempMASS[1][1] DistTempMASS[1][2]],
-                                                                   ])
-        end
-    end
-
-    return WeatherDistParameters, dfWeatherDataGrouped
+#    return WeatherDistParameters, dfWeatherDataGrouped
+    return dfWeatherDataGrouped
 end
 
 ##

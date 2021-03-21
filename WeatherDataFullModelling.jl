@@ -1,5 +1,8 @@
 using Dates, RCall, StatsPlots, Distributions, Pipe
 @rlibrary MASS
+using PyCall, Conda
+Conda.add("scipy")
+st = pyimport("scipy.stats")
 
 include("WeatherDataFullPreparation.jl")
 
