@@ -164,7 +164,7 @@ function GetZenithAngle(Θ, DayOfYear, HourOfDay;
 end
 
 # index clearness
-function ClearnessIndex(IncidentalIrradiance, DayOfYear, HourOfDay, IsLeapYear;
+function ClearnessIndex(IncidentalIrradiance, DayOfYear, HourOfDay, IsLeapYear, LimitAtOne;
                         Latitude = (50 + 17/60), Longitude = (19 + 8/60),
                         LongitudeStandard = 15)   # Paulescu et al, ch 5 + Badescu et al ch. 3.4
     Θ = GetTheta(DayOfYear, IsLeapYear)                                                               # Θ, argument Et i E0
@@ -174,7 +174,9 @@ function ClearnessIndex(IncidentalIrradiance, DayOfYear, HourOfDay, IsLeapYear;
     CosZenithAngle = GetZenithAngle(Θ, DayOfYear, HourOfDay)[5]
 
     k = max(IncidentalIrradiance / (1366 * E0 * CosZenithAngle), 0)
-    k = min(k,1)
+    if LimitAtOne
+        k = min(k,1)
+    end
     return k
 end
 
