@@ -49,7 +49,8 @@ function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
 
     println("Returning the figures")
     ClusteringOutput = Dict(
-        "FinalClusteringOutput" => FinalClusteringOutput,
+        "FinalClusteringOutput" => FinalClusteringOutput[1],
+        "ClusteringCounts" => FinalClusteringOutput[2],
         "ClusteredData" => dfHouseholdDataToCluster,
         "SillhouettesScoreAverage" => TestClusteringData[1],
         "FinalNumberOfClusters" => TestClusteringData[2]
@@ -224,6 +225,7 @@ end
 function RunFinalClustering(dfHouseholdDataByMonth, OptimalNumberOfClusters)
     # the function runs just like above
     HouseholdProfiles = Dict{}()
+    HouseholdProfilesClusteringCounts = Dict{}()
     for Month in 1:12, Day in 1:7
         println("Month ", Month, " , day ", Day)
         CurrentPeriod = PrepareDaysDataForClustering(dfHouseholdDataByMonth,
@@ -238,9 +240,10 @@ function RunFinalClustering(dfHouseholdDataByMonth, OptimalNumberOfClusters)
         dfClusteringOutput.Hour = convert.(Int, dfClusteringOutput.Hour)
 
         push!(HouseholdProfiles, (Month, Day) => dfClusteringOutput)
+        push!(HouseholdProfilesClusteringCounts, (Month, Day) => ClustersOnDay.counts)
     end
 
-    return HouseholdProfiles
+    return HouseholdProfiles, HouseholdProfilesClusteringCounts
 end
 
 ###############################################
