@@ -5,12 +5,15 @@ using FreqTables
 using HTTP, LightXML
 include("PriceModelling.jl")
 include("Households.jl")
+cd("C:/Users/Marcel/Desktop/mgr/kody")
+cHouseholdsDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
 
 Random.seed!(72945)
 
 #########################################
 ####### Extract households data  ########
 #########################################
+HouseholdsData = GetHouseholdsData(cHouseholdsDir)
 
 #########################################
 ###### Extract price and load data  #####
