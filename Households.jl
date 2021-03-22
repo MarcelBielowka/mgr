@@ -7,8 +7,6 @@ using FreqTables, Impute, Distances
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
 
-FinalHouseholdData = GetHouseholdsData(cMasterDir)
-
 ###############################################
 ###### The very households weightlifting ######
 ###############################################
@@ -53,7 +51,8 @@ function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
     ClusteringOutput = Dict(
         "FinalClusteringOutput" => FinalClusteringOutput,
         "ClusteredData" => dfHouseholdDataToCluster,
-        "SillhouettesScoreAverage" => TestClusteringData[1]
+        "SillhouettesScoreAverage" => TestClusteringData[1],
+        "FinalNumberOfClusters" => TestClusteringData[2]
     )
 
     return ClusteringOutput
@@ -247,46 +246,48 @@ end
 ###############################################
 #################### Plots ####################
 ###############################################
-plotSillhouettes = @df FinalHouseholdData["SillhouettesScoreAverage"] StatsPlots.groupedbar(:NumberOfClusters, :SillhouetteScore,
-    group = :TestDays,
-    color = [RGB(192/255, 0, 0) RGB(100/255, 0, 0) RGB(8/255, 0, 0)],
-    xlabel = "Number of clusters",
-    ylabel = "Average silhouette score",
-    legendtitle = "Test Day",
-    title = "Average sillhouette score")
+function RunPlots(FinalHouseholdData)
+    plotSillhouettes = @df FinalHouseholdData["SillhouettesScoreAverage"] StatsPlots.groupedbar(:NumberOfClusters, :SillhouetteScore,
+        group = :TestDays,
+        color = [RGB(192/255, 0, 0) RGB(100/255, 0, 0) RGB(8/255, 0, 0)],
+        xlabel = "Number of clusters",
+        ylabel = "Average silhouette score",
+        legendtitle = "Test Day",
+        title = "Average sillhouette score")
 
-#######
-dfWideDataToPlotJanMon = PrepareDaysDataForClustering(FinalHouseholdData["ClusteredData"],1,1)
-dfWideDataToPlotJulMon = PrepareDaysDataForClustering(FinalHouseholdData["ClusteredData"],7,1)
-dfWideDataToPlotJanSun = PrepareDaysDataForClustering(FinalHouseholdData["ClusteredData"],1,7)
+    #######
+    dfWideDataToPlotJanMon = PrepareDaysDataForClustering(FinalHouseholdData["ClusteredData"],1,1)
+    dfWideDataToPlotJulMon = PrepareDaysDataForClustering(FinalHouseholdData["ClusteredData"],7,1)
+    dfWideDataToPlotJanSun = PrepareDaysDataForClustering(FinalHouseholdData["ClusteredData"],1,7)
 
-#January Mondays plot
-PlotOfClusterJanMon = @df dfWideDataToPlotJanMon StatsPlots.plot(:Hour,
-    cols(4:3000),
-    color = RGB(150/255,150/255,150/255), linealpha = 0.05,
-    legend = :none,
-    ylim = [0,5],
-    title = "January Monday")
-@df FinalHouseholdData["FinalClusteringOutput"][(1,1)] StatsPlots.plot!(:Hour,
-    cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(1,1)])),
-    color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
+    #January Mondays plot
+    PlotOfClusterJanMon = @df dfWideDataToPlotJanMon StatsPlots.plot(:Hour,
+        cols(4:3000),
+        color = RGB(150/255,150/255,150/255), linealpha = 0.05,
+        legend = :none,
+        ylim = [0,5],
+        title = "January Monday")
+    @df FinalHouseholdData["FinalClusteringOutput"][(1,1)] StatsPlots.plot!(:Hour,
+        cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(1,1)])),
+        color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
 
-PlotOfClusterJanSun = @df dfWideDataToPlotJanSun StatsPlots.plot(:Hour,
-    cols(4:3000),
-    color = RGB(150/255,150/255,150/255), linealpha = 0.05,
-    legend = :none,
-    ylim = [0,5],
-    title = "January Sunday")
-@df FinalHouseholdData["FinalClusteringOutput"][(1,7)] StatsPlots.plot!(:Hour,
-    cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(1,7)])),
-    color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
+    PlotOfClusterJanSun = @df dfWideDataToPlotJanSun StatsPlots.plot(:Hour,
+        cols(4:3000),
+        color = RGB(150/255,150/255,150/255), linealpha = 0.05,
+        legend = :none,
+        ylim = [0,5],
+        title = "January Sunday")
+    @df FinalHouseholdData["FinalClusteringOutput"][(1,7)] StatsPlots.plot!(:Hour,
+        cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(1,7)])),
+        color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
 
-PlotOfClusterJulMon = @df dfWideDataToPlotJulMon StatsPlots.plot(:Hour,
-    cols(4:3000),
-    color = RGB(150/255,150/255,150/255), linealpha = 0.05,
-    legend = :none,
-    ylim = [0,5],
-    title = "July Monday")
-@df FinalHouseholdData["FinalClusteringOutput"][(7,1)] StatsPlots.plot!(:Hour,
-    cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(7,1)])),
-    color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
+    PlotOfClusterJulMon = @df dfWideDataToPlotJulMon StatsPlots.plot(:Hour,
+        cols(4:3000),
+        color = RGB(150/255,150/255,150/255), linealpha = 0.05,
+        legend = :none,
+        ylim = [0,5],
+        title = "July Monday")
+    @df FinalHouseholdData["FinalClusteringOutput"][(7,1)] StatsPlots.plot!(:Hour,
+        cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(7,1)])),
+        color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
+end
