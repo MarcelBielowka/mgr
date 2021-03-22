@@ -4,8 +4,13 @@ using Plots, StatsBase, Turing
 using FreqTables
 using HTTP, LightXML
 include("PriceModelling.jl")
+include("Households.jl")
 
 Random.seed!(72945)
+
+#########################################
+####### Extract households data  ########
+#########################################
 
 #########################################
 ###### Extract price and load data  #####
