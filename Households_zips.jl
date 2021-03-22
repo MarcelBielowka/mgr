@@ -1,19 +1,25 @@
-using ZipFile, CSV
+using CSV, DataFrames, Dates, Pipe, Statistics
+using Clustering, StatsPlots, Random
+using FreqTables, Impute, Distances
+cd("C:/Users/Marcel/Desktop/mgr/kody")
+cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
 
-AllFiles = ZipFile.Reader("C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit.zip")
-aaa = AllFiles.files[2].name
-split(aaa,"/")
-length(split(aaa,"/")[2])
+include("Households.jl")
 
-bb = open(AllFiles.files[2].name)
+myData = ReadRawData(cMasterDir)
+myDataShort = filter(row -> (row.Date > Dates.Date("2012-12-31") && row.Date < Dates.Date("2014-01-01")),
+    myData)
 
+myDataComplete = ClearAndModifyHouseholdData(myDataShort)
 
-for eachfile in AllFiles.files
-    println(eachfile.name)
-    if length(split(eachfile.name,"/")[2]) > 0
+myDataCompleteEnd = PrepareDataForClustering(myDataComplete)
+myDataComplete = nothing
+testData = myDataCompleteEnd[1]
 
-    else
-        println("Skip the file")
-    end
-    #abc = read(eachfile.name)
+CurrentPeriod = unstack(testData, :IDAndDay, :Consumption)
+for column in eachcol(CurrentPeriod)
+    Impute.impute!(column, Impute.Interpolate())
+    Impute.impute!(column, Impute.LOCF())
+    Impute.impute!(column, Impute.NOCB())
 end
+disallowmissing!(CurrentPeriod)
