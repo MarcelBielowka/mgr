@@ -3,12 +3,14 @@ using Pipe
 SlotsLength = 45
 SlotsWidth = 93
 SlotsHeight = 7
-ConsignmentLength = 1.4
-ConsignmentWidth = 1
-ConsignmentHeight = 1.4
+ConsignmentLength = 1.2
+ConsignmentWidth = 0.8
+ConsignmentHeight = 1.2
 ConsignmentWeight = 100
-HandlingRoadWidth = 1
-CrictionCoefficient = 0.5
+ConveyorSectionLength = 1.4
+ConveyorSectionWidth = 1
+HandlingRoadWidth = 1.4
+FrictionCoefficient = 0.33
 Efficiency = 0.8
 ConveyorsMassPerM2 = 1.1
 HandlingRoadString = "||"
@@ -36,32 +38,54 @@ function AssignCorridors(Map)
 end
 
 function TotalLengthOfConveyors(Map;
-    ConsignmentLength = ConsignmentLength, HandlingRoadString = HandlingRoadString)
+    ConveyorSectionLength = ConveyorSectionLength, HandlingRoadString = HandlingRoadString)
     # length of conveyors = length of the handling roads between the shelves
     # and of the top / bottom belts
     NumberOfHandlingRoads = sum([Map[1,:,1] .== HandlingRoadString][1])
     LengthOfHandlingRoads = size(Map,1) * NumberOfHandlingRoads
-    LengthOfStartAndEndBelt = size(Map,2) * ConsignmentLength * 2
+    LengthOfStartAndEndBelt = size(Map,2) * ConveyorSectionLength * 2
     return LengthOfHandlingRoads + LengthOfStartAndEndBelt
 end
 
 StorageMap = AssignCorridors(StorageMap)
 # total length of conveyors in the entire warehouse
-ConveyorsLength = TotalLengthOfConveyors(StorageMap)
+ConveyorsTotalLength = TotalLengthOfConveyors(StorageMap)
 # mass of the conveyor in the entire warehouse - length * width * mass per m^2
 # chosen model - U0/U0
-ConveyorsMass = ConveyorsLength * ConsignmentLength * 1.1
+ConveyorsUnitMass = ConveyorSectionWidth * ConveyorSectionLength * ConveyorsMassPerM2 * 2
+ConveyorsTotalMass = ConveyorsTotalLength * ConveyorSectionWidth * ConveyorsMassPerM2 * 2
 ConsignmentWeightPerMetre = ConsignmentWeight / ConsignmentLength
-GoodsConveyedWeight =
+# CarriedConsigmentsWeight = ConsignmentWeightPerMetre * ConveyorSectionLength
+EffectivePull = FrictionCoefficient * 9.81 * (ConsignmentWeight + ConveyorsUnitMass)
 
 
-function GetEnergyUseMatrix(Map)
+function GetEnergyUseMatrix(Map;
+        ConveyorSectionLength = ConveyorSectionLength,
+        ConveyorSectionWidth = ConveyorSectionWidth,
+        ConsignmentWeight = ConsignmentWeight,
+        Efficiency = Efficiency)
     Distances = Tuple.(CartesianIndices(Map) .- CartesianIndex(0,47,0))
     EnergyMatrix = Array{Union{Float64, Nothing}}(nothing, size(Map))
     DecisionMatrix = Array{Union{Float64, Nothing}}(nothing, size(Map))
 
-    
+    for i in 1:size(Map)[1], j in 1:size(Map)[2], k in 1:size(Map)[3]
+        if !isnothing(Map[i,j,k])
+            EnergyMatrix[i,j,k] = nothing
+            DecisionMatrix[i,j,k] = nothing
+        else
+        # E = W = F * s / η
+        # * 0.00027778 - conversion from joules to Wh
+            EnergyMatrix[i,j,k] = (EffectivePull * abs(Distances[i,j,k][1]) * ConveyorSectionWidth +
+                EffectivePull * abs(Distances[i,j,k][2]) * ConveyorSectionLength +
+                ConsignmentWeight * 9.81 * (abs(Distances[i,j,k][3])-1)) * 0.000277778 / Efficiency
+            DecisionMatrix[i,j,k] = (EffectivePull * abs(Distances[i,j,k][2]) * ConveyorSectionLength +
+                ConsignmentWeight * 9.81 * (abs(Distances[i,j,k][3])-1)) * 0.000277778 / Efficiency
+        end
+    end
+    return Dict("DecisionMatrix" => DecisionMatrix, "EnergyMatrix" => EnergyMatrix)
 end
+
+a = GetEnergyUseMatrix(StorageMap)
 
 
 function GetDistanceMatrix(Map, Type)
