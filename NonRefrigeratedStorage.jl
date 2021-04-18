@@ -57,33 +57,55 @@ ConveyorsTotalMass = ConveyorsTotalLength * ConveyorSectionWidth * ConveyorsMass
 ConsignmentWeightPerMetre = ConsignmentWeight / ConsignmentLength
 # CarriedConsigmentsWeight = ConsignmentWeightPerMetre * ConveyorSectionLength
 EffectivePull = FrictionCoefficient * 9.81 * (ConsignmentWeight + ConveyorsUnitMass)
+a = Tuple.(CartesianIndices(StorageMap) .- CartesianIndex(0,47,0))
 
+StorageMap
+
+function GetDistanceMatrix(Map)
+    Distances = Tuple.(CartesianIndices(Map) .- CartesianIndex(0,47,0))
+    DistancesFinal = deepcopy(Distances)
+    for j in 1:size(Distances)[2]
+        if (j < size(Distances)[2] / 2 && j%3 == 0)
+            DistancesFinal[:,j,:] = DistancesFinal[:,j-2,:]
+        elseif (j > size(Distances)[2] / 2 && j%3 == 1)
+            DistancesFinal[:,j,:] = DistancesFinal[:,j+2,:]
+        end
+    end
+
+    return DistancesFinal
+
+end
+
+DistanceMatrix = GetDistanceMatrix(StorageMap)
 
 function GetEnergyUseMatrix(Map;
+        DistanceMatrix = DistanceMatrix,
         ConveyorSectionLength = ConveyorSectionLength,
         ConveyorSectionWidth = ConveyorSectionWidth,
         ConsignmentWeight = ConsignmentWeight,
         Efficiency = Efficiency)
-    Distances = Tuple.(CartesianIndices(Map) .- CartesianIndex(0,47,0))
     EnergyMatrix = Array{Union{Float64, Nothing}}(nothing, size(Map))
     DecisionMatrix = Array{Union{Float64, Nothing}}(nothing, size(Map))
 
     for i in 1:size(Map)[1], j in 1:size(Map)[2], k in 1:size(Map)[3]
-        if !isnothing(Map[i,j,k])
+        if isnothing(Map[i,j,k])
+            # E = W = F * s / η
+            # * 0.00027778 - conversion from joules to Wh
+            EnergyMatrix[i,j,k] = (EffectivePull * abs(DistanceMatrix[i,j,k][1]) * ConveyorSectionWidth +
+                EffectivePull * abs(DistanceMatrix[i,j,k][2]) * ConveyorSectionLength +
+                ConsignmentWeight * 9.81 * (abs(DistanceMatrix[i,j,k][3])-1)) * 0.000277778 / Efficiency
+            DecisionMatrix[i,j,k] = (EffectivePull * abs(DistanceMatrix[i,j,k][2]) * ConveyorSectionLength +
+                ConsignmentWeight * 9.81 * (abs(DistanceMatrix[i,j,k][3])-1)) * 0.000277778 / Efficiency
+        else
             EnergyMatrix[i,j,k] = nothing
             DecisionMatrix[i,j,k] = nothing
-        else
-        # E = W = F * s / η
-        # * 0.00027778 - conversion from joules to Wh
-            EnergyMatrix[i,j,k] = (EffectivePull * abs(Distances[i,j,k][1]) * ConveyorSectionWidth +
-                EffectivePull * abs(Distances[i,j,k][2]) * ConveyorSectionLength +
-                ConsignmentWeight * 9.81 * (abs(Distances[i,j,k][3])-1)) * 0.000277778 / Efficiency
-            DecisionMatrix[i,j,k] = (EffectivePull * abs(Distances[i,j,k][2]) * ConveyorSectionLength +
-                ConsignmentWeight * 9.81 * (abs(Distances[i,j,k][3])-1)) * 0.000277778 / Efficiency
         end
     end
+
     return Dict("DecisionMatrix" => DecisionMatrix, "EnergyMatrix" => EnergyMatrix)
 end
+
+
 
 a = GetEnergyUseMatrix(StorageMap)
 
@@ -113,7 +135,7 @@ end
 
 # wzdluzne odleglosci sa takie same
 DistanceMatrix = Array{Union{Float64, Nothing}}(nothing, size(StorageMap))
-a = Tuple.(CartesianIndices(StorageMap) .- CartesianIndex(0,47,0))
+
 for i in 1:size(DistanceMatrix)[1], j in 1:size(DistanceMatrix)[2], k in 1:size(DistanceMatrix)[3]
     isnothing(StorageMap2[i,j,k]) ?
         DistanceMatrix[i,j,k] = 1*abs(a[i,j,k][1]) + 1.4 * abs(a[i,j,k][2]) + 1.4 * (abs(a[i,j,k][3])-1) : nothing
