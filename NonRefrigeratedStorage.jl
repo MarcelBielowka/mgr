@@ -57,9 +57,10 @@ ConveyorsTotalMass = ConveyorsTotalLength * ConveyorSectionWidth * ConveyorsMass
 ConsignmentWeightPerMetre = ConsignmentWeight / ConsignmentLength
 # CarriedConsigmentsWeight = ConsignmentWeightPerMetre * ConveyorSectionLength
 EffectivePull = FrictionCoefficient * 9.81 * (ConsignmentWeight + ConveyorsUnitMass)
-a = Tuple.(CartesianIndices(StorageMap) .- CartesianIndex(0,47,0))
+# a = Tuple.(CartesianIndices(StorageMap) .- CartesianIndex(0,47,0))
 
 StorageMap
+StorageMapOriginal = deepcopy(StorageMap)
 
 function GetDistanceMatrix(Map)
     Distances = Tuple.(CartesianIndices(Map) .- CartesianIndex(0,47,0))
@@ -79,13 +80,14 @@ end
 DistanceMatrix = GetDistanceMatrix(StorageMap)
 
 function GetEnergyUseMatrix(Map;
+        HandlingRoadString = HandlingRoadString,
         DistanceMatrix = DistanceMatrix,
         ConveyorSectionLength = ConveyorSectionLength,
         ConveyorSectionWidth = ConveyorSectionWidth,
         ConsignmentWeight = ConsignmentWeight,
         Efficiency = Efficiency)
-    EnergyMatrix = Array{Union{Float64, Nothing}}(nothing, size(Map))
-    DecisionMatrix = Array{Union{Float64, Nothing}}(nothing, size(Map))
+    EnergyMatrix = Array{Union{Float64, String, Nothing}}(nothing, size(Map))
+    DecisionMatrix = Array{Union{Float64, String, Nothing}}(nothing, size(Map))
 
     for i in 1:size(Map)[1], j in 1:size(Map)[2], k in 1:size(Map)[3]
         if isnothing(Map[i,j,k])
@@ -97,14 +99,22 @@ function GetEnergyUseMatrix(Map;
             DecisionMatrix[i,j,k] = (EffectivePull * abs(DistanceMatrix[i,j,k][2]) * ConveyorSectionLength +
                 ConsignmentWeight * 9.81 * (abs(DistanceMatrix[i,j,k][3])-1)) * 0.000277778 / Efficiency
         else
-            EnergyMatrix[i,j,k] = nothing
-            DecisionMatrix[i,j,k] = nothing
+            EnergyMatrix[i,j,k] = HandlingRoadString
+            DecisionMatrix[i,j,k] = HandlingRoadString
         end
     end
 
-    return Dict("DecisionMatrix" => DecisionMatrix, "EnergyMatrix" => EnergyMatrix)
+    return Dict("DecisionMatrix" => DecisionMatrix, "EnergyUseMatrix" => EnergyMatrix)
 end
 
-
-
-a = GetEnergyUseMatrix(StorageMap)
+# Get The Decision and Energy Use Matrices
+DecisionAndEnergyMatrix = GetEnergyUseMatrix(StorageMap)
+# how locating the consignments works
+# get all the nothings from the storage map (nothings are empty slots)
+# then find the minimum energy use in the decision matrix
+# then find the first slot with this minimum energy use
+# all neatly wrapped using λ function and findfirst
+ComingConsignmentLocation =
+    findfirst(x ->
+        x == minimum(DecisionAndEnergyMatrix["DecisionMatrix"][findall(isnothing.(StorageMap).==1)]), DecisionAndEnergyMatrix["DecisionMatrix"]
+    )
