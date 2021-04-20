@@ -106,7 +106,7 @@ mutable struct Consignment
     Weight::Float64
     WeightPerMetre::Float64
     EffectivePull::Float64
-    EnergyUseMap::Array
+    EnergyUseMap::Dict
     Location::Dict
 end
 
@@ -127,11 +127,11 @@ function Consignment(ID, Storage, Length, Width, Height, Weight)
             Storage.ConveyorSectionWidth, Weight, EffectivePull, Storage.ConveyorEfficiency),
         Dict()
     )
-    return Consignment
 end
 
 TestStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
-TestConsignment = Consignment(1, TestStorage, 1.2, 0.8, 1.2, 100)
+TestConsignment = Consignment(Dict("Day" => 1, "Hour" => 1, "ID" => 1),
+    TestStorage, 1.2, 0.8, 1.2, 100)
 
 GetEnergyUseMap(TestStorage.StorageMap, TestStorage.DistanceMap,
     TestStorage.HandlingRoadString, TestStorage.ConveyorSectionLength,
