@@ -74,7 +74,6 @@ mutable struct Storage
     ConveyorUnitMass::Float64
     ConveyorEfficiency::Float16
     FrictionCoefficient::Float64
-    Consumption::Dict
 end
 
 function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
@@ -92,8 +91,7 @@ function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
         ConveyorSectionWidth,
         ConveyorUnitMass,
         ConveyorEfficiency,
-        FrictionCoefficient,
-        Dict{}()
+        FrictionCoefficient
     )
 end
 
@@ -108,6 +106,7 @@ mutable struct Consignment
     EffectivePull::Float64
     EnergyUseMap::Dict
     Location::Dict
+    EnergyConsumption::Float64
 end
 
 function Consignment(ID, Storage, Length, Width, Height, Weight)
@@ -125,7 +124,8 @@ function Consignment(ID, Storage, Length, Width, Height, Weight)
         GetEnergyUseMap(Storage.StorageMap, Storage.DistanceMap,
             Storage.HandlingRoadString, Storage.ConveyorSectionLength,
             Storage.ConveyorSectionWidth, Weight, EffectivePull, Storage.ConveyorEfficiency),
-        Dict()
+        Dict(),
+        0
     )
 end
 
