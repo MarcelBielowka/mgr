@@ -157,9 +157,9 @@ function LocateSlot!(Consignment::Consignment, Storage::Storage)
     enqueue!(Storage.DepartureOrder, Consignment)
 end
 
-TestStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
-TestConsignment = Consignment(Dict("Day" => 1, "HourIn" => 1, "ID" => 1),
-    TestStorage, 1.2, 0.8, 1.2, 100)
-a = LocateSlot!(TestConsignment, TestStorage)
-TestStorage.StorageMap[1,46,:]
-TestStorage.DistanceMap
+#TestStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
+#TestConsignment = Consignment(Dict("Day" => 1, "HourIn" => 1, "ID" => 1),
+#    TestStorage, 1.2, 0.8, 1.2, 100)
+#a = LocateSlot!(TestConsignment, TestStorage)
+#TestStorage.StorageMap[1,46,:]
+#TestStorage.DepartureOrder
