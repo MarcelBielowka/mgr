@@ -143,15 +143,17 @@ end
 # Calculating the energy use
 # Get the optimal location and apply physical properties
 # W = F * s for horizontal move, W = m * g * h for vertical move
+# + 1 in move along rows in EnergyIn - to mark the consignment needs to enter the building
+# + 2 in move along rows in EnergyOut - consignment needs to leave the racks region (+1) and leave the building (+1)
 function CalculateEnergyUse!(Storage::Storage, Consignment::Consignment, location::CartesianIndex)
     NoOfRows = size(Storage.StorageMap)[1]
     EnergyUseIn = (
-        Consignment.EffectivePull * abs(Storage.DistanceMap[location][1]) * Storage.ConveyorSectionWidth +
+        Consignment.EffectivePull * abs(Storage.DistanceMap[location][1] + 1) * Storage.ConveyorSectionWidth +
             Consignment.EffectivePull * abs(Storage.DistanceMap[location][2]) * Storage.ConveyorSectionLength +
             Consignment.Weight * 9.81 * (abs(Storage.DistanceMap[location][3])-1)
         ) * 0.000277778 / Storage.ConveyorEfficiency
     EnergyUseOut = (
-        Consignment.EffectivePull * (NoOfRows - abs(Storage.DistanceMap[location][1])) * Storage.ConveyorSectionWidth +
+        Consignment.EffectivePull * (NoOfRows - abs(Storage.DistanceMap[location][1]) + 2) * Storage.ConveyorSectionWidth +
             Consignment.EffectivePull * abs(Storage.DistanceMap[location][2]) * Storage.ConveyorSectionLength +
             Consignment.Weight * 9.81 * (abs(Storage.DistanceMap[location][3])-1)
         ) * 0.000277778 / Storage.ConveyorEfficiency
@@ -166,9 +168,9 @@ end
 # then find the first slot with this minimum energy use,
 # all neatly wrapped using λ function and findfirst
 # then calculate the energy use on the way inside the warehouse and outside of it
-# and finally enqueue the consignment into the waiting line 
+# and finally enqueue the consignment into the waiting line
 function LocateSlot!(Consignment::Consignment, Storage::Storage)
-    IDtoprint = (TestConsignment.DataIn["Day"], TestConsignment.DataIn["HourIn"], TestConsignment.DataIn["ID"])
+    IDtoprint = (Consignment.DataIn["Day"], Consignment.DataIn["HourIn"], Consignment.DataIn["ID"])
     println("Looking for a place for Consignment ", IDtoprint)
     location =
         findfirst(x ->
