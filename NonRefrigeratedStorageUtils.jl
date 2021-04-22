@@ -74,6 +74,7 @@ mutable struct Storage
     ConveyorUnitMass::Float64
     ConveyorEfficiency::Float16
     FrictionCoefficient::Float64
+    DepartureOrder::Queue
 end
 
 function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
@@ -91,7 +92,8 @@ function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
         ConveyorSectionWidth,
         ConveyorUnitMass,
         ConveyorEfficiency,
-        FrictionCoefficient
+        FrictionCoefficient,
+        Queue{Consignment}()
     )
 end
 
@@ -122,8 +124,8 @@ function Consignment(ID, Storage, Length, Width, Height, Weight)
         GetConsumptionMaps(Storage.StorageMap, Storage.DistanceMap,
             Storage.HandlingRoadString, Storage.ConveyorSectionLength,
             Storage.ConveyorSectionWidth, Weight, EffectivePull, Storage.ConveyorEfficiency),
-        Dict(),
-        0
+        (),
+        Dict{}()
     )
 end
 
@@ -135,10 +137,10 @@ function LocateSlot(Consignment::Consignment, Storage::Storage)
     return Location
 end
 
-a = LocateSlot(TestConsignment, TestStorage)
 TestStorage.StorageMap[Tuple(a)]
 TestStorage.StorageMap[1,3,2]
 
 TestStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
 TestConsignment = Consignment(Dict("Day" => 1, "HourIn" => 1, "ID" => 1, "HourOut" => missing),
     TestStorage, 1.2, 0.8, 1.2, 100)
+a = LocateSlot(TestConsignment, TestStorage)
