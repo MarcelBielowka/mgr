@@ -53,7 +53,8 @@ function GetConsumptionMaps(Map, DistanceMap,
             EnergyMap[i,j,k] = (EffectivePull * abs(DistanceMap[i,j,k][1]) * ConveyorSectionWidth +
                 EffectivePull * abs(DistanceMap[i,j,k][2]) * ConveyorSectionLength +
                 ConsignmentWeight * 9.81 * (abs(DistanceMap[i,j,k][3])-1)) * 0.000277778 / Efficiency
-            DecisionMap[i,j,k] = (EffectivePull * abs(DistanceMap[i,j,k][2]) * ConveyorSectionLength +
+            DecisionMap[i,j,k] = (
+                EffectivePull * abs(DistanceMap[i,j,k][2]) * ConveyorSectionLength +
                 ConsignmentWeight * 9.81 * (abs(DistanceMap[i,j,k][3])-1)) * 0.000277778 / Efficiency
         else
             EnergyMap[i,j,k] = HandlingRoadString
@@ -98,7 +99,8 @@ function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
 end
 
 mutable struct Consignment
-    ID::Dict
+    DataIn::Dict
+    DataOut::Dict
     Length::Float16
     Width::Float16
     Height::Float16
@@ -110,11 +112,12 @@ mutable struct Consignment
     EnergyConsumption::Dict
 end
 
-function Consignment(ID, Storage, Length, Width, Height, Weight)
+function Consignment(InID, Storage, Length, Width, Height, Weight)
     WeightPerMetre = Weight / Length
     EffectivePull = Storage.FrictionCoefficient * 9.81 * (Weight + Storage.ConveyorUnitMass)
     Consignment(
-        ID,
+        InID,
+        Dict{}(),
         Length,
         Width,
         Height,
@@ -145,7 +148,8 @@ function LocateSlot!(Consignment::Consignment, Storage::Storage)
 end
 
 TestStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
-TestConsignment = Consignment(Dict("Day" => 1, "HourIn" => 1, "ID" => 1, "HourOut" => missing),
+TestConsignment = Consignment(Dict("Day" => 1, "HourIn" => 1, "ID" => 1),
     TestStorage, 1.2, 0.8, 1.2, 100)
 a = LocateSlot!(TestConsignment, TestStorage)
 TestStorage.StorageMap[1,48,:]
+TestStorage.DistanceMap
