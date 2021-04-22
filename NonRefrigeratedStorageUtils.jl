@@ -61,6 +61,8 @@ function GetDecisionMap(Map, DistanceMap,
             DecisionMap[i,j,k] = (
                 EffectivePull * abs(DistanceMap[i,j,k][2]) * ConveyorSectionLength +
                 ConsignmentWeight * 9.81 * (abs(DistanceMap[i,j,k][3])-1)) * 0.000277778 / Efficiency
+        elseif isa(Map[i,j,k], Consignment)
+            DecisionMap[i,j,k] = "T"
         else
             DecisionMap[i,j,k] = HandlingRoadString
         end
