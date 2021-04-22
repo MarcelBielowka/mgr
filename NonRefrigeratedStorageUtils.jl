@@ -129,18 +129,21 @@ function Consignment(ID, Storage, Length, Width, Height, Weight)
     )
 end
 
-function LocateSlot(Consignment::Consignment, Storage::Storage)
-    Location =
+function LocateSlot!(Consignment::Consignment, Storage::Storage)
+    IDtoprint = (TestConsignment.ID["Day"], TestConsignment.ID["HourIn"], TestConsignment.ID["ID"])
+    println("Looking for a place for Consignment ", IDtoprint)
+    location =
         findfirst(x ->
             x == minimum(Consignment.ConsumptionMaps["DecisionMap"][findall(isnothing.(Storage.StorageMap).==1)]), Consignment.ConsumptionMaps["DecisionMap"]
         )
-    return Location
-end
+    Consignment.Location = Tuple(location)
+    push!(Consignment.EnergyConsumption, "In" => Consignment.ConsumptionMaps["EnergyUseMap"][location])
+    println(Consignment.Location, " - location found. Energy consumed will be ", Consignment.ConsumptionMaps["EnergyUseMap"][location])
+    Storage.StorageMap[location] = Consignment
 
-TestStorage.StorageMap[Tuple(a)]
-TestStorage.StorageMap[1,3,2]
+end
 
 TestStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
 TestConsignment = Consignment(Dict("Day" => 1, "HourIn" => 1, "ID" => 1, "HourOut" => missing),
     TestStorage, 1.2, 0.8, 1.2, 100)
-a = LocateSlot(TestConsignment, TestStorage)
+a = LocateSlot!(TestConsignment, TestStorage)
