@@ -25,8 +25,4 @@ MyStorage.StorageMap[3, 44:50, 1]
 #using JuliaInterpreter
 #push!(JuliaInterpreter.compiled_modules, Base)
 
-for Cons in t
-    Juno.@enter LocateSlot!(Cons, MyStorage)
-end
-
 isa(MyStorage.StorageMap[1, 46, 2], Consignment)
