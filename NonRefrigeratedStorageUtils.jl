@@ -140,10 +140,12 @@ function LocateSlot!(Consignment::Consignment, Storage::Storage)
     push!(Consignment.EnergyConsumption, "In" => Consignment.ConsumptionMaps["EnergyUseMap"][location])
     println(Consignment.Location, " - location found. Energy consumed will be ", Consignment.ConsumptionMaps["EnergyUseMap"][location])
     Storage.StorageMap[location] = Consignment
-
+    enqueue!(Storage.DepartureOrder, Consignment)
+    println("Done")
 end
 
 TestStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
 TestConsignment = Consignment(Dict("Day" => 1, "HourIn" => 1, "ID" => 1, "HourOut" => missing),
     TestStorage, 1.2, 0.8, 1.2, 100)
 a = LocateSlot!(TestConsignment, TestStorage)
+TestStorage.StorageMap[1,48,:]
