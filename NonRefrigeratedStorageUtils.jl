@@ -39,30 +39,25 @@ function GetDistanceMap(Map)
     return DistancesFinal
 end
 
-function GetConsumptionMaps(Map, DistanceMap,
+function GetDecisionMap(Map, DistanceMap,
         HandlingRoadString,
         ConveyorSectionLength, ConveyorSectionWidth,
         ConsignmentWeight, EffectivePull, Efficiency)
-    EnergyMap = Array{Union{Float64, String, Nothing}}(nothing, size(Map))
     DecisionMap = Array{Union{Float64, String, Nothing}}(nothing, size(Map))
 
     for i in 1:size(Map)[1], j in 1:size(Map)[2], k in 1:size(Map)[3]
         if isnothing(Map[i,j,k])
             # E = W = F * s / η
             # * 0.00027778 - conversion from joules to Wh
-            EnergyMap[i,j,k] = (EffectivePull * abs(DistanceMap[i,j,k][1]) * ConveyorSectionWidth +
-                EffectivePull * abs(DistanceMap[i,j,k][2]) * ConveyorSectionLength +
-                ConsignmentWeight * 9.81 * (abs(DistanceMap[i,j,k][3])-1)) * 0.000277778 / Efficiency
             DecisionMap[i,j,k] = (
                 EffectivePull * abs(DistanceMap[i,j,k][2]) * ConveyorSectionLength +
                 ConsignmentWeight * 9.81 * (abs(DistanceMap[i,j,k][3])-1)) * 0.000277778 / Efficiency
         else
-            EnergyMap[i,j,k] = HandlingRoadString
             DecisionMap[i,j,k] = HandlingRoadString
         end
     end
 
-    return Dict("DecisionMap" => DecisionMap, "EnergyUseMap" => EnergyMap)
+    return DecisionMap
 end
 
 mutable struct Storage
@@ -107,7 +102,7 @@ mutable struct Consignment
     Weight::Float64
     WeightPerMetre::Float64
     EffectivePull::Float64
-    ConsumptionMaps::Dict
+    DecisionMap::Array
     Location::Tuple
     EnergyConsumption::Dict
 end
@@ -124,7 +119,7 @@ function Consignment(InID, Storage, Length, Width, Height, Weight)
         Weight,
         WeightPerMetre,
         EffectivePull,
-        GetConsumptionMaps(Storage.StorageMap, Storage.DistanceMap,
+        GetDecisionMap(Storage.StorageMap, Storage.DistanceMap,
             Storage.HandlingRoadString, Storage.ConveyorSectionLength,
             Storage.ConveyorSectionWidth, Weight, EffectivePull, Storage.ConveyorEfficiency),
         (),
@@ -132,24 +127,39 @@ function Consignment(InID, Storage, Length, Width, Height, Weight)
     )
 end
 
+function CalculateEnergyUse!(Storage::Storage, Consignment::Consignment, location::CartesianIndex)
+    NoOfRows = size(Storage.StorageMap)[1]
+    EnergyUseIn = (
+        Consignment.EffectivePull * abs(Storage.DistanceMap[location][1]) * Storage.ConveyorSectionWidth +
+            Consignment.EffectivePull * abs(Storage.DistanceMap[location][2]) * Storage.ConveyorSectionLength +
+            Consignment.Weight * 9.81 * (abs(Storage.DistanceMap[location][3])-1)
+        ) * 0.000277778 / Storage.ConveyorEfficiency
+    EnergyUseOut = (
+        Consignment.EffectivePull * (NoOfRows - abs(Storage.DistanceMap[location][1])) * Storage.ConveyorSectionWidth +
+            Consignment.EffectivePull * abs(Storage.DistanceMap[location][2]) * Storage.ConveyorSectionLength +
+            Consignment.Weight * 9.81 * (abs(Storage.DistanceMap[location][3])-1)
+        ) * 0.000277778 / Storage.ConveyorEfficiency
+    push!(Consignment.EnergyConsumption,"In" => EnergyUseIn)
+    push!(Consignment.EnergyConsumption,"Out" => EnergyUseOut)
+end
+
 function LocateSlot!(Consignment::Consignment, Storage::Storage)
-    IDtoprint = (TestConsignment.ID["Day"], TestConsignment.ID["HourIn"], TestConsignment.ID["ID"])
+    IDtoprint = (TestConsignment.DataIn["Day"], TestConsignment.DataIn["HourIn"], TestConsignment.DataIn["ID"])
     println("Looking for a place for Consignment ", IDtoprint)
     location =
         findfirst(x ->
-            x == minimum(Consignment.ConsumptionMaps["DecisionMap"][findall(isnothing.(Storage.StorageMap).==1)]), Consignment.ConsumptionMaps["DecisionMap"]
+            x == minimum(Consignment.DecisionMap[findall(isnothing.(Storage.StorageMap).==1)]), Consignment.DecisionMap
         )
     Consignment.Location = Tuple(location)
-    push!(Consignment.EnergyConsumption, "In" => Consignment.ConsumptionMaps["EnergyUseMap"][location])
-    println(Consignment.Location, " - location found. Energy consumed will be ", Consignment.ConsumptionMaps["EnergyUseMap"][location])
+    println(Tuple(location), " slot allocated")
+    CalculateEnergyUse!(Storage, Consignment, location)
     Storage.StorageMap[location] = Consignment
     enqueue!(Storage.DepartureOrder, Consignment)
-    println("Done")
 end
 
 TestStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
 TestConsignment = Consignment(Dict("Day" => 1, "HourIn" => 1, "ID" => 1),
     TestStorage, 1.2, 0.8, 1.2, 100)
 a = LocateSlot!(TestConsignment, TestStorage)
-TestStorage.StorageMap[1,48,:]
+TestStorage.StorageMap[1,46,:]
 TestStorage.DistanceMap
