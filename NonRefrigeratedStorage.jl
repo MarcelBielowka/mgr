@@ -15,14 +15,14 @@ DistWeightCon = Distributions.Normal(200, 50)
 
 MyStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
 at = rand(DistNumCon)
-for ConsNum in 1:140
+for ConsNum in 1:50
     CurrentCons = Consignment(Dict("Day" => 1, "HourIn" => 1, "ID" => ConsNum),
          MyStorage, 1.2, 0.8, 1.2, 100)
     LocateSlot!(CurrentCons, MyStorage)
 end
-MyStorage.StorageMap[3, 44:50, 1]
 
 #using JuliaInterpreter
 #push!(JuliaInterpreter.compiled_modules, Base)
 
 isa(MyStorage.StorageMap[1, 46, 2], Consignment)
+MyStorage.DepartureOrder[1]
