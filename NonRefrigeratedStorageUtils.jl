@@ -1,5 +1,6 @@
 using Pipe, DataStructures
 
+# Corridors are assigned each third column - surrounded by two stacks of racks
 function AssignCorridors(Map, HandlingRoadString)
     FinalMap = deepcopy(Map)
     for i in 1:size(FinalMap,2)
@@ -10,12 +11,14 @@ function AssignCorridors(Map, HandlingRoadString)
     return FinalMap
 end
 
+# Initialise the Storage Map and assign corridors
 function GetStorageMap(SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString)
     StorageMap = Array{Union{Consignment, String, Nothing}}(nothing, SlotsLength, SlotsWidth, SlotsHeight)
     StorageMap = AssignCorridors(StorageMap, HandlingRoadString)
     return StorageMap
 end
 
+# Get the total length of the conveyors in the warehouse
 function TotalLengthOfConveyors(Map, ConveyorSectionLength, HandlingRoadString)
     # length of conveyors = length of the handling roads between the shelves
     # and of the top / bottom belts
@@ -25,6 +28,8 @@ function TotalLengthOfConveyors(Map, ConveyorSectionLength, HandlingRoadString)
     return LengthOfHandlingRoads + LengthOfStartAndEndBelt
 end
 
+# Get the distance map in the warehouse - needed for energy use calc
+# Distances need to be centred on the main axis of the warehouse
 function GetDistanceMap(Map)
     MoveCoef = Int(ceil(size(Map)[2]/2))
     Distances = Tuple.(CartesianIndices(Map) .- CartesianIndex(0,MoveCoef,0))
@@ -39,6 +44,10 @@ function GetDistanceMap(Map)
     return DistancesFinal
 end
 
+# Decision Map calculates the energy use on the move between the columns
+# and up along the shelves
+# move along rows is irrelevant - the consignment will need to move along them
+# anyway
 function GetDecisionMap(Map, DistanceMap,
         HandlingRoadString,
         ConveyorSectionLength, ConveyorSectionWidth,
@@ -60,6 +69,7 @@ function GetDecisionMap(Map, DistanceMap,
     return DecisionMap
 end
 
+# Storage class definition
 mutable struct Storage
     ID::Int
     StorageMap::Array
@@ -73,6 +83,7 @@ mutable struct Storage
     DepartureOrder::Queue
 end
 
+# Storage constructor
 function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
                  ConveyorSectionLength, ConveyorSectionWidth, HandlingRoadWidth,
                  FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2)
@@ -93,6 +104,7 @@ function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
     )
 end
 
+# Consignment class defintion
 mutable struct Consignment
     DataIn::Dict
     DataOut::Dict
@@ -107,6 +119,7 @@ mutable struct Consignment
     EnergyConsumption::Dict
 end
 
+# Consignment constructor
 function Consignment(InID, Storage, Length, Width, Height, Weight)
     WeightPerMetre = Weight / Length
     EffectivePull = Storage.FrictionCoefficient * 9.81 * (Weight + Storage.ConveyorUnitMass)
@@ -127,6 +140,9 @@ function Consignment(InID, Storage, Length, Width, Height, Weight)
     )
 end
 
+# Calculating the energy use
+# Get the optimal location and apply physical properties
+# W = F * s for horizontal move, W = m * g * h for vertical move
 function CalculateEnergyUse!(Storage::Storage, Consignment::Consignment, location::CartesianIndex)
     NoOfRows = size(Storage.StorageMap)[1]
     EnergyUseIn = (
@@ -143,12 +159,22 @@ function CalculateEnergyUse!(Storage::Storage, Consignment::Consignment, locatio
     push!(Consignment.EnergyConsumption,"Out" => EnergyUseOut)
 end
 
+# how finding the optimal location works
+# find all the nothings in the storage map (nothings are empty slots),
+# then take only those locations into consideration,
+# then find the minimum energy use in the decision matrix,
+# then find the first slot with this minimum energy use,
+# all neatly wrapped using λ function and findfirst
+# then calculate the energy use on the way inside the warehouse and outside of it
+# and finally enqueue the consignment into the waiting line 
 function LocateSlot!(Consignment::Consignment, Storage::Storage)
     IDtoprint = (TestConsignment.DataIn["Day"], TestConsignment.DataIn["HourIn"], TestConsignment.DataIn["ID"])
     println("Looking for a place for Consignment ", IDtoprint)
     location =
         findfirst(x ->
-            x == minimum(Consignment.DecisionMap[findall(isnothing.(Storage.StorageMap).==1)]), Consignment.DecisionMap
+            x == minimum(
+                Consignment.DecisionMap[findall(isnothing.(Storage.StorageMap).==1)]
+            ), Consignment.DecisionMap
         )
     Consignment.Location = Tuple(location)
     println(Tuple(location), " slot allocated")
