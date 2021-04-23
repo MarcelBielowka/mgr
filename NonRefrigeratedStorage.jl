@@ -8,7 +8,6 @@ Random.seed!(79245)
 DistNumCon = Distributions.Poisson(41)
 DistWeightCon = Distributions.Normal(200, 50)
 OverallPowerCons = DataFrame(WarehouseID = Int[], Day = Int[], Hour = Int[], Cons = Float64[])
-
 #x1 = 0:0.1:200
 #StatsPlots.plot(x1, pdf.(DistNumCon, x1))
 #x2 = 0.1:0.1:500
