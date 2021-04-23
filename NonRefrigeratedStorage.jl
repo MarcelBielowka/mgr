@@ -1,5 +1,5 @@
 using Pipe: @pipe
-using DataStructures, Random, Distributions, StatsPlots
+using DataStructures, Random, Distributions, StatsPlots, DataFrames
 
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 include("NonRefrigeratedStorageUtils.jl")
@@ -7,6 +7,8 @@ Random.seed!(79245)
 
 DistNumCon = Distributions.Poisson(41)
 DistWeightCon = Distributions.Normal(200, 50)
+OverallPowerCons = DataFrame(WarehouseID = Int[], Day = Int[], Hour = Int[], Cons = Float64[])
+
 #x1 = 0:0.1:200
 #StatsPlots.plot(x1, pdf.(DistNumCon, x1))
 #x2 = 0.1:0.1:500
@@ -14,6 +16,7 @@ DistWeightCon = Distributions.Normal(200, 50)
 #StatsPlots.plot(x2, cdf.(DistWeightCon, x2))
 
 MyStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
+t = GetStorageMap(45, 6, 3, "||")
 at = rand(DistNumCon)
 for ConsNum in 1:at
     CurrentCons = Consignment(
@@ -22,6 +25,8 @@ for ConsNum in 1:at
     )
     LocateSlot!(CurrentCons, MyStorage)
 end
+
+dequeue!(MyStorage.DepartureOrder, 4)
 
 MyStorage.StorageMap[13, 46, 1]
 
