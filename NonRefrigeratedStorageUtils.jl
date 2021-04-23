@@ -1,4 +1,5 @@
-using Pipe, DataStructures
+using Pipe: @pipe
+using DataFrames, DataStructures
 
 # Corridors are assigned each third column - surrounded by two stacks of racks
 function AssignCorridors(Map, HandlingRoadString)
@@ -82,6 +83,7 @@ mutable struct Storage
     ConveyorUnitMass::Float64
     ConveyorEfficiency::Float16
     FrictionCoefficient::Float64
+    HourlyConsData::DataFrame
     DepartureOrder::Queue
 end
 
@@ -102,6 +104,7 @@ function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
         ConveyorUnitMass,
         ConveyorEfficiency,
         FrictionCoefficient,
+        DataFrame{}(),
         Queue{Consignment}()
     )
 end
