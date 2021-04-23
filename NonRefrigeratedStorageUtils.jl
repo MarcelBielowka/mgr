@@ -173,8 +173,10 @@ end
 # then calculate the energy use on the way inside the warehouse and outside of it
 # and finally enqueue the consignment into the waiting line
 function LocateSlot!(Consignment::Consignment, Storage::Storage)
+    # logs
     IDtoprint = (Consignment.DataIn["Day"], Consignment.DataIn["HourIn"], Consignment.DataIn["ID"])
     println("Looking for a place for Consignment ", IDtoprint)
+    # find location
     location =
         findfirst(x ->
             x == minimum(
@@ -183,9 +185,12 @@ function LocateSlot!(Consignment::Consignment, Storage::Storage)
         )
     Consignment.Location = Tuple(location)
     println(Tuple(location), " slot allocated")
+    # calculate energy consumption and locate the consignment
     CalculateEnergyUse!(Storage, Consignment, location)
     Storage.StorageMap[location] = Consignment
+    # FIFO attribution
     enqueue!(Storage.DepartureOrder, Consignment)
+
 end
 
 #TestStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
