@@ -51,17 +51,18 @@ end
 # anyway
 function GetDecisionMap(Map, DistanceMap,
         HandlingRoadString,
-        ConveyorSectionLength, ConveyorSectionWidth,
+        ConveyorSectionLength, ConveyorSectionWidth, SingleSlotHeight
         ConsignmentWeight, EffectivePull, Efficiency)
     DecisionMap = Array{Union{Float64, String, Nothing}}(nothing, size(Map))
 
     for i in 1:size(Map)[1], j in 1:size(Map)[2], k in 1:size(Map)[3]
         if isnothing(Map[i,j,k])
             # E = W = F * s / η
-            # * 0.00027778 - conversion from joules to Wh
+            # * 0.00000027778 - conversion from joules to kWh
             DecisionMap[i,j,k] = (
                 EffectivePull * abs(DistanceMap[i,j,k][2]) * ConveyorSectionLength +
-                ConsignmentWeight * 9.81 * (abs(DistanceMap[i,j,k][3])-1)) * 0.000277778 / Efficiency
+                ConsignmentWeight * 9.81 * SingleSlotHeight * (abs(DistanceMap[i,j,k][3])-1)
+            ) * 0.000000277778 / Efficiency
         elseif isa(Map[i,j,k], Consignment)
             DecisionMap[i,j,k] = "T"
         else
@@ -80,6 +81,7 @@ mutable struct Storage
     HandlingRoadString::String
     ConveyorSectionLength::Float16
     ConveyorSectionWidth::Float16
+    SingleSlotHeight::Float16
     ConveyorUnitMass::Float64
     ConveyorEfficiency::Float16
     FrictionCoefficient::Float64
@@ -88,7 +90,7 @@ end
 
 # Storage constructor
 function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
-                 ConveyorSectionLength, ConveyorSectionWidth, HandlingRoadWidth,
+                 ConveyorSectionLength, ConveyorSectionWidth, SingleSlotHeight, HandlingRoadWidth,
                  FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2)
     StorageMap = GetStorageMap(SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString)
     DistanceMap = GetDistanceMap(StorageMap)
@@ -100,6 +102,7 @@ function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
         HandlingRoadString,
         ConveyorSectionLength,
         ConveyorSectionWidth,
+        SingleSlotHeight,
         ConveyorUnitMass,
         ConveyorEfficiency,
         FrictionCoefficient,
@@ -137,7 +140,8 @@ function Consignment(InID, Storage, Length, Width, Height, Weight)
         EffectivePull,
         GetDecisionMap(Storage.StorageMap, Storage.DistanceMap,
             Storage.HandlingRoadString, Storage.ConveyorSectionLength,
-            Storage.ConveyorSectionWidth, Weight, EffectivePull, Storage.ConveyorEfficiency),
+            Storage.ConveyorSectionWidth, Storage.SingleSlotHeight,
+            Weight, EffectivePull, Storage.ConveyorEfficiency),
         (),
         Dict{}()
     )
