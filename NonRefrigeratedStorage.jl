@@ -1,5 +1,5 @@
-using Pipe, DataStructures, Random, Distributions
-using StatsPlots
+using Pipe: @pipe
+using DataStructures, Random, Distributions, StatsPlots
 
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 include("NonRefrigeratedStorageUtils.jl")
