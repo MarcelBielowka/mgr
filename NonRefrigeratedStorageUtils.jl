@@ -83,7 +83,6 @@ mutable struct Storage
     ConveyorUnitMass::Float64
     ConveyorEfficiency::Float16
     FrictionCoefficient::Float64
-    HourlyConsData::DataFrame
     DepartureOrder::Queue
 end
 
@@ -104,7 +103,6 @@ function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
         ConveyorUnitMass,
         ConveyorEfficiency,
         FrictionCoefficient,
-        DataFrame{}(),
         Queue{Consignment}()
     )
 end
