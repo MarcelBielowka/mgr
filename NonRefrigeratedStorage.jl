@@ -19,6 +19,17 @@ DistInitFill = Distributions.Uniform(0.2, 0.5)
 #StatsPlots.plot(x2, pdf.(DistWeightCon, x2))
 #StatsPlots.plot(x2, cdf.(DistWeightCon, x2))
 
+function Sim(SlotsLength, SlotsWidth, SlotsHeight,
+    ConveyorSectionLength, ConveyorSectionWidth, ConveyorEfficiency,
+    StorageSlotHeight, ConveyorMassPerM2,
+    ConsignmentLength, ConsignmentWidth, ConsignmentHeight,
+    FrictionCoefficient,  HandlingRoadString)
+
+
+
+
+end
+
 MyStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
 InitFill = MyStorage.MaxCapacity * rand(DistInitFill)
 for ConsNum in 1:InitFill
@@ -37,7 +48,7 @@ ConsumptionOut = 0
 NoConsIn = rand(DistNumConsIn)
 NoConsOut = rand(DistNumConsOut)
 AllConsOut = []
-for ConsNum in 1:145
+for ConsNum in 1:NoConsIn
     CurrentCons = Consignment(
         Dict("Day" => 1, "HourIn" => 1, "ID" => ConsNum),
         MyStorage, 1.2, 0.8, 1.2, min(rand(DistWeightCon), 1500)
@@ -54,21 +65,3 @@ end
 
 #using JuliaInterpreter
 #push!(JuliaInterpreter.compiled_modules, Base)
-[println(AllConsOut[i].EnergyConsumption["Out"]) for i in 2:length(AllConsOut)]
-ConsumptionIn
-ConsumptionOut
-ConsumptionIn + ConsumptionOut
-
-MyStorage.StorageMap[:, 46, 2]
-length(MyStorage.DepartureOrder)
-
-abcCons = dequeue!(MyStorage.DepartureOrder)
-abcCons2 = dequeue!(MyStorage.DepartureOrder)
-MyStorage.StorageMap[16, 46, 2]
-MyStorage.DistanceMap[16, 46, 2]
-
-MyStorage.StorageMap[16, 46, :]
-
-MyStorage.StorageMap[35, 1, :]
-MyStorage.StorageMap[35, 1, 7]
-MyStorage.DistanceMap[35, 1, 1]
