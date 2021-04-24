@@ -76,16 +76,17 @@ end
 mutable struct Conveyor
     ConveyorSectionLength::Float16
     ConveyorSectionWidth::Float16
-    ConveyorUnitMass::Float64
+    ConveyorUnitMass::Float16
     ConveyorEfficiency::Float16
 end
 
-function Conveyor(ConveyorSectionLength, ConveyorSectionWidth,
-        ConveyorEfficiency, ConveyorMassPerM2)
+function Conveyor(ConveyorSectionLength::Float16, ConveyorSectionWidth::Float16,
+        ConveyorEfficiency::Float16, ConveyorMassPerM2::Float16)
+    ConveyorUnitMass = ConveyorSectionWidth * ConveyorSectionLength * ConveyorMassPerM2 * 2
     Conveyor(
         ConveyorSectionLength,
         ConveyorSectionWidth,
-        ConveyorSectionWidth * ConveyorSectionLength * ConveyorMassPerM2 * 2,
+        ConveyorUnitMass,
         ConveyorEfficiency
     )
 end
