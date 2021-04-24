@@ -170,19 +170,22 @@ end
 # W = F * s for horizontal move, W = m * g * h for vertical move
 # + 1 in move along rows in EnergyIn - to mark the consignment needs to enter the building
 # + 2 in move along rows in EnergyOut - consignment needs to leave the racks region (+1) and leave the building (+1)
-function CalculateEnergyUse!(Storage::Storage, Consignment::Consignment, location::CartesianIndex)
+function CalculateEnergyUse!(Storage::Storage, Consignment::Consignment,
+        location::CartesianIndex, optimise::Bool)
     NoOfRows = size(Storage.StorageMap)[1]
-    EnergyUseIn = (
-        Consignment.EffectivePull * abs(Storage.DistanceMap[location][1] + 1 + 6) * Storage.Conveyor.ConveyorSectionWidth +
-            Consignment.EffectivePull * abs(Storage.DistanceMap[location][2]) * Storage.Conveyor.ConveyorSectionLength +
-            Consignment.Weight * 9.81 * (abs(Storage.DistanceMap[location][3])-1)
-        ) * 0.000000277778 / Storage.Conveyor.ConveyorEfficiency
+    if optimise
+        EnergyUseIn = (
+            Consignment.EffectivePull * abs(Storage.DistanceMap[location][1] + 1 + 6) * Storage.Conveyor.ConveyorSectionWidth +
+                Consignment.EffectivePull * abs(Storage.DistanceMap[location][2]) * Storage.Conveyor.ConveyorSectionLength +
+                Consignment.Weight * 9.81 * (abs(Storage.DistanceMap[location][3])-1)
+            ) * 0.000000277778 / Storage.Conveyor.ConveyorEfficiency
+        push!(Consignment.EnergyConsumption,"In" => EnergyUseIn
+    end
     EnergyUseOut = (
         Consignment.EffectivePull * (NoOfRows - abs(Storage.DistanceMap[location][1]) + 2 + 6) * Storage.Conveyor.ConveyorSectionWidth +
             Consignment.EffectivePull * abs(Storage.DistanceMap[location][2]) * Storage.Conveyor.ConveyorSectionLength +
             Consignment.Weight * 9.81 * (abs(Storage.DistanceMap[location][3])-1)
         ) * 0.000000277778 / Storage.Conveyor.ConveyorEfficiency
-    push!(Consignment.EnergyConsumption,"In" => EnergyUseIn)
     push!(Consignment.EnergyConsumption,"Out" => EnergyUseOut)
 end
 
@@ -194,21 +197,26 @@ end
 # all neatly wrapped using λ function and findfirst
 # then calculate the energy use on the way inside the warehouse and outside of it
 # and finally enqueue the consignment into the waiting line
-function LocateSlot!(Consignment::Consignment, Storage::Storage)
+function LocateSlot!(Consignment::Consignment, Storage::Storage; optimise = true)
     # logs
     IDtoprint = (Consignment.DataIn["Day"], Consignment.DataIn["HourIn"], Consignment.DataIn["ID"])
-    println("Looking for a place for Consignment ", IDtoprint)
-    # find location
-    location =
-        findfirst(x ->
-            x == minimum(
-                Consignment.DecisionMap[findall(isnothing.(Storage.StorageMap).==1)]
-            ), Consignment.DecisionMap
-        )
-    Consignment.Location = Tuple(location)
-    println(Tuple(location), " slot allocated")
+    if optimise
+        println("Looking for a place for Consignment ", IDtoprint)
+        # find location
+        location =
+            findfirst(x ->
+                x == minimum(
+                    Consignment.DecisionMap[findall(isnothing.(Storage.StorageMap).==1)]
+                ), Consignment.DecisionMap
+            )
+        Consignment.Location = Tuple(location)
+        println(Tuple(location), " slot allocated")
+    else
+        location = rand(findall(isnothing.(Storage.StorageMap)))
+        println(Tuple(location) " slot allocated. Energy use is not being optimised")
+    end
     # calculate energy consumption and locate the consignment
-    CalculateEnergyUse!(Storage, Consignment, location)
+    CalculateEnergyUse!(Storage, Consignment, location, optimise)
     Storage.StorageMap[location] = Consignment
     # FIFO attribution
     enqueue!(Storage.DepartureOrder, Consignment)

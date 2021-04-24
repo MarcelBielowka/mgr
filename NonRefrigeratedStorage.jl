@@ -5,9 +5,15 @@ cd("C:/Users/Marcel/Desktop/mgr/kody")
 include("NonRefrigeratedStorageUtils.jl")
 Random.seed!(72945)
 
+ArrivalsDict = zip(0:23,
+    [0, 0, 0, 0, 0, 0, 97, 77, 87, 97, 97, 97, 107, 117, 117, 117, 107, 97, 97, 87, 87, 65, 2, 0]) |> collect |> Dict
+DeparturesDict = deepcopy(ArrivalsDict)
+
 DistNumConsIn = Distributions.Poisson(48)
 DistNumConsOut = Distributions.Poisson(30)
 DistWeightCon = Distributions.Normal(1300, 200)
+DistInitFill = Distributions.Uniform(0.2, 0.5)
+rand(DistInitFill)
 #x1 = 0:0.1:200
 #StatsPlots.plot(x1, pdf.(DistNumCon, x1))
 #x2 = 0.1:0.1:500
@@ -15,6 +21,12 @@ DistWeightCon = Distributions.Normal(1300, 200)
 #StatsPlots.plot(x2, cdf.(DistWeightCon, x2))
 
 MyStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
+InitFill = MyStorage.MaxCapacity * rand(DistInitFill)
+rand(findall(isnothing.(MyStorage.StorageMap)))
+
+
+CartesianIndex(rand(1:size(MyStorage.StorageMap)[1]), rand(1:size(MyStorage.StorageMap)[2]), rand(1:size(MyStorage.StorageMap)[3]))
+
 dfOverallPowerCons = DataFrame(WarehouseID = Int[], Day = Int[], Hour = Int[], ConsIn = Float64[], ConsOut = Float64[])
 ConsumptionIn = 0
 ConsumptionOut = 0
@@ -38,7 +50,7 @@ end
 
 #using JuliaInterpreter
 #push!(JuliaInterpreter.compiled_modules, Base)
-AllConsOut[2]
+[println(AllConsOut[i].EnergyConsumption["Out"]) for i in 2:length(AllConsOut)]
 ConsumptionIn
 ConsumptionOut
 ConsumptionIn + ConsumptionOut
