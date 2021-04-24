@@ -111,7 +111,7 @@ function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
     MaxCapacity = sum(isnothing.(StorageMap))
     println("Abc $MaxCapacity xyz")
     ConveyorUnitMass = ConveyorSectionWidth * ConveyorSectionLength * ConveyorMassPerM2 * 2
-    Conveyor = Conveyor(
+    ConveyorSection = Conveyor(
         ConveyorSectionLength, ConveyorSectionWidth, ConveyorUnitMass, ConveyorEfficiency
     )
     Storage(
@@ -119,7 +119,7 @@ function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
         StorageMap,
         DistanceMap,
         HandlingRoadString,
-        Conveyor,
+        ConveyorSection,
         FrictionCoefficient,
         Queue{Consignment}()
     )
