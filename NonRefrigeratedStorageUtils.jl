@@ -1,5 +1,5 @@
 using Pipe: @pipe
-using DataFrames, DataStructures
+using DataStructures, Random, Distributions, StatsPlots, DataFrames
 
 # Corridors are assigned each third column - surrounded by two stacks of racks
 function AssignCorridors(Map, HandlingRoadString)
@@ -219,6 +219,7 @@ function LocateSlot!(Consignment::Consignment, Storage::Storage; optimise = true
 
 end
 
+# Send the consignment away
 function ExpediateConsignment!(Storage::Storage,
             Day::Int, Hour::Int)
     CurrentCons = dequeue!(Storage.DepartureOrder)
@@ -228,9 +229,28 @@ function ExpediateConsignment!(Storage::Storage,
     return CurrentCons
 end
 
-#TestStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
-#TestConsignment = Consignment(Dict("Day" => 1, "HourIn" => 1, "ID" => 1),
-#    TestStorage, 1.2, 0.8, 1.2, 100)
-#a = LocateSlot!(TestConsignment, TestStorage)
-#TestStorage.StorageMap[1,46,:]
-#TestStorage.DepartureOrder
+# initiate a new storage
+function CreateNewStorage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
+    ConveyorSectionLength, ConveyorSectionWidth, StorageSlotHeight,
+    FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2,
+    ConsignmentLength, ConsignmentWidth, ConsignmentHeight,
+    DistWeightCon, DistInitFill)
+
+    NewStorage = Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
+        ConveyorSectionLength, ConveyorSectionWidth, StorageSlotHeight,
+        FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2)
+
+    InitFill = NewStorage.MaxCapacity * rand(DistInitFill)
+
+    for ConsNum in 1:InitFill
+        CurrentCons = Consignment(
+            Dict("Day" => 0, "HourIn" => 0, "ID" => ConsNum),
+            MyStorage,
+            ConsignmentLength, ConveyorSectionWidth, 1.2, min(rand(DistWeightCon), 1500)
+        )
+        LocateSlot!(CurrentCons, MyStorage; optimise = false)
+    end
+
+    return NewStorage
+
+end
