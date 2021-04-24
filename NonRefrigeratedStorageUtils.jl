@@ -97,9 +97,11 @@ mutable struct Storage
     StorageMap::Array
     DistanceMap::Array
     HandlingRoadString::String
+    MaxCapacity::Int16
     Conveyor::Conveyor
     FrictionCoefficient::Float64
     DepartureOrder::Queue
+    WaitingQueue::Queue
 end
 
 # Storage constructor
@@ -108,7 +110,7 @@ function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
                  FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2)
     StorageMap = GetStorageMap(SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString)
     DistanceMap = GetDistanceMap(StorageMap)
-    MaxCapacity = sum(isnothing.(StorageMap))
+    WarehouseMaxCapacity = sum(isnothing.(StorageMap))
     println("Abc $MaxCapacity xyz")
     ConveyorUnitMass = ConveyorSectionWidth * ConveyorSectionLength * ConveyorMassPerM2 * 2
     ConveyorSection = Conveyor(
@@ -119,8 +121,10 @@ function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
         StorageMap,
         DistanceMap,
         HandlingRoadString,
+        WarehouseMaxCapacity,
         ConveyorSection,
         FrictionCoefficient,
+        Queue{Consignment}(),
         Queue{Consignment}()
     )
 end
