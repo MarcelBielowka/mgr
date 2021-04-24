@@ -45,31 +45,6 @@ function GetDistanceMap(Map)
     return DistancesFinal
 end
 
-# Decision Map calculates the energy use on the move between the columns
-# and up along the shelves
-# move along rows is irrelevant -
-# the consignment will need to move along them anyway
-function GetDecisionMap(Storage::Storage, Consignment::Consignment)
-    DecisionMap = Array{Union{Float64, String, Nothing}}(nothing, size(Storage.StorageMap))
-
-    for i in 1:size(Storage.StorageMap)[1], j in 1:size(Storage.StorageMap)[2], k in 1:size(Storage.StorageMap)[3]
-        if isnothing(Storage.StorageMap[i,j,k])
-            # E = W = F * s / η
-            # * 0.00000027778 - conversion from joules to kWh
-            DecisionMap[i,j,k] = (
-                Consignment.EffectivePull * abs(Storage.DistanceMap[i,j,k][2]) * Storage.Conveyor.ConveyorSectionLength +
-                Consignment.Weight * 9.81 * (abs(Storage.DistanceMap[i,j,k][3])-1)
-            ) * 0.000000277778 / Storage.Conveyor.ConveyorEfficiency
-        elseif isa(Storage.StorageMap[i,j,k], Consignment)
-            DecisionMap[i,j,k] = "T"
-        else
-            DecisionMap[i,j,k] = Storage.HandlingRoadString
-        end
-    end
-
-    return DecisionMap
-end
-
 mutable struct Conveyor
     ConveyorSectionLength::Float16
     ConveyorSectionWidth::Float16
@@ -157,11 +132,37 @@ function Consignment(InID, Storage, Length, Width, Height, Weight)
     )
 end
 
+# Decision Map calculates the energy use on the move between the columns
+# and up along the shelves
+# move along rows is irrelevant -
+# the consignment will need to move along them anyway
+function GetDecisionMap(Storage::Storage, CurrentConsignment::Consignment)
+    DecisionMap = Array{Union{Float64, String, Nothing}}(nothing, size(Storage.StorageMap))
+
+    for i in 1:size(Storage.StorageMap)[1], j in 1:size(Storage.StorageMap)[2], k in 1:size(Storage.StorageMap)[3]
+        if isnothing(Storage.StorageMap[i,j,k])
+            # E = W = F * s / η
+            # * 0.00000027778 - conversion from joules to kWh
+            DecisionMap[i,j,k] = (
+                CurrentConsignment.EffectivePull * abs(Storage.DistanceMap[i,j,k][2]) * Storage.Conveyor.ConveyorSectionLength +
+                CurrentConsignment.Weight * 9.81 * (abs(Storage.DistanceMap[i,j,k][3])-1)
+            ) * 0.000000277778 / Storage.Conveyor.ConveyorEfficiency
+        elseif isa(Storage.StorageMap[i,j,k], Consignment)
+            DecisionMap[i,j,k] = "T"
+        else
+            DecisionMap[i,j,k] = Storage.HandlingRoadString
+        end
+    end
+
+    return DecisionMap
+end
+
 # Calculating the energy use
 # Get the optimal location and apply physical properties
 # W = F * s for horizontal move, W = m * g * h for vertical move
 # + 1 in move along rows in EnergyIn - to mark the consignment needs to enter the building
 # + 2 in move along rows in EnergyOut - consignment needs to leave the racks region (+1) and leave the building (+1)
+# Energy in is only calculated when we optimise the energy use
 function CalculateEnergyUse!(Storage::Storage, Consignment::Consignment,
         location::CartesianIndex, optimise::Bool)
     NoOfRows = size(Storage.StorageMap)[1]
