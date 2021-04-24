@@ -72,6 +72,7 @@ mutable struct Storage
     MaxCapacity::Int16
     Conveyor::Conveyor
     FrictionCoefficient::Float64
+    ElectricityConsumption::DataFrame
     DepartureOrder::Queue
     WaitingQueue::Queue
 end
@@ -95,6 +96,7 @@ function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
         WarehouseMaxCapacity,
         ConveyorSection,
         FrictionCoefficient,
+        DataFrame(WarehouseID = Int[], Day = Int[], Hour = Int[], ConsIn = Float64[], ConsOut = Float64[]),
         Queue{Consignment}(),
         Queue{Consignment}()
     )
