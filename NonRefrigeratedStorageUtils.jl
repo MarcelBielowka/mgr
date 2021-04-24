@@ -195,6 +195,15 @@ function LocateSlot!(Consignment::Consignment, Storage::Storage)
 
 end
 
+function ExpediateConsignment!(Storage::Storage,
+            Day::Int, Hour::Int)
+    CurrentCons = dequeue!(Storage.DepartureOrder)
+    println(CurrentCons.DataIn, " is leaving the warehouse")
+    push!(CurrentCons.DataOut, "Day" => Day)
+    push!(CurrentCons.DataOut, "Hour" => Hour)
+    return CurrentCons
+end
+
 #TestStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
 #TestConsignment = Consignment(Dict("Day" => 1, "HourIn" => 1, "ID" => 1),
 #    TestStorage, 1.2, 0.8, 1.2, 100)
