@@ -73,16 +73,30 @@ function GetDecisionMap(Map, DistanceMap,
     return DecisionMap
 end
 
+mutable struct Conveyor
+    ConveyorSectionLength::Float16
+    ConveyorSectionWidth::Float16
+    ConveyorUnitMass::Float64
+    ConveyorEfficiency::Float16
+end
+
+function Conveyor(ConveyorSectionLength, ConveyorSectionWidth,
+        ConveyorEfficiency, ConveyorMassPerM2)
+    Conveyor(
+        ConveyorSectionLength,
+        ConveyorSectionWidth,
+        ConveyorSectionWidth * ConveyorSectionLength * ConveyorMassPerM2 * 2,
+        ConveyorEfficiency
+    )
+end
+
 # Storage class definition
 mutable struct Storage
     ID::Int
     StorageMap::Array
     DistanceMap::Array
     HandlingRoadString::String
-    ConveyorSectionLength::Float16
-    ConveyorSectionWidth::Float16
-    ConveyorUnitMass::Float64
-    ConveyorEfficiency::Float16
+    Conveyor::Conveyor
     FrictionCoefficient::Float64
     DepartureOrder::Queue
 end
@@ -93,16 +107,18 @@ function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
                  FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2)
     StorageMap = GetStorageMap(SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString)
     DistanceMap = GetDistanceMap(StorageMap)
+    MaxCapacity = sum(isnothing.(StorageMap))
+    println("Abc $MaxCapacity xyz")
     ConveyorUnitMass = ConveyorSectionWidth * ConveyorSectionLength * ConveyorMassPerM2 * 2
+    Conveyor = Conveyor(
+        ConveyorSectionLength, ConveyorSectionWidth, ConveyorUnitMass, ConveyorEfficiency
+    )
     Storage(
         ID,
         StorageMap,
         DistanceMap,
         HandlingRoadString,
-        ConveyorSectionLength,
-        ConveyorSectionWidth,
-        ConveyorUnitMass,
-        ConveyorEfficiency,
+        Conveyor,
         FrictionCoefficient,
         Queue{Consignment}()
     )
@@ -126,7 +142,7 @@ end
 # Consignment constructor
 function Consignment(InID, Storage, Length, Width, Height, Weight)
     WeightPerMetre = Weight / Length
-    EffectivePull = Storage.FrictionCoefficient * 9.81 * (Weight + Storage.ConveyorUnitMass)
+    EffectivePull = Storage.FrictionCoefficient * 9.81 * (Weight + Storage.Conveyor.ConveyorUnitMass)
     Consignment(
         InID,
         Dict{}(),
@@ -137,9 +153,9 @@ function Consignment(InID, Storage, Length, Width, Height, Weight)
         WeightPerMetre,
         EffectivePull,
         GetDecisionMap(Storage.StorageMap, Storage.DistanceMap,
-            Storage.HandlingRoadString, Storage.ConveyorSectionLength,
-            Storage.ConveyorSectionWidth,
-            Weight, EffectivePull, Storage.ConveyorEfficiency),
+            Storage.HandlingRoadString, Storage.Conveyor.ConveyorSectionLength,
+            Storage.Conveyor.ConveyorSectionWidth,
+            Weight, EffectivePull, Storage.Conveyor.ConveyorEfficiency),
         (),
         Dict{}()
     )
@@ -153,15 +169,15 @@ end
 function CalculateEnergyUse!(Storage::Storage, Consignment::Consignment, location::CartesianIndex)
     NoOfRows = size(Storage.StorageMap)[1]
     EnergyUseIn = (
-        Consignment.EffectivePull * abs(Storage.DistanceMap[location][1] + 1 + 6) * Storage.ConveyorSectionWidth +
-            Consignment.EffectivePull * abs(Storage.DistanceMap[location][2]) * Storage.ConveyorSectionLength +
+        Consignment.EffectivePull * abs(Storage.DistanceMap[location][1] + 1 + 6) * Storage.Conveyor.ConveyorSectionWidth +
+            Consignment.EffectivePull * abs(Storage.DistanceMap[location][2]) * Storage.Conveyor.ConveyorSectionLength +
             Consignment.Weight * 9.81 * (abs(Storage.DistanceMap[location][3])-1)
-        ) * 0.000000277778 / Storage.ConveyorEfficiency
+        ) * 0.000000277778 / Storage.Conveyor.ConveyorEfficiency
     EnergyUseOut = (
-        Consignment.EffectivePull * (NoOfRows - abs(Storage.DistanceMap[location][1]) + 2 + 6) * Storage.ConveyorSectionWidth +
-            Consignment.EffectivePull * abs(Storage.DistanceMap[location][2]) * Storage.ConveyorSectionLength +
+        Consignment.EffectivePull * (NoOfRows - abs(Storage.DistanceMap[location][1]) + 2 + 6) * Storage.Conveyor.ConveyorSectionWidth +
+            Consignment.EffectivePull * abs(Storage.DistanceMap[location][2]) * Storage.Conveyor.ConveyorSectionLength +
             Consignment.Weight * 9.81 * (abs(Storage.DistanceMap[location][3])-1)
-        ) * 0.000000277778 / Storage.ConveyorEfficiency
+        ) * 0.000000277778 / Storage.Conveyor.ConveyorEfficiency
     push!(Consignment.EnergyConsumption,"In" => EnergyUseIn)
     push!(Consignment.EnergyConsumption,"Out" => EnergyUseOut)
 end
