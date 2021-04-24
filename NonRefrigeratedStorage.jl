@@ -37,7 +37,7 @@ ConsumptionOut = 0
 NoConsIn = rand(DistNumConsIn)
 NoConsOut = rand(DistNumConsOut)
 AllConsOut = []
-for ConsNum in 1:NoConsIn
+for ConsNum in 1:145
     CurrentCons = Consignment(
         Dict("Day" => 1, "HourIn" => 1, "ID" => ConsNum),
         MyStorage, 1.2, 0.8, 1.2, min(rand(DistWeightCon), 1500)
@@ -58,3 +58,17 @@ end
 ConsumptionIn
 ConsumptionOut
 ConsumptionIn + ConsumptionOut
+
+MyStorage.StorageMap[:, 46, 2]
+length(MyStorage.DepartureOrder)
+
+abcCons = dequeue!(MyStorage.DepartureOrder)
+abcCons2 = dequeue!(MyStorage.DepartureOrder)
+MyStorage.StorageMap[16, 46, 2]
+MyStorage.DistanceMap[16, 46, 2]
+
+MyStorage.StorageMap[16, 46, :]
+
+MyStorage.StorageMap[35, 1, :]
+MyStorage.StorageMap[35, 1, 7]
+MyStorage.DistanceMap[35, 1, 1]
