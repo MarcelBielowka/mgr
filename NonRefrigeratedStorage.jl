@@ -36,10 +36,10 @@ ConsumptionIn = 0
 ConsumptionOut = 0
 NoConsIn = rand(DistNumConsIn)
 NoConsOut = rand(DistNumConsOut)
-AllConsOut = Array{}
+AllConsOut = []
 for ConsNum in 1:NoConsIn
     CurrentCons = Consignment(
-        Dict("Day" => 1, "HourIn" => 1, "ID" => 1),
+        Dict("Day" => 1, "HourIn" => 1, "ID" => ConsNum),
         MyStorage, 1.2, 0.8, 1.2, min(rand(DistWeightCon), 1500)
     )
     LocateSlot!(CurrentCons, MyStorage)
