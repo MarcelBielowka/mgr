@@ -111,7 +111,6 @@ function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
     StorageMap = GetStorageMap(SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString)
     DistanceMap = GetDistanceMap(StorageMap)
     WarehouseMaxCapacity = sum(isnothing.(StorageMap))
-    println("Abc $MaxCapacity xyz")
     ConveyorUnitMass = ConveyorSectionWidth * ConveyorSectionLength * ConveyorMassPerM2 * 2
     ConveyorSection = Conveyor(
         ConveyorSectionLength, ConveyorSectionWidth, ConveyorUnitMass, ConveyorEfficiency
