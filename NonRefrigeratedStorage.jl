@@ -5,8 +5,8 @@ cd("C:/Users/Marcel/Desktop/mgr/kody")
 include("NonRefrigeratedStorageUtils.jl")
 Random.seed!(72945)
 
-DistNumConsIn = Distributions.Poisson(97)
-DistNumConsOut = Distributions.Poisson(80)
+DistNumConsIn = Distributions.Poisson(48)
+DistNumConsOut = Distributions.Poisson(30)
 DistWeightCon = Distributions.Normal(1000, 200)
 #x1 = 0:0.1:200
 #StatsPlots.plot(x1, pdf.(DistNumCon, x1))
@@ -14,7 +14,7 @@ DistWeightCon = Distributions.Normal(1000, 200)
 #StatsPlots.plot(x2, pdf.(DistWeightCon, x2))
 #StatsPlots.plot(x2, cdf.(DistWeightCon, x2))
 
-MyStorage = Storage(1,90,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
+MyStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
 dfOverallPowerCons = DataFrame(WarehouseID = Int[], Day = Int[], Hour = Int[], ConsIn = Float64[], ConsOut = Float64[])
 ConsumptionIn = 0
 ConsumptionOut = 0
