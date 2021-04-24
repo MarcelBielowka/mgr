@@ -13,7 +13,6 @@ DistNumConsIn = Distributions.Poisson(48)
 DistNumConsOut = Distributions.Poisson(30)
 DistWeightCon = Distributions.Normal(1300, 200)
 DistInitFill = Distributions.Uniform(0.2, 0.5)
-rand(DistInitFill)
 #x1 = 0:0.1:200
 #StatsPlots.plot(x1, pdf.(DistNumCon, x1))
 #x2 = 0.1:0.1:500
@@ -22,10 +21,15 @@ rand(DistInitFill)
 
 MyStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
 InitFill = MyStorage.MaxCapacity * rand(DistInitFill)
-rand(findall(isnothing.(MyStorage.StorageMap)))
+for ConsNum in 1:InitFill
+    CurrentCons = Consignment(
+        Dict("Day" => 0, "HourIn" => 0, "ID" => ConsNum),
+        MyStorage, 1.2, 0.8, 1.2, min(rand(DistWeightCon), 1500)
+    )
+    LocateSlot!(CurrentCons, MyStorage; optimise = false)
+end
 
-
-CartesianIndex(rand(1:size(MyStorage.StorageMap)[1]), rand(1:size(MyStorage.StorageMap)[2]), rand(1:size(MyStorage.StorageMap)[3]))
+MyStorage
 
 dfOverallPowerCons = DataFrame(WarehouseID = Int[], Day = Int[], Hour = Int[], ConsIn = Float64[], ConsOut = Float64[])
 ConsumptionIn = 0

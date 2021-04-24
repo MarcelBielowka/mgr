@@ -179,7 +179,7 @@ function CalculateEnergyUse!(Storage::Storage, Consignment::Consignment,
                 Consignment.EffectivePull * abs(Storage.DistanceMap[location][2]) * Storage.Conveyor.ConveyorSectionLength +
                 Consignment.Weight * 9.81 * (abs(Storage.DistanceMap[location][3])-1)
             ) * 0.000000277778 / Storage.Conveyor.ConveyorEfficiency
-        push!(Consignment.EnergyConsumption,"In" => EnergyUseIn
+        push!(Consignment.EnergyConsumption,"In" => EnergyUseIn)
     end
     EnergyUseOut = (
         Consignment.EffectivePull * (NoOfRows - abs(Storage.DistanceMap[location][1]) + 2 + 6) * Storage.Conveyor.ConveyorSectionWidth +
@@ -209,13 +209,13 @@ function LocateSlot!(Consignment::Consignment, Storage::Storage; optimise = true
                     Consignment.DecisionMap[findall(isnothing.(Storage.StorageMap).==1)]
                 ), Consignment.DecisionMap
             )
-        Consignment.Location = Tuple(location)
         println(Tuple(location), " slot allocated")
     else
         location = rand(findall(isnothing.(Storage.StorageMap)))
-        println(Tuple(location) " slot allocated. Energy use is not being optimised")
+        println(Tuple(location), " slot allocated to Consign ", IDtoprint, ". Energy use is not being optimised")
     end
     # calculate energy consumption and locate the consignment
+    Consignment.Location = Tuple(location)
     CalculateEnergyUse!(Storage, Consignment, location, optimise)
     Storage.StorageMap[location] = Consignment
     # FIFO attribution
