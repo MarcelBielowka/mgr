@@ -7,7 +7,7 @@ Random.seed!(72945)
 
 DistNumConsIn = Distributions.Poisson(48)
 DistNumConsOut = Distributions.Poisson(30)
-DistWeightCon = Distributions.Normal(1000, 200)
+DistWeightCon = Distributions.Normal(1300, 200)
 #x1 = 0:0.1:200
 #StatsPlots.plot(x1, pdf.(DistNumCon, x1))
 #x2 = 0.1:0.1:500
@@ -24,7 +24,7 @@ AllConsOut = Array{}
 for ConsNum in 1:NoConsIn
     CurrentCons = Consignment(
         Dict("Day" => 1, "HourIn" => 1, "ID" => ConsNum),
-        MyStorage, 1.2, 0.8, 1.2, max(rand(DistWeightCon), 70)
+        MyStorage, 1.2, 0.8, 1.2, min(rand(DistWeightCon), 1500)
     )
     LocateSlot!(CurrentCons, MyStorage)
     ConsumptionIn += CurrentCons.EnergyConsumption["In"]

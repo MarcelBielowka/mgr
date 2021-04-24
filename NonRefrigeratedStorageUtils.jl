@@ -153,12 +153,12 @@ end
 function CalculateEnergyUse!(Storage::Storage, Consignment::Consignment, location::CartesianIndex)
     NoOfRows = size(Storage.StorageMap)[1]
     EnergyUseIn = (
-        Consignment.EffectivePull * abs(Storage.DistanceMap[location][1] + 1) * Storage.ConveyorSectionWidth +
+        Consignment.EffectivePull * abs(Storage.DistanceMap[location][1] + 1 + 6) * Storage.ConveyorSectionWidth +
             Consignment.EffectivePull * abs(Storage.DistanceMap[location][2]) * Storage.ConveyorSectionLength +
             Consignment.Weight * 9.81 * (abs(Storage.DistanceMap[location][3])-1)
         ) * 0.000000277778 / Storage.ConveyorEfficiency
     EnergyUseOut = (
-        Consignment.EffectivePull * (NoOfRows - abs(Storage.DistanceMap[location][1]) + 2) * Storage.ConveyorSectionWidth +
+        Consignment.EffectivePull * (NoOfRows - abs(Storage.DistanceMap[location][1]) + 2 + 6) * Storage.ConveyorSectionWidth +
             Consignment.EffectivePull * abs(Storage.DistanceMap[location][2]) * Storage.ConveyorSectionLength +
             Consignment.Weight * 9.81 * (abs(Storage.DistanceMap[location][3])-1)
         ) * 0.000000277778 / Storage.ConveyorEfficiency
