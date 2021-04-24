@@ -50,19 +50,19 @@ mutable struct Conveyor
     ConveyorSectionWidth::Float16
     ConveyorUnitMass::Float16
     ConveyorEfficiency::Float16
-    RackSlotHeight::Float16
+    StorageSlotHeight::Float16
 end
 
 function Conveyor(ConveyorSectionLength::Float16, ConveyorSectionWidth::Float16,
         ConveyorEfficiency::Float16, ConveyorMassPerM2::Float16,
-        RackSlotHeight::Float16)
+        StorageSlotHeight::Float16)
     ConveyorUnitMass = ConveyorSectionWidth * ConveyorSectionLength * ConveyorMassPerM2 * 2
     Conveyor(
         ConveyorSectionLength,
         ConveyorSectionWidth,
         ConveyorUnitMass,
         ConveyorEfficiency,
-        RackSlotHeight
+        StorageSlotHeight
     )
 end
 
@@ -82,7 +82,7 @@ end
 
 # Storage constructor
 function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
-                 ConveyorSectionLength, ConveyorSectionWidth, RackSlotHeight,
+                 ConveyorSectionLength, ConveyorSectionWidth, StorageSlotHeight,
                  FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2)
     StorageMap = GetStorageMap(SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString)
     DistanceMap = GetDistanceMap(StorageMap)
@@ -90,7 +90,7 @@ function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
     ConveyorUnitMass = ConveyorSectionWidth * ConveyorSectionLength * ConveyorMassPerM2 * 2
     ConveyorSection = Conveyor(
         ConveyorSectionLength, ConveyorSectionWidth, ConveyorUnitMass,
-        ConveyorEfficiency, RackSlotHeight
+        ConveyorEfficiency, StorageSlotHeight
     )
     Storage(
         ID,
@@ -151,7 +151,7 @@ function GetDecisionMap(Storage::Storage, CurrentConsignment::Consignment)
             # * 0.00000027778 - conversion from joules to kWh
             DecisionMap[i,j,k] = (
                 CurrentConsignment.EffectivePull * abs(Storage.DistanceMap[i,j,k][2]) * Storage.Conveyor.ConveyorSectionLength +
-                CurrentConsignment.Weight * 9.81 * (abs(Storage.DistanceMap[i,j,k][3])-1) * Storage.Conveyor.RackSlotHeight
+                CurrentConsignment.Weight * 9.81 * (abs(Storage.DistanceMap[i,j,k][3])-1) * Storage.Conveyor.StorageSlotHeight
             ) * 0.000000277778 / Storage.Conveyor.ConveyorEfficiency
         elseif isa(Storage.StorageMap[i,j,k], Consignment)
             DecisionMap[i,j,k] = "T"
@@ -176,14 +176,14 @@ function CalculateEnergyUse!(Storage::Storage, Consignment::Consignment,
         EnergyUseIn = (
             Consignment.EffectivePull * abs(Storage.DistanceMap[location][1] + 1 + 6) * Storage.Conveyor.ConveyorSectionWidth +
                 Consignment.EffectivePull * abs(Storage.DistanceMap[location][2]) * Storage.Conveyor.ConveyorSectionLength +
-                Consignment.Weight * 9.81 * (abs(Storage.DistanceMap[location][3])-1) * Storage.Conveyor.RackSlotHeight
+                Consignment.Weight * 9.81 * (abs(Storage.DistanceMap[location][3])-1) * Storage.Conveyor.StorageSlotHeight
             ) * 0.000000277778 / Storage.Conveyor.ConveyorEfficiency
         push!(Consignment.EnergyConsumption,"In" => EnergyUseIn)
     end
     EnergyUseOut = (
         Consignment.EffectivePull * (NoOfRows - abs(Storage.DistanceMap[location][1]) + 2 + 6) * Storage.Conveyor.ConveyorSectionWidth +
             Consignment.EffectivePull * abs(Storage.DistanceMap[location][2]) * Storage.Conveyor.ConveyorSectionLength +
-            Consignment.Weight * 9.81 * (abs(Storage.DistanceMap[location][3])-1) * Storage.Conveyor.RackSlotHeight
+            Consignment.Weight * 9.81 * (abs(Storage.DistanceMap[location][3])-1) * Storage.Conveyor.StorageSlotHeight
         ) * 0.000000277778 / Storage.Conveyor.ConveyorEfficiency
     push!(Consignment.EnergyConsumption,"Out" => EnergyUseOut)
 end
@@ -249,10 +249,10 @@ function CreateNewStorage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoad
     for ConsNum in 1:InitFill
         CurrentCons = Consignment(
             Dict("Day" => 0, "HourIn" => 0, "ID" => ConsNum),
-            MyStorage,
+            NewStorage,
             ConsignmentLength, ConveyorSectionWidth, 1.2, min(rand(DistWeightCon), 1500)
         )
-        LocateSlot!(CurrentCons, MyStorage; optimise = false)
+        LocateSlot!(CurrentCons, NewStorage; optimise = false)
     end
 
     return NewStorage

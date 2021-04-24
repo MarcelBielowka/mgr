@@ -23,13 +23,30 @@ function Sim(SlotsLength, SlotsWidth, SlotsHeight,
     ConveyorSectionLength, ConveyorSectionWidth, ConveyorEfficiency,
     StorageSlotHeight, ConveyorMassPerM2,
     ConsignmentLength, ConsignmentWidth, ConsignmentHeight,
-    FrictionCoefficient,  HandlingRoadString)
+    FrictionCoefficient,  HandlingRoadString,
+    DistNumConsIn, DistNumConsOut, DistWeightCon, DistInitFill)
 
+    # Initiate a new storage
+    NewStorage = CreateNewStorage(1, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
+        ConveyorSectionLength, ConveyorSectionWidth, StorageSlotHeight,
+        FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2,
+        ConsignmentLength, ConsignmentWidth, ConsignmentHeight,
+        DistWeightCon, DistInitFill)
 
+    return NewStorage
 
 
 end
 
+abc = Sim(45,93,7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+    DistNumConsIn, DistNumConsOut, DistWeightCon, DistInitFill)
+abc
+length(abc.DepartureOrder)
+
+
+
+#####
+# tests
 MyStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
 InitFill = MyStorage.MaxCapacity * rand(DistInitFill)
 for ConsNum in 1:InitFill
@@ -65,3 +82,13 @@ end
 
 #using JuliaInterpreter
 #push!(JuliaInterpreter.compiled_modules, Base)
+MyStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
+CurrentCons = Consignment(
+    Dict("Day" => 1, "HourIn" => 1, "ID" => 1),
+    MyStorage, 1.2, 0.8, 1.2, 1500
+)
+
+t = GetDecisionMap(MyStorage, CurrentCons)
+t[1,46,1]
+t[1,46,2]
+t[1, 49, 1]
