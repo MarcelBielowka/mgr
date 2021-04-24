@@ -51,7 +51,7 @@ end
 # anyway
 function GetDecisionMap(Map, DistanceMap,
         HandlingRoadString,
-        ConveyorSectionLength, ConveyorSectionWidth, SingleSlotHeight
+        ConveyorSectionLength, ConveyorSectionWidth,
         ConsignmentWeight, EffectivePull, Efficiency)
     DecisionMap = Array{Union{Float64, String, Nothing}}(nothing, size(Map))
 
@@ -61,7 +61,7 @@ function GetDecisionMap(Map, DistanceMap,
             # * 0.00000027778 - conversion from joules to kWh
             DecisionMap[i,j,k] = (
                 EffectivePull * abs(DistanceMap[i,j,k][2]) * ConveyorSectionLength +
-                ConsignmentWeight * 9.81 * SingleSlotHeight * (abs(DistanceMap[i,j,k][3])-1)
+                ConsignmentWeight * 9.81 *  (abs(DistanceMap[i,j,k][3])-1)
             ) * 0.000000277778 / Efficiency
         elseif isa(Map[i,j,k], Consignment)
             DecisionMap[i,j,k] = "T"
@@ -81,7 +81,6 @@ mutable struct Storage
     HandlingRoadString::String
     ConveyorSectionLength::Float16
     ConveyorSectionWidth::Float16
-    SingleSlotHeight::Float16
     ConveyorUnitMass::Float64
     ConveyorEfficiency::Float16
     FrictionCoefficient::Float64
@@ -90,7 +89,7 @@ end
 
 # Storage constructor
 function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
-                 ConveyorSectionLength, ConveyorSectionWidth, SingleSlotHeight, HandlingRoadWidth,
+                 ConveyorSectionLength, ConveyorSectionWidth, HandlingRoadWidth,
                  FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2)
     StorageMap = GetStorageMap(SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString)
     DistanceMap = GetDistanceMap(StorageMap)
@@ -102,7 +101,6 @@ function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
         HandlingRoadString,
         ConveyorSectionLength,
         ConveyorSectionWidth,
-        SingleSlotHeight,
         ConveyorUnitMass,
         ConveyorEfficiency,
         FrictionCoefficient,
@@ -140,7 +138,7 @@ function Consignment(InID, Storage, Length, Width, Height, Weight)
         EffectivePull,
         GetDecisionMap(Storage.StorageMap, Storage.DistanceMap,
             Storage.HandlingRoadString, Storage.ConveyorSectionLength,
-            Storage.ConveyorSectionWidth, Storage.SingleSlotHeight,
+            Storage.ConveyorSectionWidth,
             Weight, EffectivePull, Storage.ConveyorEfficiency),
         (),
         Dict{}()
@@ -158,12 +156,12 @@ function CalculateEnergyUse!(Storage::Storage, Consignment::Consignment, locatio
         Consignment.EffectivePull * abs(Storage.DistanceMap[location][1] + 1) * Storage.ConveyorSectionWidth +
             Consignment.EffectivePull * abs(Storage.DistanceMap[location][2]) * Storage.ConveyorSectionLength +
             Consignment.Weight * 9.81 * (abs(Storage.DistanceMap[location][3])-1)
-        ) * 0.000277778 / Storage.ConveyorEfficiency
+        ) * 0.000000277778 / Storage.ConveyorEfficiency
     EnergyUseOut = (
         Consignment.EffectivePull * (NoOfRows - abs(Storage.DistanceMap[location][1]) + 2) * Storage.ConveyorSectionWidth +
             Consignment.EffectivePull * abs(Storage.DistanceMap[location][2]) * Storage.ConveyorSectionLength +
             Consignment.Weight * 9.81 * (abs(Storage.DistanceMap[location][3])-1)
-        ) * 0.000277778 / Storage.ConveyorEfficiency
+        ) * 0.000000277778 / Storage.ConveyorEfficiency
     push!(Consignment.EnergyConsumption,"In" => EnergyUseIn)
     push!(Consignment.EnergyConsumption,"Out" => EnergyUseOut)
 end
