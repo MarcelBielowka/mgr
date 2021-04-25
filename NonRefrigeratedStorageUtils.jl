@@ -203,12 +203,17 @@ function LocateSlot!(Consignment::Consignment, Storage::Storage; optimise = true
         println("Looking for a place for Consignment ", IDtoprint)
         DecisionMap = GetDecisionMap(Storage, Consignment)
         # find location
-        location =
-            findfirst(x ->
-                x == minimum(
-                    DecisionMap[findall(isnothing.(Storage.StorageMap).==1)]
-                ), DecisionMap
-            )
+#        location = findfirst(
+#            x -> x == minimum(
+#                DecisionMap[isnothing.(Storage.StorageMap)]),
+#            DecisionMap
+#        )
+
+        location = findfirst(
+            isequal(
+                minimum(DecisionMap[isnothing.(Storage.StorageMap)])
+            ), DecisionMap
+        )
         println(Tuple(location), " slot allocated")
     else
         location = rand(findall(isnothing.(Storage.StorageMap)))
