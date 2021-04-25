@@ -36,6 +36,7 @@ function SimOneRun(SimWindow,
         FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2,
         ConsignmentLength, ConsignmentWidth, ConsignmentHeight,
         DistWeightCon, DistInitFill)
+    println("New warehouse is created. Dimensions are: $SlotsLength x $SlotsWidth x $SlotsHeight and the maximum capacity is ", NewStorage.MaxCapacity)
 
     #return NewStorage
 
