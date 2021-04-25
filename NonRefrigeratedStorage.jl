@@ -3,14 +3,13 @@ using DataStructures, Random, Distributions, StatsPlots, DataFrames
 
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 include("NonRefrigeratedStorageUtils.jl")
-Random.seed!(72945)
 
 ArrivalsDict = zip(0:23,
     [0, 0, 0, 0, 0, 0, 97, 77, 87, 97, 97, 97, 107, 117, 117, 117, 107, 97, 97, 87, 87, 65, 2, 0]) |> collect |> Dict
 DeparturesDict = deepcopy(ArrivalsDict)
 
-DistNumConsIn = Distributions.Poisson(48)
-DistNumConsOut = Distributions.Poisson(30)
+#DistNumConsIn = Distributions.Poisson(48)
+#DistNumConsOut = Distributions.Poisson(30)
 DistWeightCon = Distributions.Normal(1300, 200)
 DistInitFill = Distributions.Uniform(0.2, 0.5)
 #x1 = 0:0.1:200
@@ -26,7 +25,7 @@ function SimOneRun(SimWindow,
     ConsignmentLength, ConsignmentWidth, ConsignmentHeight,
     FrictionCoefficient,  HandlingRoadString,
     DistWeightCon, DistInitFill,
-    ArrivalsDict, DepartureDict)
+    ArrivalsDict, DeparturesDict)
 
     DispatchedConsigns = Consignment[]
 
@@ -45,7 +44,7 @@ function SimOneRun(SimWindow,
         for Hour in 0:1:23
             println("Hour $Hour")
             DistNumConsIn = Distributions.Poisson(ArrivalsDict[Hour])
-            DistNumConsOut = Distributions.Poisson(DepartureDict[Hour])
+            DistNumConsOut = Distributions.Poisson(DeparturesDict[Hour])
             NumConsIn = rand(DistNumConsIn)
             NumConsOut = rand(DistNumConsOut)
             println("There are $NumConsIn consignments coming in and $NumConsOut going out")
@@ -63,9 +62,9 @@ function SimOneRun(SimWindow,
                 println("No consignments are admitted")
             else
                 for ConsInID in 1:NumConsOut
-                    println("Consignment $ConsInID")
+                    # println("Consignment $ConsInID")
                     CurrentCons = Consignment(
-                        Dict("Day" => 1, "HourIn" => 1, "ID" => ConsNum),
+                        Dict("Day" => Day, "HourIn" => Hour, "ID" => ConsInID),
                         NewStorage, 1.2, 0.8, 1.2, min(rand(DistWeightCon), 1500)
                     )
                     LocateSlot!(CurrentCons, NewStorage)
@@ -74,8 +73,13 @@ function SimOneRun(SimWindow,
         end
     end
 
-
+    return Dict("FinalStorage" => NewStorage,
+                "DispatchedConsignments" => DispatchedConsigns)
 end
+
+Random.seed!(72945)
+@time a = SimOneRun(1, 45,93,7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 
 abc = Sim(45,93,7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
     DistNumConsIn, DistNumConsOut, DistWeightCon, DistInitFill)
