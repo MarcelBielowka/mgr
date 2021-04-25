@@ -19,12 +19,16 @@ DistInitFill = Distributions.Uniform(0.2, 0.5)
 #StatsPlots.plot(x2, pdf.(DistWeightCon, x2))
 #StatsPlots.plot(x2, cdf.(DistWeightCon, x2))
 
-function Sim(SlotsLength, SlotsWidth, SlotsHeight,
+function SimOneRun(SimWindow,
+    SlotsLength, SlotsWidth, SlotsHeight,
     ConveyorSectionLength, ConveyorSectionWidth, ConveyorEfficiency,
     StorageSlotHeight, ConveyorMassPerM2,
     ConsignmentLength, ConsignmentWidth, ConsignmentHeight,
     FrictionCoefficient,  HandlingRoadString,
-    DistNumConsIn, DistNumConsOut, DistWeightCon, DistInitFill)
+    DistWeightCon, DistInitFill,
+    ArrivalsDict, DepartureDict)
+
+    DispatchedConsigns = Consignment[]
 
     # Initiate a new storage
     NewStorage = CreateNewStorage(1, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
@@ -33,7 +37,41 @@ function Sim(SlotsLength, SlotsWidth, SlotsHeight,
         ConsignmentLength, ConsignmentWidth, ConsignmentHeight,
         DistWeightCon, DistInitFill)
 
-    return NewStorage
+    #return NewStorage
+
+    for Day in 1:1:SimWindow
+        println("Day $Day")
+        for Hour in 0:1:23
+            println("Hour $Hour")
+            DistNumConsIn = Distributions.Poisson(ArrivalsDict[Hour])
+            DistNumConsOut = Distributions.Poisson(DepartureDict[Hour])
+            NumConsIn = rand(DistNumConsIn)
+            NumConsOut = rand(DistNumConsOut)
+            println("There are $NumConsIn consignments coming in and $NumConsOut going out")
+            if NumConsOut == 0
+                println("No consignments are sent out")
+            else
+                for ConsOutID in 1:NumConsOut
+                    println("Consignment $ConsOutID")
+                    ExpediatedConsign = ExpediateConsignment!(NewStorage, Day, Hour)
+                    push!(DispatchedConsigns, ExpediatedConsign)
+                end
+            end
+
+            if NumConsIn == 0
+                println("No consignments are admitted")
+            else
+                for ConsInID in 1:NumConsOut
+                    println("Consignment $ConsInID")
+                    CurrentCons = Consignment(
+                        Dict("Day" => 1, "HourIn" => 1, "ID" => ConsNum),
+                        NewStorage, 1.2, 0.8, 1.2, min(rand(DistWeightCon), 1500)
+                    )
+                    LocateSlot!(CurrentCons, NewStorage)
+                end
+            end
+        end
+    end
 
 
 end
@@ -84,11 +122,17 @@ end
 #push!(JuliaInterpreter.compiled_modules, Base)
 MyStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
 CurrentCons = Consignment(
-    Dict("Day" => 1, "HourIn" => 1, "ID" => 1),
+    Dict("Day" => 1, "HourIn" => 1, "ID" => 2),
     MyStorage, 1.2, 0.8, 1.2, 1500
 )
 
 t = GetDecisionMap(MyStorage, CurrentCons)
 t[1,46,1]
 t[1,46,2]
-t[1, 49, 1]
+t[1, 43, 1]
+
+t = Consignment[]
+push!(t,CurrentCons)
+t
+
+z = DataFrame(a = String[], b = Int[])
