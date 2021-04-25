@@ -208,13 +208,12 @@ function LocateSlot!(Consignment::Consignment, Storage::Storage; optimise = true
 #                DecisionMap[isnothing.(Storage.StorageMap)]),
 #            DecisionMap
 #        )
-
         location = findfirst(
             isequal(
                 minimum(DecisionMap[isnothing.(Storage.StorageMap)])
             ), DecisionMap
         )
-        println(Tuple(location), " slot allocated")
+        println(Tuple(location), " slot allocated. The value of decision matrix is ", DecisionMap[location])
     else
         location = rand(findall(isnothing.(Storage.StorageMap)))
         println(Tuple(location), " slot allocated to Consign ", IDtoprint, ". Energy use is not being optimised")

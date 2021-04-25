@@ -5,7 +5,7 @@ cd("C:/Users/Marcel/Desktop/mgr/kody")
 include("NonRefrigeratedStorageUtils.jl")
 
 ArrivalsDict = zip(0:23,
-    [0, 0, 0, 0, 0, 0, 97, 77, 87, 97, 97, 97, 107, 117, 117, 117, 107, 97, 97, 87, 87, 65, 2, 0]) |> collect |> Dict
+    floor.([0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0])) |> collect |> Dict
 DeparturesDict = deepcopy(ArrivalsDict)
 
 #DistNumConsIn = Distributions.Poisson(48)
@@ -78,7 +78,11 @@ function SimOneRun(SimWindow,
 end
 
 Random.seed!(72945)
-@time a = SimOneRun(1, 45,93,7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+@time a = SimOneRun(40, 45,93,7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
+#@time a = SimOneRun(1, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+#        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
+a = Juno.@enter SimOneRun(1, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
         DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 
 abc = Sim(45,93,7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
@@ -92,6 +96,12 @@ length(abc.DepartureOrder)
 # tests
 MyStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
 InitFill = MyStorage.MaxCapacity * rand(DistInitFill)
+InitFill = MyStorage.MaxCapacity
+
+MyStorage2 = Storage(1,45,51,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
+MyStorage2.StorageMap[:, 42:48, 1]
+MyStorage2.MaxCapacity
+
 for ConsNum in 1:InitFill
     CurrentCons = Consignment(
         Dict("Day" => 0, "HourIn" => 0, "ID" => ConsNum),
@@ -131,13 +141,15 @@ CurrentCons = Consignment(
     MyStorage, 1.2, 0.8, 1.2, 1500
 )
 
-t = GetDecisionMap(MyStorage, CurrentCons)
-t[1,46,1]
-t[1,46,2]
-t[1, 43, 1]
-
-t = Consignment[]
-push!(t,CurrentCons)
-t
-
-z = DataFrame(a = String[], b = Int[])
+MyDecisionMap = GetDecisionMap(MyStorage, CurrentCons)
+location =
+    findfirst(x ->
+        x == minimum(
+            DecisionMap[isnothing.(MyStorage.StorageMap)]
+        ), DecisionMap
+    )
+MyDecisionMap[5, 48, 1]
+MyDecisionMap[6, 48, 1]
+MyDecisionMap[9, 48, 1]
+findfirst(isequal(minimum(MyDecisionMap[isnothing.(MyStorage.StorageMap)])), MyDecisionMap)
+Juno.@enter LocateSlot!(CurrentCons, MyStorage)
