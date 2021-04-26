@@ -28,6 +28,7 @@ function SimOneRun(SimWindow,
     ArrivalsDict, DeparturesDict)
 
     DispatchedConsigns = Consignment[]
+    AdditionalConsignsToSend = 0
 
     # Initiate a new storage
     NewStorage = CreateNewStorage(1, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
@@ -37,8 +38,6 @@ function SimOneRun(SimWindow,
         DistWeightCon, DistInitFill)
     println("New warehouse is created. Dimensions are: $SlotsLength x $SlotsWidth x $SlotsHeight and the maximum capacity is ", NewStorage.MaxCapacity)
 
-    #return NewStorage
-
     for Day in 1:1:SimWindow
         println("Day $Day")
         for Hour in 0:1:23
@@ -46,15 +45,21 @@ function SimOneRun(SimWindow,
             DistNumConsIn = Distributions.Poisson(ArrivalsDict[Hour])
             DistNumConsOut = Distributions.Poisson(DeparturesDict[Hour])
             NumConsIn = rand(DistNumConsIn)
-            NumConsOut = rand(DistNumConsOut)
+            NumConsOut = rand(DistNumConsOut) + AdditionalConsignsToSend
+            AdditionalConsignsToSend = 0
             println("There are $NumConsIn new consignments coming in and $NumConsOut going out")
             if NumConsOut == 0
                 println("No consignments are sent out")
             else
                 for ConsOutID in 1:NumConsOut
-                    println("Consignment $ConsOutID")
-                    ExpediatedConsign = ExpediateConsignment!(NewStorage, Day, Hour)
-                    push!(DispatchedConsigns, ExpediatedConsign)
+                    if any(isa.(NewStorage.StorageMap, Consignment))
+                        println("Consignment $ConsOutID")
+                        ExpediatedConsign = ExpediateConsignment!(NewStorage, Day, Hour)
+                        push!(DispatchedConsigns, ExpediatedConsign)
+                    else
+                        println("There are no more consignments in the warehouse")
+                        AdditionalConsignsToSend += 1
+                    end
                 end
             end
 
