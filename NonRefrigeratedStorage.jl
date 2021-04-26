@@ -99,6 +99,7 @@ abc = Sim(45,93,7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 abc
 length(abc.DepartureOrder)
 
+length(a["FinalStorage"].WaitingQueue)
 
 
 #####

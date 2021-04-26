@@ -199,17 +199,10 @@ end
 function LocateSlot!(Consignment::Consignment, Storage::Storage; optimise = true)
     # logs
     IDtoprint = (Consignment.DataIn["Day"], Consignment.DataIn["HourIn"], Consignment.DataIn["ID"])
-
-    if optimise
-        println("Looking for a place for Consignment ", IDtoprint)
-        DecisionMap = GetDecisionMap(Storage, Consignment)
-        # find location
-#        location = findfirst(
-#            x -> x == minimum(
-#                DecisionMap[isnothing.(Storage.StorageMap)]),
-#            DecisionMap
-#        )
-        if any(isnothing.(Storage.StorageMap))
+    if any(isnothing.(Storage.StorageMap))
+        if optimise
+            println("Looking for a place for Consignment $IDtoprint")
+            DecisionMap = GetDecisionMap(Storage, Consignment)
             location = findfirst(
                 isequal(
                     minimum(DecisionMap[isnothing.(Storage.StorageMap)])
@@ -217,20 +210,19 @@ function LocateSlot!(Consignment::Consignment, Storage::Storage; optimise = true
             )
             println(Tuple(location), " slot allocated. The value of decision matrix is ", DecisionMap[location])
         else
-            enqueue!(Storage.WaitingQueue, Consignment)
-            println("There are no more free spaces, the consignment added to waiting line")
+            location = rand(findall(isnothing.(Storage.StorageMap)))
+            println(Tuple(location), " slot allocated to Consign ", IDtoprint, ". Energy use is not being optimised")
         end
+        # calculate energy consumption and locate the consignment
+        Consignment.Location = Tuple(location)
+        CalculateEnergyUse!(Storage, Consignment, location, optimise)
+        Storage.StorageMap[location] = Consignment
+        # FIFO attribution
+        enqueue!(Storage.DepartureOrder, Consignment)
     else
-        location = rand(findall(isnothing.(Storage.StorageMap)))
-        println(Tuple(location), " slot allocated to Consign ", IDtoprint, ". Energy use is not being optimised")
+        println("There are no more free spaces, consignment $IDtoprint added to waiting line")
+        enqueue!(Storage.WaitingQueue, Consignment)
     end
-    # calculate energy consumption and locate the consignment
-    Consignment.Location = Tuple(location)
-    CalculateEnergyUse!(Storage, Consignment, location, optimise)
-    Storage.StorageMap[location] = Consignment
-    # FIFO attribution
-    enqueue!(Storage.DepartureOrder, Consignment)
-
 end
 
 # Send the consignment away
