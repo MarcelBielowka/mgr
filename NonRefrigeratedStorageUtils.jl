@@ -199,6 +199,7 @@ end
 function LocateSlot!(Consignment::Consignment, Storage::Storage; optimise = true)
     # logs
     IDtoprint = (Consignment.DataIn["Day"], Consignment.DataIn["HourIn"], Consignment.DataIn["ID"])
+
     if optimise
         println("Looking for a place for Consignment ", IDtoprint)
         DecisionMap = GetDecisionMap(Storage, Consignment)
@@ -208,12 +209,17 @@ function LocateSlot!(Consignment::Consignment, Storage::Storage; optimise = true
 #                DecisionMap[isnothing.(Storage.StorageMap)]),
 #            DecisionMap
 #        )
-        location = findfirst(
-            isequal(
-                minimum(DecisionMap[isnothing.(Storage.StorageMap)])
-            ), DecisionMap
-        )
-        println(Tuple(location), " slot allocated. The value of decision matrix is ", DecisionMap[location])
+        if any(isnothing.(Storage.StorageMap))
+            location = findfirst(
+                isequal(
+                    minimum(DecisionMap[isnothing.(Storage.StorageMap)])
+                ), DecisionMap
+            )
+            println(Tuple(location), " slot allocated. The value of decision matrix is ", DecisionMap[location])
+        else
+            enqueue!(Storage.WaitingQueue, Consignment)
+            println("There are no more free spaces, the consignment added to waiting line")
+        end
     else
         location = rand(findall(isnothing.(Storage.StorageMap)))
         println(Tuple(location), " slot allocated to Consign ", IDtoprint, ". Energy use is not being optimised")

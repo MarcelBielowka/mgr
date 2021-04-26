@@ -5,7 +5,7 @@ cd("C:/Users/Marcel/Desktop/mgr/kody")
 include("NonRefrigeratedStorageUtils.jl")
 
 ArrivalsDict = zip(0:23,
-    floor.([0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0])) |> collect |> Dict
+    floor.(0.5.*[0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0])) |> collect |> Dict
 DeparturesDict = deepcopy(ArrivalsDict)
 
 #DistNumConsIn = Distributions.Poisson(48)
@@ -43,11 +43,19 @@ function SimOneRun(SimWindow,
         println("Day $Day")
         for Hour in 0:1:23
             println("Hour $Hour")
+            if length(NewStorage.WaitingQueue) > 0
+                LoopEnd = min(length(NewStorage.WaitingQueue), sum(isnothing.(NewStorage.StorageMap)))
+                println("$LoopEnd consignments are coming from the queue")
+                for ConsWait in 1:LoopEnd
+                    println(ConsWait)
+                    LocateSlot!(dequeue!(NewStorage.WaitingQueue), NewStorage)
+                end
+            end
             DistNumConsIn = Distributions.Poisson(ArrivalsDict[Hour])
             DistNumConsOut = Distributions.Poisson(DeparturesDict[Hour])
             NumConsIn = rand(DistNumConsIn)
             NumConsOut = rand(DistNumConsOut)
-            println("There are $NumConsIn consignments coming in and $NumConsOut going out")
+            println("There are $NumConsIn new consignments coming in and $NumConsOut going out")
             if NumConsOut == 0
                 println("No consignments are sent out")
             else
@@ -71,6 +79,7 @@ function SimOneRun(SimWindow,
                 end
             end
         end
+        println("At EOD $Day", sum(isnothing.(NewStorage.StorageMap)), " free slots remain")
     end
 
     return Dict("FinalStorage" => NewStorage,
@@ -78,10 +87,10 @@ function SimOneRun(SimWindow,
 end
 
 Random.seed!(72945)
-@time a = SimOneRun(40, 45,93,7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
-        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-#@time a = SimOneRun(1, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+# @time a = SimOneRun(40, 45,93,7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
+@time a = SimOneRun(20, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 a = Juno.@enter SimOneRun(1, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
         DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 
@@ -135,7 +144,13 @@ end
 
 #using JuliaInterpreter
 #push!(JuliaInterpreter.compiled_modules, Base)
-MyStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
+MyStorage = CreateNewStorage(1, 45, 51, 7, "||",
+    1.4, 1, 1.4,
+    0.33, 0.8, 1.1,
+    1.2, 0.8, 1.2,
+    DistWeightCon, DistInitFill)
+sum(isnothing.(MyStorage.StorageMap))
+any(isnothing.(MyStorage.StorageMap))
 CurrentCons = Consignment(
     Dict("Day" => 1, "HourIn" => 1, "ID" => 2),
     MyStorage, 1.2, 0.8, 1.2, 1500
