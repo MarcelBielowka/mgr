@@ -114,10 +114,10 @@ mutable struct Consignment
     Width::Float16
     Height::Float16
     Weight::Float64
-    WeightPerMetre::Float64
     EffectivePull::Float64
     Location::Tuple
     EnergyConsumption::Dict
+    EverWaited::Bool
 end
 
 # Consignment constructor
@@ -131,10 +131,10 @@ function Consignment(InID, Storage, Length, Width, Height, Weight)
         Width,
         Height,
         Weight,
-        WeightPerMetre,
         EffectivePull,
         (),
-        Dict{}()
+        Dict{}(),
+        false
     )
 end
 
@@ -220,7 +220,11 @@ function LocateSlot!(Consignment::Consignment, Storage::Storage; optimise = true
         # FIFO attribution
         enqueue!(Storage.DepartureOrder, Consignment)
     else
+        if Consignment.EverWaited
+            break
+        end
         println("There are no more free spaces, consignment $IDtoprint added to waiting line")
+        Consignment.EverWaited = true
         enqueue!(Storage.WaitingQueue, Consignment)
     end
 end
