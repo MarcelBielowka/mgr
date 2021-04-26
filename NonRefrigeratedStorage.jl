@@ -119,9 +119,11 @@ function SimWrapper(NumberOfRuns, SimWindow,
     DistWeightCon, DistInitFill,
     ArrivalsDict, DeparturesDict)
 
+    println("Starting the simluation")
     FinalDictionary = Dict()
 
     for Run in 1:NumberOfRuns
+        println("Starting run number $Run")
         Output = SimOneRun(Run, SimWindow, SlotsLength, SlotsWidth, SlotsHeight,
             ConveyorSectionLength, ConveyorSectionWidth, ConveyorEfficiency,
             StorageSlotHeight, ConveyorMassPerM2,
@@ -130,7 +132,9 @@ function SimWrapper(NumberOfRuns, SimWindow,
             DistWeightCon, DistInitFill,
             ArrivalsDict, DeparturesDict)
         push!(FinalDictionary, Run => Output)
+        println("Simulation $Run is over, results are saved")
     end
+    retrun ("The entire simulation is finished, returning the results")
     return FinalDictionary
 end
 
@@ -140,6 +144,9 @@ Random.seed!(72945)
 #@time a = SimOneRun(20, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 @time a = SimOneRun(1, 20, 45, 93, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
+
+@time a = SimWrapper(100, 20, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
         DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 
 b = a["DispatchedConsignments"]
