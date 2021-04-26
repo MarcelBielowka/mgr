@@ -27,6 +27,8 @@ function SimOneRun(SimWindow,
     DistWeightCon, DistInitFill,
     ArrivalsDict, DeparturesDict)
 
+    # Dispatched consigns store the data on consignments which departed the warehouse
+    # Additional consigns to send - any demand that was not met the previous hour
     DispatchedConsigns = Consignment[]
     AdditionalConsignsToSend = 0
 
@@ -38,31 +40,42 @@ function SimOneRun(SimWindow,
         DistWeightCon, DistInitFill)
     println("New warehouse is created. Dimensions are: $SlotsLength x $SlotsWidth x $SlotsHeight and the maximum capacity is ", NewStorage.MaxCapacity)
 
+    # Simulation - for each day and each hour
     for Day in 1:1:SimWindow
         println("Day $Day")
         for Hour in 0:1:23
             println("Hour $Hour")
+            # Get the number of the incoming and departing consignments
             DistNumConsIn = Distributions.Poisson(ArrivalsDict[Hour])
             DistNumConsOut = Distributions.Poisson(DeparturesDict[Hour])
             NumConsIn = rand(DistNumConsIn)
             NumConsOut = rand(DistNumConsOut) + AdditionalConsignsToSend
             AdditionalConsignsToSend = 0
             println("There are $NumConsIn new consignments coming in and $NumConsOut going out")
+
+            # Departure section
             if NumConsOut == 0
+                # if there are no consignments to be sent, nothing happens
                 println("No consignments are sent out")
             else
+                # otherwise, we check if there are any consignments in the warehouse
                 for ConsOutID in 1:NumConsOut
                     if any(isa.(NewStorage.StorageMap, Consignment))
+                        # if there are, send them
                         println("Consignment $ConsOutID")
                         ExpediatedConsign = ExpediateConsignment!(NewStorage, Day, Hour)
                         push!(DispatchedConsigns, ExpediatedConsign)
                     else
+                        # if not, add the unmet demand to the next hour
                         println("There are no more consignments in the warehouse")
                         AdditionalConsignsToSend += 1
                     end
                 end
             end
 
+            # Arrival section
+            # If there are some consignments which did not fit in the previous hour
+            # check, if they can fit in now
             if length(NewStorage.WaitingQueue) > 0
                 LoopEnd = min(length(NewStorage.WaitingQueue), sum(isnothing.(NewStorage.StorageMap)))
                 println("$LoopEnd consignments are coming from the queue")
@@ -72,9 +85,12 @@ function SimOneRun(SimWindow,
                 end
             end
 
+            # New consignments
             if NumConsIn == 0
+                # if there are no new consignments, nothing happens
                 println("No consignments are admitted")
             else
+                # OTherwise, create them and add to the warehouse
                 for ConsInID in 1:NumConsOut
                     CurrentCons = Consignment(
                         Dict("Day" => Day, "HourIn" => Hour, "ID" => ConsInID),
@@ -87,6 +103,7 @@ function SimOneRun(SimWindow,
         println("At EOD $Day", sum(isnothing.(NewStorage.StorageMap)), " free slots remain")
     end
 
+    # returning the outcome
     return Dict("FinalStorage" => NewStorage,
                 "DispatchedConsignments" => DispatchedConsigns)
 end
