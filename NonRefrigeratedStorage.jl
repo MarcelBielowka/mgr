@@ -71,7 +71,6 @@ function SimOneRun(SimWindow,
                 println("No consignments are admitted")
             else
                 for ConsInID in 1:NumConsOut
-                    # println("Consignment $ConsInID")
                     CurrentCons = Consignment(
                         Dict("Day" => Day, "HourIn" => Hour, "ID" => ConsInID),
                         NewStorage, 1.2, 0.8, 1.2, min(rand(DistWeightCon), 1500)
@@ -94,6 +93,37 @@ Random.seed!(72945)
         DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 a = Juno.@enter SimOneRun(1, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
         DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
+
+b = a["DispatchedConsignments"]
+c = [b[i].DataIn for i in 1:7657]
+findfirst(isequal(
+    Dict(
+        "Day" => 1, "HourIn" => 6, "ID" => 2.00
+    )
+),c)
+
+length(a["FinalStorage"].WaitingQueue)
+
+d = a["FinalStorage"].StorageMap
+f = []
+for i in 1:length(d)
+    if typeof(d[i]) == Consignment
+        push!(f, d[i].DataIn)
+    end
+end
+findfirst(isequal(
+    Dict(
+        "Day" => 17, "HourIn" => 16, "ID" => 11
+    )
+),f)
+
+a["FinalStorage"].StorageMap[1,25,6]
+CartesianIndex(a["FinalStorage"].StorageMap[1,1,1].Location)
+
+c[1]
+c[1] == Dict(
+    "Day" => 0, "HourIn" => 0, "ID" => 1.00
+)
 
 abc = Sim(45,93,7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
     DistNumConsIn, DistNumConsOut, DistWeightCon, DistInitFill)

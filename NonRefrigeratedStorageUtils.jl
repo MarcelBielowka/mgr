@@ -237,6 +237,7 @@ function ExpediateConsignment!(Storage::Storage,
     println(CurrentCons.DataIn, " is leaving the warehouse")
     push!(CurrentCons.DataOut, "Day" => Day)
     push!(CurrentCons.DataOut, "Hour" => Hour)
+    Storage.StorageMap[CartesianIndex(CurrentCons.Location)] = nothing
     return CurrentCons
 end
 
