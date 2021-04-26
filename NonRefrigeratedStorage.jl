@@ -4,8 +4,10 @@ using DataStructures, Random, Distributions, StatsPlots, DataFrames
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 include("NonRefrigeratedStorageUtils.jl")
 
+#ArrivalsDict = zip(0:23,
+#    floor.(0.5.*[0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0])) |> collect |> Dict
 ArrivalsDict = zip(0:23,
-    floor.(0.5.*[0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0])) |> collect |> Dict
+    floor.([0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0])) |> collect |> Dict
 DeparturesDict = deepcopy(ArrivalsDict)
 
 #DistNumConsIn = Distributions.Poisson(48)
@@ -18,7 +20,7 @@ DistInitFill = Distributions.Uniform(0.2, 0.5)
 #StatsPlots.plot(x2, pdf.(DistWeightCon, x2))
 #StatsPlots.plot(x2, cdf.(DistWeightCon, x2))
 
-function SimOneRun(SimWindow,
+function SimOneRun(RunID, SimWindow,
     SlotsLength, SlotsWidth, SlotsHeight,
     ConveyorSectionLength, ConveyorSectionWidth, ConveyorEfficiency,
     StorageSlotHeight, ConveyorMassPerM2,
@@ -33,7 +35,7 @@ function SimOneRun(SimWindow,
     AdditionalConsignsToSend = 0
 
     # Initiate a new storage
-    NewStorage = CreateNewStorage(1, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
+    NewStorage = CreateNewStorage(RunID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
         ConveyorSectionLength, ConveyorSectionWidth, StorageSlotHeight,
         FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2,
         ConsignmentLength, ConsignmentWidth, ConsignmentHeight,
@@ -108,12 +110,36 @@ function SimOneRun(SimWindow,
                 "DispatchedConsignments" => DispatchedConsigns)
 end
 
+function SimWrapper(NumberOfRuns, SimWindow,
+    SlotsLength, SlotsWidth, SlotsHeight,
+    ConveyorSectionLength, ConveyorSectionWidth, ConveyorEfficiency,
+    StorageSlotHeight, ConveyorMassPerM2,
+    ConsignmentLength, ConsignmentWidth, ConsignmentHeight,
+    FrictionCoefficient,  HandlingRoadString,
+    DistWeightCon, DistInitFill,
+    ArrivalsDict, DeparturesDict)
+
+    FinalDictionary = Dict()
+
+    for Run in 1:NumberOfRuns
+        Output = SimOneRun(Run, SimWindow, SlotsLength, SlotsWidth, SlotsHeight,
+            ConveyorSectionLength, ConveyorSectionWidth, ConveyorEfficiency,
+            StorageSlotHeight, ConveyorMassPerM2,
+            ConsignmentLength, ConsignmentWidth, ConsignmentHeight,
+            FrictionCoefficient,  HandlingRoadString,
+            DistWeightCon, DistInitFill,
+            ArrivalsDict, DeparturesDict)
+        push!(FinalDictionary, Run => Output)
+    end
+    return FinalDictionary
+end
+
 Random.seed!(72945)
-# @time a = SimOneRun(40, 45,93,7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+#@time a = SimOneRun(40, 45,93,7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-@time a = SimOneRun(20, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
-        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-a = Juno.@enter SimOneRun(1, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+#@time a = SimOneRun(20, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+#        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
+@time a = SimOneRun(1, 20, 45, 93, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
         DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 
 b = a["DispatchedConsignments"]
@@ -209,6 +235,8 @@ CurrentCons = Consignment(
     Dict("Day" => 1, "HourIn" => 1, "ID" => 2),
     MyStorage, 1.2, 0.8, 1.2, 1500
 )
+
+abc = nothing
 
 MyDecisionMap = GetDecisionMap(MyStorage, CurrentCons)
 location =
