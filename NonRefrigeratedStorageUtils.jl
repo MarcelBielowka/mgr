@@ -221,7 +221,8 @@ function LocateSlot!(Consignment::Consignment, Storage::Storage; optimise = true
         enqueue!(Storage.DepartureOrder, Consignment)
     else
         if Consignment.EverWaited
-            break
+            println("Readding the already waiting cons into queue. Execution stopped")
+            return nothing
         end
         println("There are no more free spaces, consignment $IDtoprint added to waiting line")
         Consignment.EverWaited = true
