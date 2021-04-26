@@ -43,14 +43,6 @@ function SimOneRun(SimWindow,
         println("Day $Day")
         for Hour in 0:1:23
             println("Hour $Hour")
-            if length(NewStorage.WaitingQueue) > 0
-                LoopEnd = min(length(NewStorage.WaitingQueue), sum(isnothing.(NewStorage.StorageMap)))
-                println("$LoopEnd consignments are coming from the queue")
-                for ConsWait in 1:LoopEnd
-                    println(ConsWait)
-                    LocateSlot!(dequeue!(NewStorage.WaitingQueue), NewStorage)
-                end
-            end
             DistNumConsIn = Distributions.Poisson(ArrivalsDict[Hour])
             DistNumConsOut = Distributions.Poisson(DeparturesDict[Hour])
             NumConsIn = rand(DistNumConsIn)
@@ -63,6 +55,15 @@ function SimOneRun(SimWindow,
                     println("Consignment $ConsOutID")
                     ExpediatedConsign = ExpediateConsignment!(NewStorage, Day, Hour)
                     push!(DispatchedConsigns, ExpediatedConsign)
+                end
+            end
+
+            if length(NewStorage.WaitingQueue) > 0
+                LoopEnd = min(length(NewStorage.WaitingQueue), sum(isnothing.(NewStorage.StorageMap)))
+                println("$LoopEnd consignments are coming from the queue")
+                for ConsWait in 1:LoopEnd
+                    println(ConsWait)
+                    LocateSlot!(dequeue!(NewStorage.WaitingQueue), NewStorage)
                 end
             end
 
