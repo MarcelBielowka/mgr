@@ -69,7 +69,7 @@ function SimOneRun(RunID, SimWindow,
                         ExpediatedConsign = ExpediateConsignment!(NewStorage, Day, Hour)
                         push!(DispatchedConsigns, ExpediatedConsign)
                         NewStorage.ElectricityConsumption[(NewStorage.ElectricityConsumption.Day .==Day) .&
-                            (NewStorage.ElectricityConsumption.Hour .==Hour), ConsOut] += ExpediatedConsign.EnergyConsumption["Out"]
+                            (NewStorage.ElectricityConsumption.Hour .==Hour), "ConsumptionOut"] .+= ExpediatedConsign.EnergyConsumption["Out"]
                     else
                         # if not, add the unmet demand to the next hour
                         println("There are no more consignments in the warehouse")
@@ -89,7 +89,7 @@ function SimOneRun(RunID, SimWindow,
                     ConsignFromQueue = dequeue!(NewStorage.WaitingQueue)
                     LocateSlot!(ConsignFromQueue, NewStorage)
                     NewStorage.ElectricityConsumption[(NewStorage.ElectricityConsumption.Day .==Day) .&
-                        (NewStorage.ElectricityConsumption.Hour .==Hour), ConsIn] += ConsignFromQueue.EnergyConsumption["In"]
+                        (NewStorage.ElectricityConsumption.Hour .==Hour), "ConsumptionIn"] .+= ConsignFromQueue.EnergyConsumption["In"]
                 end
             end
 
@@ -106,7 +106,7 @@ function SimOneRun(RunID, SimWindow,
                     )
                     LocateSlot!(CurrentCons, NewStorage)
                     NewStorage.ElectricityConsumption[(NewStorage.ElectricityConsumption.Day .==Day) .&
-                        (NewStorage.ElectricityConsumption.Hour .==Hour), ConsIn] += CurrentCons.EnergyConsumption["In"]
+                        (NewStorage.ElectricityConsumption.Hour .==Hour), "ConsumptionIn"] .+= CurrentCons.EnergyConsumption["In"]
                 end
             end
         end
@@ -149,8 +149,8 @@ end
 Random.seed!(72945)
 #@time a = SimOneRun(40, 45,93,7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-#@time a = SimOneRun(20, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
-#        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
+@time a = SimOneRun(1, 20, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 #@time a = SimOneRun(1, 20, 45, 93, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 
@@ -230,4 +230,5 @@ CurrentCons = Consignment(
 )
 
 MyStorage.ElectricityConsumption[(MyStorage.ElectricityConsumption.Hour .==5) .&
-    (MyStorage.ElectricityConsumption.Day .==7), :]
+    (MyStorage.ElectricityConsumption.Day .==7), "ConsumptionIn"] .+=5
+MyStorage.ElectricityConsumption[:,"ConsIn"]

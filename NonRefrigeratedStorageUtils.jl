@@ -55,8 +55,8 @@ function GetInitialConsDataFrame(StorageID, SimLength)
         ID = repeat([Int(StorageID)], length(Hours)),
         Day = Days,
         Hour = Hours,
-        ConsIn = zeros(length(Hours)),
-        ConsOut = zeros(length(Hours))
+        ConsumptionIn = zeros(length(Hours)),
+        ConsumptionOut = zeros(length(Hours))
     )
     return InitialDataFrame
 end
