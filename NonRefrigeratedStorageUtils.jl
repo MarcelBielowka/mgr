@@ -45,6 +45,22 @@ function GetDistanceMap(Map)
     return DistancesFinal
 end
 
+function GetInitialConsDataFrame(StorageID, SimLength)
+    Hours = repeat([i for i in 0:23], SimLength)
+    Days = repeat([1], 24)
+    for i in 2:SimLength
+        Days = vcat(Days, repeat([i], 24))
+    end
+    InitialDataFrame = DataFrames.DataFrame(
+        ID = repeat([Int(StorageID)], length(Hours)),
+        Day = Days,
+        Hour = Hours,
+        ConsIn = zeros(length(Hours)),
+        ConsOut = zeros(length(Hours))
+    )
+    return InitialDataFrame
+end
+
 mutable struct Conveyor
     ConveyorSectionLength::Float16
     ConveyorSectionWidth::Float16
@@ -81,7 +97,7 @@ mutable struct Storage
 end
 
 # Storage constructor
-function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
+function Storage(ID, SimLength, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
                  ConveyorSectionLength, ConveyorSectionWidth, StorageSlotHeight,
                  FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2)
     StorageMap = GetStorageMap(SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString)
@@ -92,6 +108,7 @@ function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
         ConveyorSectionLength, ConveyorSectionWidth, ConveyorUnitMass,
         ConveyorEfficiency, StorageSlotHeight
     )
+    dfInitCons = GetInitialConsDataFrame(ID, SimLength)
     Storage(
         ID,
         StorageMap,
@@ -100,7 +117,7 @@ function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
         WarehouseMaxCapacity,
         ConveyorSection,
         FrictionCoefficient,
-        DataFrame(WarehouseID = Int[], Day = Int[], Hour = Int[], ConsIn = Float64[], ConsOut = Float64[]),
+        dfInitCons,
         Queue{Consignment}(),
         Queue{Consignment}()
     )
@@ -242,13 +259,15 @@ function ExpediateConsignment!(Storage::Storage,
 end
 
 # initiate a new storage
-function CreateNewStorage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
+function CreateNewStorage(ID, SimLength,
+    SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
     ConveyorSectionLength, ConveyorSectionWidth, StorageSlotHeight,
     FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2,
     ConsignmentLength, ConsignmentWidth, ConsignmentHeight,
     DistWeightCon, DistInitFill)
 
-    NewStorage = Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
+    NewStorage = Storage(ID, SimLength,
+        SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
         ConveyorSectionLength, ConveyorSectionWidth, StorageSlotHeight,
         FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2)
 
