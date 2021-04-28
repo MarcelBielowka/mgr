@@ -68,6 +68,8 @@ function SimOneRun(RunID, SimWindow,
                         println("Consignment $ConsOutID")
                         ExpediatedConsign = ExpediateConsignment!(NewStorage, Day, Hour)
                         push!(DispatchedConsigns, ExpediatedConsign)
+                        NewStorage.ElectricityConsumption[(NewStorage.ElectricityConsumption.Day .==Day) .&
+                            (NewStorage.ElectricityConsumption.Hour .==Hour), ConsOut] += ExpediatedConsign.EnergyConsumption["Out"]
                     else
                         # if not, add the unmet demand to the next hour
                         println("There are no more consignments in the warehouse")
@@ -84,7 +86,10 @@ function SimOneRun(RunID, SimWindow,
                 println("$LoopEnd consignments are coming from the queue")
                 for ConsWait in 1:LoopEnd
                     println(ConsWait)
-                    LocateSlot!(dequeue!(NewStorage.WaitingQueue), NewStorage)
+                    ConsignFromQueue = dequeue!(NewStorage.WaitingQueue)
+                    LocateSlot!(ConsignFromQueue, NewStorage)
+                    NewStorage.ElectricityConsumption[(NewStorage.ElectricityConsumption.Day .==Day) .&
+                        (NewStorage.ElectricityConsumption.Hour .==Hour), ConsIn] += ConsignFromQueue.EnergyConsumption["In"]
                 end
             end
 
@@ -100,6 +105,8 @@ function SimOneRun(RunID, SimWindow,
                         NewStorage, 1.2, 0.8, 1.2, min(rand(DistWeightCon), 1500)
                     )
                     LocateSlot!(CurrentCons, NewStorage)
+                    NewStorage.ElectricityConsumption[(NewStorage.ElectricityConsumption.Day .==Day) .&
+                        (NewStorage.ElectricityConsumption.Hour .==Hour), ConsIn] += CurrentCons.EnergyConsumption["In"]
                 end
             end
         end
