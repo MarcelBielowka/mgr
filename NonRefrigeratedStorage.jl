@@ -207,32 +207,10 @@ for ConsNum in 1:InitFill
     LocateSlot!(CurrentCons, MyStorage; optimise = false)
 end
 
-MyStorage
-
-dfOverallPowerCons = DataFrame(WarehouseID = Int[], Day = Int[], Hour = Int[], ConsIn = Float64[], ConsOut = Float64[])
-ConsumptionIn = 0
-ConsumptionOut = 0
-NoConsIn = rand(DistNumConsIn)
-NoConsOut = rand(DistNumConsOut)
-AllConsOut = []
-for ConsNum in 1:NoConsIn
-    CurrentCons = Consignment(
-        Dict("Day" => 1, "HourIn" => 1, "ID" => ConsNum),
-        MyStorage, 1.2, 0.8, 1.2, min(rand(DistWeightCon), 1500)
-    )
-    LocateSlot!(CurrentCons, MyStorage)
-    ConsumptionIn += CurrentCons.EnergyConsumption["In"]
-end
-
-for ConsNum in 1:NoConsOut
-    ExpediatedCons = ExpediateConsignment!(MyStorage, 1, 2)
-    ConsumptionOut += ExpediatedCons.EnergyConsumption["Out"]
-    AllConsOut = vcat(AllConsOut, ExpediatedCons)
-end
 
 #using JuliaInterpreter
 #push!(JuliaInterpreter.compiled_modules, Base)
-MyStorage = CreateNewStorage(1, 45, 51, 7, "||",
+MyStorage = CreateNewStorage(1, 20, 45, 51, 7, "||",
     1.4, 1, 1.4,
     0.33, 0.8, 1.1,
     1.2, 0.8, 1.2,
@@ -244,17 +222,5 @@ CurrentCons = Consignment(
     MyStorage, 1.2, 0.8, 1.2, 1500
 )
 
-abc = nothing
-
-MyDecisionMap = GetDecisionMap(MyStorage, CurrentCons)
-location =
-    findfirst(x ->
-        x == minimum(
-            DecisionMap[isnothing.(MyStorage.StorageMap)]
-        ), DecisionMap
-    )
-MyDecisionMap[5, 48, 1]
-MyDecisionMap[6, 48, 1]
-MyDecisionMap[9, 48, 1]
-findfirst(isequal(minimum(MyDecisionMap[isnothing.(MyStorage.StorageMap)])), MyDecisionMap)
-Juno.@enter LocateSlot!(CurrentCons, MyStorage)
+MyStorage.ElectricityConsumption[(MyStorage.ElectricityConsumption.Hour .==5) .&
+    (MyStorage.ElectricityConsumption.Day .==7), :]
