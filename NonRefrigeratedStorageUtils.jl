@@ -66,30 +66,20 @@ mutable struct Conveyor
     ConveyorSectionWidth::Float16
     ConveyorUnitMass::Float16
     ConveyorEfficiency::Float16
-<<<<<<< HEAD
-=======
     FrictionCoefficient::Float16
->>>>>>> InitWHSim
     StorageSlotHeight::Float16
 end
 
 function Conveyor(ConveyorSectionLength::Float16, ConveyorSectionWidth::Float16,
-<<<<<<< HEAD
-        ConveyorEfficiency::Float16, ConveyorMassPerM2::Float16, StorageSlotHeight::Float16)
-=======
         ConveyorEfficiency::Float16, FrictionCoefficient::Float16,
         ConveyorMassPerM2::Float16, StorageSlotHeight::Float16)
->>>>>>> InitWHSim
     ConveyorUnitMass = ConveyorSectionWidth * ConveyorSectionLength * ConveyorMassPerM2 * 2
     Conveyor(
         ConveyorSectionLength,
         ConveyorSectionWidth,
         ConveyorUnitMass,
         ConveyorEfficiency,
-<<<<<<< HEAD
-=======
         FrictionCoefficient,
->>>>>>> InitWHSim
         StorageSlotHeight
     )
 end
