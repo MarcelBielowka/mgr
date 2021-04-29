@@ -4,10 +4,10 @@ using DataStructures, Random, Distributions, StatsPlots, DataFrames
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 include("NonRefrigeratedStorageUtils.jl")
 
-ArrivalsDict = zip(0:23,
-    floor.(0.5.*[0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0])) |> collect |> Dict
 #ArrivalsDict = zip(0:23,
-#    floor.([0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0])) |> collect |> Dict
+#    floor.(0.5.*[0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0])) |> collect |> Dict
+ArrivalsDict = zip(0:23,
+    floor.([0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0])) |> collect |> Dict
 DeparturesDict = deepcopy(ArrivalsDict)
 
 #DistNumConsIn = Distributions.Poisson(48)
@@ -29,9 +29,7 @@ function SimOneRun(RunID, SimWindow,
     DistWeightCon, DistInitFill,
     ArrivalsDict, DeparturesDict)
 
-    # Dispatched consigns store the data on consignments which departed the warehouse
     # Additional consigns to send - any demand that was not met the previous hour
-    DispatchedConsigns = Consignment[]
     AdditionalConsignsToSend = 0
 
     # Initiate a new storage
@@ -67,7 +65,6 @@ function SimOneRun(RunID, SimWindow,
                         # if there are, send them
                         println("Consignment $ConsOutID")
                         ExpediatedConsign = ExpediateConsignment!(NewStorage, Day, Hour)
-                        push!(DispatchedConsigns, ExpediatedConsign)
                         NewStorage.ElectricityConsumption[(NewStorage.ElectricityConsumption.Day .==Day) .&
                             (NewStorage.ElectricityConsumption.Hour .==Hour), "ConsumptionOut"] .+= ExpediatedConsign.EnergyConsumption["Out"]
                     else
@@ -110,7 +107,7 @@ function SimOneRun(RunID, SimWindow,
                 end
             end
         end
-        println("At EOD $Day", sum(isnothing.(NewStorage.StorageMap)), " free slots remain")
+        println("At EOD $Day ", sum(isnothing.(NewStorage.StorageMap)), " free slots remain")
     end
 
     # returning the outcome
@@ -149,13 +146,23 @@ end
 Random.seed!(72945)
 #@time a = SimOneRun(40, 45,93,7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-@time a = SimOneRun(1, 20, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
-        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
+#@time a = SimOneRun(1, 20, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+#        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 #@time a = SimOneRun(1, 20, 45, 93, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 
-@time a = SimWrapper(100, 20, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+#@time a = SimWrapper(100, 20, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+#        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
+@time a = SimWrapper(100, 20, 45, 93, 7, 1.4, 1, 0.8,
+        1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
         DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
+
+a[1]["FinalStorage"]
+
+###
+# some helpers
+a["FinalStorage"].ElectricityConsumption
+a["DispatchedConsignments"][a["DispatchedConsignments"].DataIn["Day"].==1]
 
 b = a["DispatchedConsignments"]
 c = [b[i].DataIn for i in 1:7657]
@@ -231,4 +238,4 @@ CurrentCons = Consignment(
 
 MyStorage.ElectricityConsumption[(MyStorage.ElectricityConsumption.Hour .==5) .&
     (MyStorage.ElectricityConsumption.Day .==7), "ConsumptionIn"] .+=5
-MyStorage.ElectricityConsumption[:,"ConsIn"]
+MyStorage.ElectricityConsumption[:,"ConsumptionIn"]

@@ -66,18 +66,20 @@ mutable struct Conveyor
     ConveyorSectionWidth::Float16
     ConveyorUnitMass::Float16
     ConveyorEfficiency::Float16
+    FrictionCoefficient::Float16
     StorageSlotHeight::Float16
 end
 
 function Conveyor(ConveyorSectionLength::Float16, ConveyorSectionWidth::Float16,
-        ConveyorEfficiency::Float16, ConveyorMassPerM2::Float16,
-        StorageSlotHeight::Float16)
+        ConveyorEfficiency::Float16, FrictionCoefficient::Float16,
+        ConveyorMassPerM2::Float16, StorageSlotHeight::Float16)
     ConveyorUnitMass = ConveyorSectionWidth * ConveyorSectionLength * ConveyorMassPerM2 * 2
     Conveyor(
         ConveyorSectionLength,
         ConveyorSectionWidth,
         ConveyorUnitMass,
         ConveyorEfficiency,
+        FrictionCoefficient,
         StorageSlotHeight
     )
 end
@@ -90,10 +92,10 @@ mutable struct Storage
     HandlingRoadString::String
     MaxCapacity::Int16
     Conveyor::Conveyor
-    FrictionCoefficient::Float64
     ElectricityConsumption::DataFrame
     DepartureOrder::Queue
     WaitingQueue::Queue
+    DispatchedConsignments::Array
 end
 
 # Storage constructor
@@ -105,8 +107,9 @@ function Storage(ID, SimLength, SlotsLength, SlotsWidth, SlotsHeight, HandlingRo
     WarehouseMaxCapacity = sum(isnothing.(StorageMap))
     ConveyorUnitMass = ConveyorSectionWidth * ConveyorSectionLength * ConveyorMassPerM2 * 2
     ConveyorSection = Conveyor(
-        ConveyorSectionLength, ConveyorSectionWidth, ConveyorUnitMass,
-        ConveyorEfficiency, StorageSlotHeight
+            ConveyorSectionLength, ConveyorSectionWidth,
+            ConveyorEfficiency, FrictionCoefficient,
+            ConveyorMassPerM2, StorageSlotHeight
     )
     dfInitCons = GetInitialConsDataFrame(ID, SimLength)
     Storage(
@@ -116,10 +119,10 @@ function Storage(ID, SimLength, SlotsLength, SlotsWidth, SlotsHeight, HandlingRo
         HandlingRoadString,
         WarehouseMaxCapacity,
         ConveyorSection,
-        FrictionCoefficient,
         dfInitCons,
         Queue{Consignment}(),
-        Queue{Consignment}()
+        Queue{Consignment}(),
+        Consignment[]
     )
 end
 
@@ -140,7 +143,7 @@ end
 # Consignment constructor
 function Consignment(InID, Storage, Length, Width, Height, Weight)
     WeightPerMetre = Weight / Length
-    EffectivePull = Storage.FrictionCoefficient * 9.81 * (Weight + Storage.Conveyor.ConveyorUnitMass)
+    EffectivePull = Storage.Conveyor.FrictionCoefficient * 9.81 * (Weight + Storage.Conveyor.ConveyorUnitMass)
     Consignment(
         InID,
         Dict{}(),
@@ -254,6 +257,7 @@ function ExpediateConsignment!(Storage::Storage,
     println(CurrentCons.DataIn, " is leaving the warehouse")
     push!(CurrentCons.DataOut, "Day" => Day)
     push!(CurrentCons.DataOut, "Hour" => Hour)
+    push!(Storage.DispatchedConsignments, CurrentCons)
     Storage.StorageMap[CartesianIndex(CurrentCons.Location)] = nothing
     return CurrentCons
 end
