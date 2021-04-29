@@ -155,7 +155,7 @@ a.DispatchedConsignments[1]
 
 #@time a = SimWrapper(100, 20, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-@time a = SimWrapper(10, 10, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+@time a = SimWrapper(100, 20, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
         DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 #@time a = SimWrapper(100, 20, 45, 93, 7, 1.4, 1, 0.8,
 #        1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
