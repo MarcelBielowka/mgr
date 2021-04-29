@@ -111,8 +111,7 @@ function SimOneRun(RunID, SimWindow,
     end
 
     # returning the outcome
-    return Dict("FinalStorage" => NewStorage,
-                "DispatchedConsignments" => DispatchedConsigns)
+    return NewStorage
 end
 
 function SimWrapper(NumberOfRuns, SimWindow,
