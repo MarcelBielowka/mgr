@@ -98,7 +98,7 @@ function SimOneRun(RunID, SimWindow,
                 # OTherwise, create them and add to the warehouse
                 for ConsInID in 1:NumConsIn
                     CurrentCons = Consignment(
-                        Dict("Day" => Day, "HourIn" => Hour, "ID" => ConsInID),
+                        Dict("Day" => Day, "Hour" => Hour, "ID" => ConsInID),
                         NewStorage, 1.2, 0.8, 1.2, min(rand(DistWeightCon), 1500)
                     )
                     LocateSlot!(CurrentCons, NewStorage)
@@ -150,42 +150,6 @@ Random.seed!(72945)
 a.ElectricityConsumption
 a.DispatchedConsignments[1]
 
-t = []
-u = []
-y = []
-v = []
-for i in 1:length(a.DispatchedConsignments)
-    if (a.DispatchedConsignments[i].DataOut["Hour"] .==6 && a.DispatchedConsignments[i].DataOut["Day"].==1)
-        append!(t, a.DispatchedConsignments[i].EnergyConsumption["Out"])
-    end
-end
-
-for i in 1:length(a.DispatchedConsignments)
-    if (a.DispatchedConsignments[i].DataIn["HourIn"] .==7 && a.DispatchedConsignments[i].DataIn["Day"].==2)
-        append!(y, a.DispatchedConsignments[i].EnergyConsumption["In"])
-    end
-end
-
-for i in 1:length(a.DispatchedConsignments)
-    if (a.DispatchedConsignments[i].DataIn["HourIn"] .==7 && a.DispatchedConsignments[i].DataIn["Day"].==3)
-        append!(u, a.DispatchedConsignments[i].EnergyConsumption["In"])
-    end
-end
-
-for i in 1:length(a.DispatchedConsignments)
-    if (a.DispatchedConsignments[i].DataOut["Hour"] .==20 && a.DispatchedConsignments[i].DataOut["Day"].==5)
-        append!(v, a.DispatchedConsignments[i].EnergyConsumption["Out"])
-    end
-end
-
-length(a.WaitingQueue)
-
-a.ElectricityConsumption[(a.ElectricityConsumption.Day .==2) .& (a.ElectricityConsumption.Hour .==7),:]
-
-sum(t)
-sum(y)
-sum(u)
-sum(v)
 #@time a = SimOneRun(1, 20, 45, 93, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 
@@ -196,51 +160,6 @@ sum(v)
 #@time a = SimWrapper(100, 20, 45, 93, 7, 1.4, 1, 0.8,
 #        1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-
-a[1]["FinalStorage"]
-
-###
-# some helpers
-a["FinalStorage"].ElectricityConsumption
-a["DispatchedConsignments"][a["DispatchedConsignments"].DataIn["Day"].==1]
-
-b = a["DispatchedConsignments"]
-c = [b[i].DataIn for i in 1:7657]
-findfirst(isequal(
-    Dict(
-        "Day" => 1, "HourIn" => 6, "ID" => 2.00
-    )
-),c)
-
-length(a["FinalStorage"].WaitingQueue)
-
-d = a["FinalStorage"].StorageMap
-f = []
-for i in 1:length(d)
-    if typeof(d[i]) == Consignment
-        push!(f, d[i].DataIn)
-    end
-end
-findfirst(isequal(
-    Dict(
-        "Day" => 17, "HourIn" => 16, "ID" => 11
-    )
-),f)
-
-a["FinalStorage"].StorageMap[1,25,6]
-CartesianIndex(a["FinalStorage"].StorageMap[1,1,1].Location)
-
-c[1]
-c[1] == Dict(
-    "Day" => 0, "HourIn" => 0, "ID" => 1.00
-)
-
-abc = Sim(45,93,7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
-    DistNumConsIn, DistNumConsOut, DistWeightCon, DistInitFill)
-abc
-length(abc.DepartureOrder)
-
-length(a["FinalStorage"].WaitingQueue)
 
 
 #####
@@ -255,7 +174,7 @@ MyStorage2.MaxCapacity
 
 for ConsNum in 1:InitFill
     CurrentCons = Consignment(
-        Dict("Day" => 0, "HourIn" => 0, "ID" => ConsNum),
+        Dict("Day" => 0, "Hour" => 0, "ID" => ConsNum),
         MyStorage, 1.2, 0.8, 1.2, min(rand(DistWeightCon), 1500)
     )
     LocateSlot!(CurrentCons, MyStorage; optimise = false)
@@ -272,7 +191,7 @@ MyStorage = CreateNewStorage(1, 20, 45, 51, 7, "||",
 sum(isnothing.(MyStorage.StorageMap))
 any(isnothing.(MyStorage.StorageMap))
 CurrentCons = Consignment(
-    Dict("Day" => 1, "HourIn" => 1, "ID" => 2),
+    Dict("Day" => 1, "Hour" => 1, "ID" => 2),
     MyStorage, 1.2, 0.8, 1.2, 1500
 )
 

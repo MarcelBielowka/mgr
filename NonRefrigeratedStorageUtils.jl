@@ -218,7 +218,7 @@ end
 # and finally enqueue the consignment into the waiting line
 function LocateSlot!(Consignment::Consignment, Storage::Storage; optimise = true)
     # logs
-    IDtoprint = (Consignment.DataIn["Day"], Consignment.DataIn["HourIn"], Consignment.DataIn["ID"])
+    IDtoprint = (Consignment.DataIn["Day"], Consignment.DataIn["Hour"], Consignment.DataIn["ID"])
     if any(isnothing.(Storage.StorageMap))
         if optimise
             println("Looking for a place for Consignment $IDtoprint")
@@ -279,7 +279,7 @@ function CreateNewStorage(ID, SimLength,
 
     for ConsNum in 1:InitFill
         CurrentCons = Consignment(
-            Dict("Day" => 0, "HourIn" => 0, "ID" => ConsNum),
+            Dict("Day" => 0, "Hour" => 0, "ID" => ConsNum),
             NewStorage,
             ConsignmentLength, ConveyorSectionWidth, 1.2, min(rand(DistWeightCon), 1500)
         )
