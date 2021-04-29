@@ -96,7 +96,7 @@ function SimOneRun(RunID, SimWindow,
                 println("No consignments are admitted")
             else
                 # OTherwise, create them and add to the warehouse
-                for ConsInID in 1:NumConsOut
+                for ConsInID in 1:NumConsIn
                     CurrentCons = Consignment(
                         Dict("Day" => Day, "HourIn" => Hour, "ID" => ConsInID),
                         NewStorage, 1.2, 0.8, 1.2, min(rand(DistWeightCon), 1500)
@@ -145,16 +145,57 @@ end
 Random.seed!(72945)
 #@time a = SimOneRun(40, 45,93,7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-#@time a = SimOneRun(1, 20, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
-#        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
+@time a = SimOneRun(1, 10, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
+a.ElectricityConsumption
+a.DispatchedConsignments[1]
+
+t = []
+u = []
+y = []
+v = []
+for i in 1:length(a.DispatchedConsignments)
+    if (a.DispatchedConsignments[i].DataOut["Hour"] .==6 && a.DispatchedConsignments[i].DataOut["Day"].==1)
+        append!(t, a.DispatchedConsignments[i].EnergyConsumption["Out"])
+    end
+end
+
+for i in 1:length(a.DispatchedConsignments)
+    if (a.DispatchedConsignments[i].DataIn["HourIn"] .==7 && a.DispatchedConsignments[i].DataIn["Day"].==2)
+        append!(y, a.DispatchedConsignments[i].EnergyConsumption["In"])
+    end
+end
+
+for i in 1:length(a.DispatchedConsignments)
+    if (a.DispatchedConsignments[i].DataIn["HourIn"] .==7 && a.DispatchedConsignments[i].DataIn["Day"].==3)
+        append!(u, a.DispatchedConsignments[i].EnergyConsumption["In"])
+    end
+end
+
+for i in 1:length(a.DispatchedConsignments)
+    if (a.DispatchedConsignments[i].DataOut["Hour"] .==20 && a.DispatchedConsignments[i].DataOut["Day"].==5)
+        append!(v, a.DispatchedConsignments[i].EnergyConsumption["Out"])
+    end
+end
+
+length(a.WaitingQueue)
+
+a.ElectricityConsumption[(a.ElectricityConsumption.Day .==2) .& (a.ElectricityConsumption.Hour .==7),:]
+
+sum(t)
+sum(y)
+sum(u)
+sum(v)
 #@time a = SimOneRun(1, 20, 45, 93, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 
 #@time a = SimWrapper(100, 20, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-@time a = SimWrapper(100, 20, 45, 93, 7, 1.4, 1, 0.8,
-        1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+@time a = SimWrapper(10, 10, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
         DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
+#@time a = SimWrapper(100, 20, 45, 93, 7, 1.4, 1, 0.8,
+#        1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+#        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 
 a[1]["FinalStorage"]
 
