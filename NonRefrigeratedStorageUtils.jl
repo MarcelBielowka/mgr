@@ -1,5 +1,5 @@
 using Pipe: @pipe
-using DataFrames, DataStructures
+using DataStructures, Random, Distributions, StatsPlots, DataFrames
 
 # Corridors are assigned each third column - surrounded by two stacks of racks
 function AssignCorridors(Map, HandlingRoadString)
@@ -45,22 +45,51 @@ function GetDistanceMap(Map)
     return DistancesFinal
 end
 
+function GetInitialConsDataFrame(StorageID, SimLength)
+    Hours = repeat([i for i in 0:23], SimLength)
+    Days = repeat([1], 24)
+    for i in 2:SimLength
+        Days = vcat(Days, repeat([i], 24))
+    end
+    InitialDataFrame = DataFrames.DataFrame(
+        ID = repeat([Int(StorageID)], length(Hours)),
+        Day = Days,
+        Hour = Hours,
+        ConsumptionIn = zeros(length(Hours)),
+        ConsumptionOut = zeros(length(Hours))
+    )
+    return InitialDataFrame
+end
+
 mutable struct Conveyor
     ConveyorSectionLength::Float16
     ConveyorSectionWidth::Float16
     ConveyorUnitMass::Float16
     ConveyorEfficiency::Float16
+<<<<<<< HEAD
+=======
+    FrictionCoefficient::Float16
+>>>>>>> InitWHSim
     StorageSlotHeight::Float16
 end
 
 function Conveyor(ConveyorSectionLength::Float16, ConveyorSectionWidth::Float16,
+<<<<<<< HEAD
         ConveyorEfficiency::Float16, ConveyorMassPerM2::Float16, StorageSlotHeight::Float16)
+=======
+        ConveyorEfficiency::Float16, FrictionCoefficient::Float16,
+        ConveyorMassPerM2::Float16, StorageSlotHeight::Float16)
+>>>>>>> InitWHSim
     ConveyorUnitMass = ConveyorSectionWidth * ConveyorSectionLength * ConveyorMassPerM2 * 2
     Conveyor(
         ConveyorSectionLength,
         ConveyorSectionWidth,
         ConveyorUnitMass,
         ConveyorEfficiency,
+<<<<<<< HEAD
+=======
+        FrictionCoefficient,
+>>>>>>> InitWHSim
         StorageSlotHeight
     )
 end
@@ -73,13 +102,14 @@ mutable struct Storage
     HandlingRoadString::String
     MaxCapacity::Int16
     Conveyor::Conveyor
-    FrictionCoefficient::Float64
+    ElectricityConsumption::DataFrame
     DepartureOrder::Queue
     WaitingQueue::Queue
+    DispatchedConsignments::Array
 end
 
 # Storage constructor
-function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
+function Storage(ID, SimLength, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
                  ConveyorSectionLength, ConveyorSectionWidth, StorageSlotHeight,
                  FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2)
     StorageMap = GetStorageMap(SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString)
@@ -87,9 +117,11 @@ function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
     WarehouseMaxCapacity = sum(isnothing.(StorageMap))
     ConveyorUnitMass = ConveyorSectionWidth * ConveyorSectionLength * ConveyorMassPerM2 * 2
     ConveyorSection = Conveyor(
-        ConveyorSectionLength, ConveyorSectionWidth,
-        ConveyorUnitMass, ConveyorEfficiency, StorageSlotHeight
+            ConveyorSectionLength, ConveyorSectionWidth,
+            ConveyorEfficiency, FrictionCoefficient,
+            ConveyorMassPerM2, StorageSlotHeight
     )
+    dfInitCons = GetInitialConsDataFrame(ID, SimLength)
     Storage(
         ID,
         StorageMap,
@@ -97,9 +129,10 @@ function Storage(ID, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
         HandlingRoadString,
         WarehouseMaxCapacity,
         ConveyorSection,
-        FrictionCoefficient,
+        dfInitCons,
         Queue{Consignment}(),
-        Queue{Consignment}()
+        Queue{Consignment}(),
+        Consignment[]
     )
 end
 
@@ -111,16 +144,16 @@ mutable struct Consignment
     Width::Float16
     Height::Float16
     Weight::Float64
-    WeightPerMetre::Float64
     EffectivePull::Float64
     Location::Tuple
     EnergyConsumption::Dict
+    EverWaited::Bool
 end
 
 # Consignment constructor
 function Consignment(InID, Storage, Length, Width, Height, Weight)
     WeightPerMetre = Weight / Length
-    EffectivePull = Storage.FrictionCoefficient * 9.81 * (Weight + Storage.Conveyor.ConveyorUnitMass)
+    EffectivePull = Storage.Conveyor.FrictionCoefficient * 9.81 * (Weight + Storage.Conveyor.ConveyorUnitMass)
     Consignment(
         InID,
         Dict{}(),
@@ -128,10 +161,10 @@ function Consignment(InID, Storage, Length, Width, Height, Weight)
         Width,
         Height,
         Weight,
-        WeightPerMetre,
         EffectivePull,
         (),
-        Dict{}()
+        Dict{}(),
+        false
     )
 end
 
@@ -195,43 +228,74 @@ end
 # and finally enqueue the consignment into the waiting line
 function LocateSlot!(Consignment::Consignment, Storage::Storage; optimise = true)
     # logs
-    IDtoprint = (Consignment.DataIn["Day"], Consignment.DataIn["HourIn"], Consignment.DataIn["ID"])
-    if optimise
-        println("Looking for a place for Consignment ", IDtoprint)
-        DecisionMap = GetDecisionMap(Storage, Consignment)
-        # find location
-        location =
-            findfirst(x ->
-                x == minimum(
-                    DecisionMap[findall(isnothing.(Storage.StorageMap).==1)]
+    IDtoprint = (Consignment.DataIn["Day"], Consignment.DataIn["Hour"], Consignment.DataIn["ID"])
+    if any(isnothing.(Storage.StorageMap))
+        if optimise
+            println("Looking for a place for Consignment $IDtoprint")
+            DecisionMap = GetDecisionMap(Storage, Consignment)
+            location = findfirst(
+                isequal(
+                    minimum(DecisionMap[isnothing.(Storage.StorageMap)])
                 ), DecisionMap
             )
-        println(Tuple(location), " slot allocated")
+            println(Tuple(location), " slot allocated. The value of decision matrix is ", DecisionMap[location])
+        else
+            location = rand(findall(isnothing.(Storage.StorageMap)))
+            println(Tuple(location), " slot allocated to Consign ", IDtoprint, ". Energy use is not being optimised")
+        end
+        # calculate energy consumption and locate the consignment
+        Consignment.Location = Tuple(location)
+        CalculateEnergyUse!(Storage, Consignment, location, optimise)
+        Storage.StorageMap[location] = Consignment
+        # FIFO attribution
+        enqueue!(Storage.DepartureOrder, Consignment)
     else
-        location = rand(findall(isnothing.(Storage.StorageMap)))
-        println(Tuple(location), " slot allocated to Consign ", IDtoprint, ". Energy use is not being optimised")
+        if Consignment.EverWaited
+            println("Readding the already waiting cons into queue. Execution stopped")
+            return nothing
+        end
+        println("There are no more free spaces, consignment $IDtoprint added to waiting line")
+        Consignment.EverWaited = true
+        enqueue!(Storage.WaitingQueue, Consignment)
     end
-    # calculate energy consumption and locate the consignment
-    Consignment.Location = Tuple(location)
-    CalculateEnergyUse!(Storage, Consignment, location, optimise)
-    Storage.StorageMap[location] = Consignment
-    # FIFO attribution
-    enqueue!(Storage.DepartureOrder, Consignment)
-
 end
 
+# Send the consignment away
 function ExpediateConsignment!(Storage::Storage,
             Day::Int, Hour::Int)
     CurrentCons = dequeue!(Storage.DepartureOrder)
     println(CurrentCons.DataIn, " is leaving the warehouse")
     push!(CurrentCons.DataOut, "Day" => Day)
     push!(CurrentCons.DataOut, "Hour" => Hour)
+    push!(Storage.DispatchedConsignments, CurrentCons)
+    Storage.StorageMap[CartesianIndex(CurrentCons.Location)] = nothing
     return CurrentCons
 end
 
-#TestStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
-#TestConsignment = Consignment(Dict("Day" => 1, "HourIn" => 1, "ID" => 1),
-#    TestStorage, 1.2, 0.8, 1.2, 100)
-#a = LocateSlot!(TestConsignment, TestStorage)
-#TestStorage.StorageMap[1,46,:]
-#TestStorage.DepartureOrder
+# initiate a new storage
+function CreateNewStorage(ID, SimLength,
+    SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
+    ConveyorSectionLength, ConveyorSectionWidth, StorageSlotHeight,
+    FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2,
+    ConsignmentLength, ConsignmentWidth, ConsignmentHeight,
+    DistWeightCon, DistInitFill)
+
+    NewStorage = Storage(ID, SimLength,
+        SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
+        ConveyorSectionLength, ConveyorSectionWidth, StorageSlotHeight,
+        FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2)
+
+    InitFill = NewStorage.MaxCapacity * rand(DistInitFill)
+
+    for ConsNum in 1:InitFill
+        CurrentCons = Consignment(
+            Dict("Day" => 0, "Hour" => 0, "ID" => ConsNum),
+            NewStorage,
+            ConsignmentLength, ConveyorSectionWidth, 1.2, min(rand(DistWeightCon), 1500)
+        )
+        LocateSlot!(CurrentCons, NewStorage; optimise = false)
+    end
+
+    return NewStorage
+
+end
