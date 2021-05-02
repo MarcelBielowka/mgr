@@ -9,6 +9,16 @@ include("SolarAngle.jl")
 
 ## read and clean data
 
+function CleanCAMSdata(dfData::DataFrame)
+    rename!(dfData, ["Date", "TOA", "GHI", "BHI", "DHI", "BNI"])
+    insertcols!(dfData, ([:date, :DateLocal] .=>
+        invert(split.(dfData.Date, "/")))...,
+                       makeunique=true)
+    select!(dfData, [:date, :TOA, :GHI])
+    dfData.date = Dates.DateTime.(dfData.date)
+    return dfData
+end
+
 function ReadWindAndTempData(cFileWind::String)
     dfWindData = CSV.File(cFileWind) |>
         DataFrame
@@ -141,133 +151,6 @@ dfIrradiationData = CalculateIndex(dfIrradiationData)
 zz = filter(row -> ismissing(row.Irradiation), dfIrradiationData)
 zzz = @pipe groupby(zz, [:year, :month]) |>
         combine(_, nrow => :MissingCount)
-
-
-
-function ReadIrradiationData2(cFileIrr::String, cFileTheoretical::String)
-    dfWeatherDataIrr = CSV.File(cFileIrr) |>
-        DataFrame
-    dfWeatherDataIrr = dfWeatherDataIrr[:, ["date", "prom_avg"]]
-
-    dfWeatherDataTempTheoretical = CSV.File(cFileTheoretical,
-        delim = ";", header = 38) |>
-        DataFrame
-    dfWeatherDataTempTheoretical = CleanCAMSdata(dfWeatherDataTempTheoretical)
-
-    # joining data sets
-    dfWeatherData = DataFrames.innerjoin(dfWeatherData, dfWeatherDataTempTheoretical, on = :date )
-    rename!(dfWeatherData, ["date", "Irradiation", "TOA", "GHI"])
-#    rename!(dfWeatherData, ["date", "Temperature", "WindSpeed", "Irradiation"])
-
-    ##  missing data are displayed as NAs or Infs
-    # # this must be corrected
-    for j in 1:ncol(dfWeatherData), i in 1:nrow(dfWeatherData)
-        if dfWeatherData[i,j] == "NA"
-            dfWeatherData[i,j] = "-999"
-        end
-    end
-
-#    dfWeatherData[dfWeatherData.WindSpeed .== Inf,:]
-    dfWeatherData.WindSpeed[dfWeatherData.WindSpeed .== Inf] .= -999
-#    dfWeatherData[dfWeatherData.WindSpeed .== -999,:]
-
-    dfWeatherData.Temperature = parse.(Float64, dfWeatherData.Temperature)
-    dfWeatherData.Irradiation = parse.(Float64, dfWeatherData.Irradiation)
-
-    dfWeatherData["date_nohour"] = Dates.Date.(dfWeatherData["date"])
-    dfWeatherData["month"] = Dates.month.(dfWeatherData["date"])
-    dfWeatherData["hour"] = Dates.hour.(dfWeatherData["date"])
-    dfWeatherData["year"] = Dates.year.(dfWeatherData["date"])
-
-    allowmissing!(dfWeatherData, [:Temperature, :Irradiation, :WindSpeed])
-    for j in 1:ncol(dfWeatherData), i in 1:nrow(dfWeatherData)
-        if dfWeatherData[i,j] == -999
-            dfWeatherData[i,j] = missing
-        end
-    end
-
-    dfWeatherData[:SunPosition] = SunPosition.(dfWeatherData.year,
-                                               dfWeatherData.month,
-                                               Dates.day.(dfWeatherData.date),
-                                               dfWeatherData.hour
-    )
-
-    dfWeatherData.Irradiation[dfWeatherData.SunPosition .< 10] .= 0
-    dfWeatherData[:ClearSkyIndex] = zeros(size(dfWeatherData)[1])
-    dfWeatherData[:ClearnessIndex] = zeros(size(dfWeatherData)[1])
-
-    dfWeatherData.ClearSkyIndex[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)] =
-        dfWeatherData.Irradiation[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)] ./
-        dfWeatherData.GHI[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)]
-
-    dfWeatherData.ClearnessIndex[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)] =
-        dfWeatherData.Irradiation[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)] ./
-        dfWeatherData.TOA[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)]
-
-    select!(dfWeatherData,
-        [:date, :date_nohour, :year, :month, :hour,
-         :Temperature, :WindSpeed, :Irradiation, :ClearnessIndex, :ClearSkyIndex,
-         :TOA, :GHI, :SunPosition])
-
-#    dfWeatherDataNoMissing = dropmissing(dfWeatherData)
-
-    # dfWeatherDataNoMissing.Irradiation[dfWeatherDataNoMissing.Irradiation .< 2] = 0
-
-#    dfWeatherDataNoMissing.ClearnessIndex = ClearnessIndex.(
-#        dfWeatherDataNoMissing.Irradiation, Dates.dayofyear.(dfWeatherDataNoMissing.date_nohour),
-#        dfWeatherDataNoMissing.hour, Dates.isleapyear.(dfWeatherDataNoMissing.date_nohour)
-#    )
-#    dfWeatherDataNoMissing.ClearnessIndex = dfWeatherDataNoMissing.Irradiation./1366.1
-
-#    return dfWeatherDataNoMissing
-    return dfWeatherData
-end
-
-function CleanCAMSdata(dfData::DataFrame)
-    rename!(dfData, ["Date", "TOA", "GHI", "BHI", "DHI", "BNI"])
-    insertcols!(dfData, ([:date, :DateLocal] .=>
-        invert(split.(dfData.Date, "/")))...,
-                       makeunique=true)
-    select!(dfData, [:date, :TOA, :GHI])
-    dfData.date = Dates.DateTime.(dfData.date)
-    return dfData
-end
-
-dfWeatherDataAll = ReadData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
-             "C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv",
-             "C:/Users/Marcel/Desktop/mgr/data/clear_sky_irradiation_CAMS.csv")
-
-MissingIrradiation = filter(row -> ismissing(row.Irradiation), dfWeatherDataAll)
-MissingWind = filter(row -> ismissing(row.WindSpeed), dfWeatherDataAll)
-MissingTemp = filter(row -> ismissing(row.Temperature), dfWeatherDataAll)
-
-a = antijoin(MissingIrradiation, MissingWind, on = :date)
-b = antijoin(MissingIrradiation, MissingTemp, on = :date)
-c = antijoin(MissingWind, MissingTemp, on = :date)
-d = antijoin(MissingTemp, MissingWind, on = :date)
-e = antijoin(MissingWind, MissingIrradiation, on = :date)
-f = antijoin(MissingTemp, MissingIrradiation, on = :date)
-
-zz = filter(row -> ismissing(row.Irradiation), dfWeatherDataAll)
-zzz = @pipe groupby(zz, [:year, :month]) |>
-    combine(_, nrow => :MissingCount)
-unique(filter(row -> (row.year==2016 && row.month==7), zz).date_nohour)
-filter(row -> (row.year==2011 && row.month == 5), zz)
-filter(row -> (row.year==2011 && row.month == 8), zz)
-filter(row -> (row.year==2011 && row.month == 11), zz)
-filter(row -> (row.year==2012 && row.month == 3), zz)
-filter(row -> (row.year==2016 && row.month == 7), zz)
-filter(row -> (row.year==2016 && row.month == 8), zz)
-filter(row -> (row.year==2016 && row.month == 12), zz)
-filter(row -> (row.year==2018 && row.month == 2), zz)
-filter(row -> (row.year==2018 && row.month == 4), zz)
-filter(row -> (row.year==2018 && row.month == 5), zz)
-filter(row -> (row.year==2018 && row.month == 6), zz)
-
-
-
-heatmap(unique(xxx.year), unique(xxx.month), xxx.MissingCount)
-heatmap(xxx.MissingCount)
 
 
 ## Grouping data for modelling purposes
