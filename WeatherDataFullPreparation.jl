@@ -131,11 +131,12 @@ function CalculateIndex(dfIrrData)
 
     dfIrrData.ClearnessIndex[dfIrrData.Irradiation .> 0] =
         dfIrrData.Irradiation[dfIrrData.Irradiation .> 0] ./
-        dfIrrData.TOA[dfWeatherData.Irradiation .> 0]
+        dfIrrData.TOA[dfIrrData.Irradiation .> 0]
 
     return dfIrrData
 end
 
+dfIrradiationData = CalculateIndex(dfIrradiationData)
 
 zz = filter(row -> ismissing(row.Irradiation), dfIrradiationData)
 zzz = @pipe groupby(zz, [:year, :month]) |>
