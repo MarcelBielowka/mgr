@@ -112,8 +112,17 @@ end
 
 dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
                         "C:/Users/Marcel/Desktop/mgr/data/clear_sky_irradiation_CAMS.csv")
-a = RemedyMissingIrradiationData(dfIrradiationData)
+dfIrradiationData = RemedyMissingIrradiationData(dfIrradiationData)["OutputIrradiationData"]
 
+function CalculateIndex(dfIrrData)
+    dfIrrData[:SunPosition] = SunPosition.(dfWeatherData.year,
+                                               dfWeatherData.month,
+                                               Dates.day.(dfWeatherData.date),
+                                               dfWeatherData.hour
+    )
+
+
+end
 
 
 zz = filter(row -> ismissing(row.Irradiation), dfIrradiationData)
