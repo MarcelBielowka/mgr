@@ -100,12 +100,13 @@ end
 function RemedyMissingIrradiationData(dfIrrData)
     dfGroupedData = groupby(dfIrrData, [:year, :month])
     dfMissingIrradiationData = filter(row -> ismissing(row.Irradiation), dfIrrData)
-    GroupedMissingIrradiationData = @pipe groupby(MissingIrradiationData, [:year, :month]) |>
+    GroupedMissingIrradiationData = @pipe groupby(dfMissingIrradiationData, [:year, :month]) |>
             combine(_, nrow => :MissingCount)
-    for i in 1:length(GroupedMissingIrradiationData)
+    for i in 1:size(GroupedMissingIrradiationData)[1]
+        println(i)
         index = (GroupedMissingIrradiationData.year[i], GroupedMissingIrradiationData.month[i])
         dfDataToProcess = dfGroupedData[index]
-        if (GroupedMissingIrradiationData.MissingCount > 3 || index == (2016, 8))
+        if (GroupedMissingIrradiationData.MissingCount[i] > 3 || index == (2016, 8))
             dropmissing!(dfDataToProcess)
         else
             dfDataToProcess.Irradiation = Impute.interpolate(dfDataToProcess.Irradiation)
@@ -123,6 +124,9 @@ end
 dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
                         "C:/Users/Marcel/Desktop/mgr/data/clear_sky_irradiation_CAMS.csv")
 a = RemedyMissingIrradiationData(dfIrradiationData)
+
+
+
 zz = filter(row -> ismissing(row.Irradiation), dfIrradiationData)
 zzz = @pipe groupby(zz, [:year, :month]) |>
         combine(_, nrow => :MissingCount)
