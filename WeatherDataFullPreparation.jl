@@ -113,9 +113,41 @@ MissingWind = filter(row -> ismissing(row.WindSpeed), dfWeatherDataAll)
 MissingTemp = filter(row -> ismissing(row.Temperature), dfWeatherDataAll)
 
 a = antijoin(MissingIrradiation, MissingWind, on = :date)
+b = antijoin(MissingIrradiation, MissingTemp, on = :date)
+c = antijoin(MissingWind, MissingTemp, on = :date)
+d = antijoin(MissingTemp, MissingWind, on = :date)
+e = antijoin(MissingWind, MissingIrradiation, on = :date)
+f = antijoin(MissingTemp, MissingIrradiation, on = :date)
+
+zz = filter(row -> ismissing(row.Irradiation), dfWeatherDataAll)
+zzz = @pipe groupby(zz, [:year, :month]) |>
+    combine(_, nrow => :MissingCount)
+unique(filter(row -> (row.year==2016 && row.month==7), zz).date_nohour)
+filter(row -> (row.year==2011 && row.month == 5), zz)
+filter(row -> (row.year==2011 && row.month == 8), zz)
+filter(row -> (row.year==2011 && row.month == 11), zz)
+filter(row -> (row.year==2012 && row.month == 3), zz)
+filter(row -> (row.year==2016 && row.month == 7), zz)
+filter(row -> (row.year==2016 && row.month == 8), zz)
+filter(row -> (row.year==2016 && row.month == 12), zz)
+filter(row -> (row.year==2018 && row.month == 2), zz)
+filter(row -> (row.year==2018 && row.month == 4), zz)
+filter(row -> (row.year==2018 && row.month == 5), zz)
+filter(row -> (row.year==2018 && row.month == 6), zz)
 
 
 
+
+yy = filter(row -> ismissing(row.WindSpeed), dfWeatherDataAll)
+yyy = @pipe groupby(yy, [:year, :month]) |>
+    combine(_, nrow => :MissingCount)
+
+xx = filter(row -> ismissing(row.Temperature), dfWeatherDataAll)
+xxx = @pipe groupby(xx, [:year, :month]) |>
+    combine(_, nrow => :MissingCount)
+
+heatmap(unique(xxx.year), unique(xxx.month), xxx.MissingCount)
+heatmap(xxx.MissingCount)
 
 
 ## Grouping data for modelling purposes
