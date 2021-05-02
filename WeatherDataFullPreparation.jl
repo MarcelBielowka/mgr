@@ -115,32 +115,31 @@ dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weathe
 dfIrradiationData = RemedyMissingIrradiationData(dfIrradiationData)["OutputIrradiationData"]
 
 function CalculateIndex(dfIrrData)
-    dfIrrData[:SunPosition] = SunPosition.(dfWeatherData.year,
-                                               dfWeatherData.month,
-                                               Dates.day.(dfWeatherData.date),
-                                               dfWeatherData.hour
+    dfIrrData[:SunPosition] = SunPosition.(dfIrrData.year,
+                                               dfIrrData.month,
+                                               Dates.day.(dfIrrData.date),
+                                               dfIrrData.hour
     )
 
+    dfIrrData.Irradiation[dfIrrData.SunPosition .< 10] .= 0
+    dfIrrData[:ClearSkyIndex] = zeros(size(dfIrrData)[1])
+    dfIrrData[:ClearnessIndex] = zeros(size(dfIrrData)[1])
 
+    dfIrrData.ClearSkyIndex[dfIrrData.Irradiation .> 0] =
+        dfIrrData.Irradiation[dfIrrData.Irradiation .> 0] ./
+        dfIrrData.GHI[dfIrrData.Irradiation .> 0]
+
+    dfIrrData.ClearnessIndex[dfIrrData.Irradiation .> 0] =
+        dfIrrData.Irradiation[dfIrrData.Irradiation .> 0] ./
+        dfIrrData.TOA[dfWeatherData.Irradiation .> 0]
+
+    return dfIrrData
 end
 
 
 zz = filter(row -> ismissing(row.Irradiation), dfIrradiationData)
 zzz = @pipe groupby(zz, [:year, :month]) |>
         combine(_, nrow => :MissingCount)
-
-for i in 1:11
-    println((zzz.year[i], zzz.month[i]))
-end
-
-
-
-m = groupby(dfIrradiationData, [:year, :month])
-p = m[(2011,5)]
-p
-#p.myDate = Date(p.date)
-p[ismissing.(p.Irradiation),:]
-p.Irradiation = Impute.interpolate(p.Irradiation)
 
 
 
