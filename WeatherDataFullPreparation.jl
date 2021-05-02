@@ -76,7 +76,7 @@ function ReadData(cFileIrr::String, cFileWind::String, cFileTheoretical::String)
         dfWeatherData.TOA[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)]
 
     select!(dfWeatherData,
-        [:date_nohour, :year, :month, :hour,
+        [:date, :date_nohour, :year, :month, :hour,
          :Temperature, :WindSpeed, :Irradiation, :ClearnessIndex, :ClearSkyIndex,
          :TOA, :GHI, :SunPosition])
 
@@ -108,9 +108,11 @@ dfWeatherDataAll = ReadData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.c
              "C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv",
              "C:/Users/Marcel/Desktop/mgr/data/clear_sky_irradiation_CAMS.csv")
 
-MissingIrradiation = filter(row -> ismissing(row.Irradiation), a)
-MissingWind = filter(row -> ismissing(row.WindSpeed), a)
-MissingTemp = filter(row -> ismissing(row.Temperature), a)
+MissingIrradiation = filter(row -> ismissing(row.Irradiation), dfWeatherDataAll)
+MissingWind = filter(row -> ismissing(row.WindSpeed), dfWeatherDataAll)
+MissingTemp = filter(row -> ismissing(row.Temperature), dfWeatherDataAll)
+
+a = antijoin(MissingIrradiation, MissingWind, on = :date)
 
 
 
