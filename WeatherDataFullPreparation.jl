@@ -104,24 +104,17 @@ function CleanCAMSdata(dfData::DataFrame)
     return dfData
 end
 
-a = Juno.@enter ReadData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
+dfWeatherDataAll = ReadData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
              "C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv",
              "C:/Users/Marcel/Desktop/mgr/data/clear_sky_irradiation_CAMS.csv")
 
-a = ReadData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
-             "C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv",
-             "C:/Users/Marcel/Desktop/mgr/data/clear_sky_irradiation_CAMS.csv")
+MissingIrradiation = filter(row -> ismissing(row.Irradiation), a)
+MissingWind = filter(row -> ismissing(row.WindSpeed), a)
+MissingTemp = filter(row -> ismissing(row.Temperature), a)
 
-dfClearSkyIrr = CSV.File(
-    "C:/Users/Marcel/Desktop/mgr/data/clear_sky_irradiation_CAMS.csv",
-    delim = ";", header = 38) |> DataFrame
-dfClearSkyIrr = CleanCAMSdata(dfClearSkyIrr)
-Dates.DateTime(df)
 
-abc = DataFrames.innerjoin(a, dfClearSkyIrr, on = :date )
 
-abc = Dates.Date("2021-05-05")
-Dates.day(abc)
+
 
 ## Grouping data for modelling purposes
 
