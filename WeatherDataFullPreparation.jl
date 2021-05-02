@@ -59,12 +59,12 @@ function ReadData(cFileIrr::String, cFileWind::String, cFileTheoretical::String)
 
     dfWeatherData[:SunPosition] = SunPosition.(dfWeatherData.year,
                                                dfWeatherData.month,
-                                               Dates.Day.(dfWeatherData.date),
+                                               Dates.day.(dfWeatherData.date),
                                                dfWeatherData.hour
     )
 
-    dfWeatherData[:ClearSkyIndex] .=0
-    dfWeatherData[:ClearnessIndex] .=0
+    dfWeatherData[:ClearSkyIndex] = zeros(size(dfWeatherData)[1])
+    dfWeatherData[:ClearnessIndex] = zeros(size(dfWeatherData)[1])
 
 
 
@@ -96,7 +96,7 @@ a = Juno.@enter ReadData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv"
              "C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv",
              "C:/Users/Marcel/Desktop/mgr/data/clear_sky_irradiation_CAMS.csv")
 
-a = dfWeatherData = ReadData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
+a = ReadData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
              "C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv",
              "C:/Users/Marcel/Desktop/mgr/data/clear_sky_irradiation_CAMS.csv")
 
@@ -107,6 +107,9 @@ dfClearSkyIrr = CleanCAMSdata(dfClearSkyIrr)
 Dates.DateTime(df)
 
 abc = DataFrames.innerjoin(a, dfClearSkyIrr, on = :date )
+
+abc = Dates.Date("2021-05-05")
+Dates.day(abc)
 
 ## Grouping data for modelling purposes
 

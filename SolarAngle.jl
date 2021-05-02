@@ -110,7 +110,8 @@ function SunPosition(year, month, day, hour; min=0, sec=0,
   az = az / deg2rad
   lat = lat / deg2rad
 
-  return Dict(
-    "elevation"=>el, "azimuth"=>az
-  )
+  #return Dict(
+  #  "elevation"=>el, "azimuth"=>az
+  #)
+  return el
 end
