@@ -1,6 +1,7 @@
 using CSV, DataFrames, SplitApplyCombine
 using Plots, Dates, Distributions, Random, StatsPlots
-using HypothesisTests, RCall, Pipe, Statistics, Missings
+using HypothesisTests, RCall, PyCall
+using Pipe, Statistics, Missings
 using Impute
 include("SolarAngle.jl")
 
