@@ -96,3 +96,6 @@ sunPosition <- function(year, month, day, hour=12, min=0, sec=0,
 }
 
 #sunPosition(year = 2019, month = 07, day = 03, hour = 7)
+# sunPosition(year = 2020, month = 04, day = 01, hour = 7)
+# sunPosition(year = 2020, month = 08, day = 05, hour = 16)
+sunPosition(2020,11,20,13)

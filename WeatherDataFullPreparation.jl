@@ -1,22 +1,34 @@
-using CSV, DataFrames, Plots, Dates, Distributions, Random, StatsPlots
+using CSV, DataFrames, SplitApplyCombine
+using Plots, Dates, Distributions, Random, StatsPlots
 using HypothesisTests, RCall, Pipe, Statistics, Missings
+include("SolarAngle.jl")
+
+#using JuliaInterpreter
+#push!(JuliaInterpreter.compiled_modules, Base)
 
 ## read and clean data
-
-function ReadData()
-    dfWeatherDataIrr = CSV.File("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv") |>
+function ReadData(cFileIrr::String, cFileWind::String, cFileTheoretical::String)
+    dfWeatherDataIrr = CSV.File(cFileIrr) |>
         DataFrame
     dfWeatherDataIrr = dfWeatherDataIrr[:, ["date", "prom_avg"]]
 
-    dfWeatherDataTempWind = CSV.File("C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv") |>
+    dfWeatherDataTempWind = CSV.File(cFileWind) |>
         DataFrame
     dfWeatherDataTempWind = dfWeatherDataTempWind[:,["date", "temp_avg", "predkosc100m_avg"]]
 
-    # joining both data sets
+    dfWeatherDataTempTheoretical = CSV.File(cFileTheoretical,
+        delim = ";", header = 38) |>
+        DataFrame
+    dfWeatherDataTempTheoretical = CleanCAMSdata(dfWeatherDataTempTheoretical)
+
+    # joining data sets
     dfWeatherData = DataFrames.innerjoin(dfWeatherDataTempWind, dfWeatherDataIrr, on = :date)
-    rename!(dfWeatherData, ["date", "Temperature", "WindSpeed", "Irradiation"])
     dfWeatherData["date"] =
         Dates.DateTime.(dfWeatherData.date, DateFormat("y-m-d H:M:S"))
+    dfWeatherData = DataFrames.innerjoin(dfWeatherData, dfWeatherDataTempTheoretical, on = :date )
+    println(5)
+    rename!(dfWeatherData, ["date", "Temperature", "WindSpeed", "Irradiation", "TOA", "GHI"])
+#    rename!(dfWeatherData, ["date", "Temperature", "WindSpeed", "Irradiation"])
 
     ##  missing data are displayed as NAs or Infs
     # # this must be corrected
@@ -26,9 +38,9 @@ function ReadData()
         end
     end
 
-    dfWeatherData[dfWeatherData.WindSpeed .== Inf,:]
+#    dfWeatherData[dfWeatherData.WindSpeed .== Inf,:]
     dfWeatherData.WindSpeed[dfWeatherData.WindSpeed .== Inf] .= -999
-    dfWeatherData[dfWeatherData.WindSpeed .== -999,:]
+#    dfWeatherData[dfWeatherData.WindSpeed .== -999,:]
 
     dfWeatherData.Temperature = parse.(Float64, dfWeatherData.Temperature)
     dfWeatherData.Irradiation = parse.(Float64, dfWeatherData.Irradiation)
@@ -45,7 +57,18 @@ function ReadData()
         end
     end
 
-    dfWeatherDataNoMissing = dropmissing(dfWeatherData)
+    dfWeatherData[:SunPosition] = SunPosition.(dfWeatherData.year,
+                                               dfWeatherData.month,
+                                               Dates.Day.(dfWeatherData.date),
+                                               dfWeatherData.hour
+    )
+
+    dfWeatherData[:ClearSkyIndex] .=0
+    dfWeatherData[:ClearnessIndex] .=0
+
+
+
+#    dfWeatherDataNoMissing = dropmissing(dfWeatherData)
 
     # dfWeatherDataNoMissing.Irradiation[dfWeatherDataNoMissing.Irradiation .< 2] = 0
 
@@ -53,10 +76,37 @@ function ReadData()
 #        dfWeatherDataNoMissing.Irradiation, Dates.dayofyear.(dfWeatherDataNoMissing.date_nohour),
 #        dfWeatherDataNoMissing.hour, Dates.isleapyear.(dfWeatherDataNoMissing.date_nohour)
 #    )
-    dfWeatherDataNoMissing.ClearnessIndex = dfWeatherDataNoMissing.Irradiation./1366.1
+#    dfWeatherDataNoMissing.ClearnessIndex = dfWeatherDataNoMissing.Irradiation./1366.1
 
-    return dfWeatherDataNoMissing
+#    return dfWeatherDataNoMissing
+    return dfWeatherData
 end
+
+function CleanCAMSdata(dfData::DataFrame)
+    rename!(dfData, ["Date", "TOA", "GHI", "BHI", "DHI", "BNI"])
+    insertcols!(dfData, ([:date, :DateLocal] .=>
+        invert(split.(dfData.Date, "/")))...,
+                       makeunique=true)
+    select!(dfData, [:date, :TOA, :GHI])
+    dfData.date = Dates.DateTime.(dfData.date)
+    return dfData
+end
+
+a = Juno.@enter ReadData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
+             "C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv",
+             "C:/Users/Marcel/Desktop/mgr/data/clear_sky_irradiation_CAMS.csv")
+
+a = dfWeatherData = ReadData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
+             "C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv",
+             "C:/Users/Marcel/Desktop/mgr/data/clear_sky_irradiation_CAMS.csv")
+
+dfClearSkyIrr = CSV.File(
+    "C:/Users/Marcel/Desktop/mgr/data/clear_sky_irradiation_CAMS.csv",
+    delim = ";", header = 38) |> DataFrame
+dfClearSkyIrr = CleanCAMSdata(dfClearSkyIrr)
+Dates.DateTime(df)
+
+abc = DataFrames.innerjoin(a, dfClearSkyIrr, on = :date )
 
 ## Grouping data for modelling purposes
 
