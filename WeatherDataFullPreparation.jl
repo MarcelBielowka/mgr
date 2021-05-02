@@ -63,10 +63,22 @@ function ReadData(cFileIrr::String, cFileWind::String, cFileTheoretical::String)
                                                dfWeatherData.hour
     )
 
+    dfWeatherData.Irradiation[dfWeatherData.SunPosition .< 10] .= 0
     dfWeatherData[:ClearSkyIndex] = zeros(size(dfWeatherData)[1])
     dfWeatherData[:ClearnessIndex] = zeros(size(dfWeatherData)[1])
 
+    dfWeatherData.ClearSkyIndex[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)] =
+        dfWeatherData.Irradiation[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)] ./
+        dfWeatherData.GHI[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)]
 
+    dfWeatherData.ClearnessIndex[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)] =
+        dfWeatherData.Irradiation[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)] ./
+        dfWeatherData.TOA[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)]
+
+    select!(dfWeatherData,
+        [:date_nohour, :year, :month, :hour,
+         :Temperature, :WindSpeed, :Irradiation, :ClearnessIndex, :ClearSkyIndex,
+         :TOA, :GHI, :SunPosition])
 
 #    dfWeatherDataNoMissing = dropmissing(dfWeatherData)
 
