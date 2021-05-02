@@ -218,60 +218,6 @@ end
 
 
 ##
-# Solar prod functions
-
-# Theta
-function GetTheta(DayOfYear, IsLeapYear)
-    if IsLeapYear && DayOfYear > Dates.dayofyear(Date("2020-02-28"))
-        Θ = 2*π*(DayOfYear - 2)/365
-    else
-        Θ = 2*π*(DayOfYear - 1)/365
-    end
-    return Θ
-end
-
-function GetEccentricityCorrection(Θ)
-    E0 = 1.00011 + 0.034221*cos(Θ) + 0.00128*sin(Θ) -
-        0.000719*cos(2*Θ) + 0.000077*sin(2*Θ)
-    return E0
-end
-
-function GetZenithAngle(Θ, DayOfYear, HourOfDay;
-                        Latitude = (50 + 17/60), Longitude = (19 + 8/60),
-                        LongitudeStandard = 15)
-    δ = 0.006918 - 0.399912 * cos(Θ) + 0.070257 * sin(Θ) -                                      # solar declination
-        0.006759 * cos(2*Θ) +  0.000907 * sin(2*Θ) + 0.00148 * sin(3*Θ) -
-        0.002697 * cos(3*Θ)
-
-    Et = 0.000075 + 0.001868 * cos(Θ) - 0.032077 * sin(Θ) -
-        0.14615*cos(2*Θ) - 0.04084*sin(2*Θ)                                                     # equation of time
-
-    SolarHour = HourOfDay + (LongitudeStandard-Longitude) / 15 + Et                                           # solar hour
-
-    ω = 2*π/24*(SolarHour - 12)                                                                 # hour angle
-
-    CosZenithAngle = sin(Latitude) * sin(δ) + cos(Latitude) * cos(δ) * cos(ω)
-    return δ, Et, SolarHour, ω, CosZenithAngle
-end
-
-# index clearness
-function ClearnessIndex(IncidentalIrradiance, DayOfYear, HourOfDay, IsLeapYear;
-                        Latitude = (50 + 17/60), Longitude = (19 + 8/60),
-                        LongitudeStandard = 15)   # Paulescu et al, ch 5 + Badescu et al ch. 3.4
-    Θ = GetTheta(DayOfYear, IsLeapYear)                                                               # Θ, argument Et i E0
-
-    E0 = GetEccentricityCorrection(Θ)
-
-    CosZenithAngle = GetZenithAngle(Θ, DayOfYear, HourOfDay)[5]
-
-    k = max(IncidentalIrradiance / (1366 * E0 * CosZenithAngle), 0)
-    k = min(k,1)
-    return k
-end
-
-
-
-##
 # solar production
 function SolarCellTemp(TempAmb, Noct, Irradiation; TempConst = 20, IrrConst = 800)
     C = (Noct - TempConst)/IrrConst
