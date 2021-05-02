@@ -4,6 +4,7 @@ using HypothesisTests, RCall, PyCall
 using Pipe, Statistics, Missings
 using Impute
 include("SolarAngle.jl")
+PyStats = pyimport("scipy.stats")
 
 #using JuliaInterpreter
 #push!(JuliaInterpreter.compiled_modules, Base)
