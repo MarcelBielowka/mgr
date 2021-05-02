@@ -1,20 +1,151 @@
 using CSV, DataFrames, SplitApplyCombine
 using Plots, Dates, Distributions, Random, StatsPlots
 using HypothesisTests, RCall, Pipe, Statistics, Missings
+using Impute
 include("SolarAngle.jl")
 
 #using JuliaInterpreter
 #push!(JuliaInterpreter.compiled_modules, Base)
 
 ## read and clean data
-function ReadData(cFileIrr::String, cFileWind::String, cFileTheoretical::String)
+
+function ReadWindAndTempData(cFileWind::String)
+    dfWindData = CSV.File(cFileWind) |>
+        DataFrame
+    select!(dfWindData, [:date, :temp_avg, :predkosc100m_avg])
+    rename!(dfWindData, [:date, :Temperature, :WindSpeed])
+
+    dfWindData["date"] =
+        Dates.DateTime.(dfWindData.date, DateFormat("y-m-d H:M:S"))
+    dfWindData.Temperature[dfWindData.Temperature .== "NA"] .= "Inf"
+    dfWindData.Temperature = parse.(Float64, dfWindData.Temperature)
+
+    allowmissing!(dfWindData)
+    dfWindData.Temperature[dfWindData.Temperature .== Inf] .= missing
+    dfWindData.WindSpeed[dfWindData.WindSpeed .== Inf] .= missing
+
+    dfWindData["date_nohour"] = Dates.Date.(dfWindData["date"])
+    dfWindData["month"] = Dates.month.(dfWindData["date"])
+    dfWindData["hour"] = Dates.hour.(dfWindData["date"])
+    dfWindData["year"] = Dates.year.(dfWindData["date"])
+
+    return dfWindData
+end
+
+function RemedyMissingWindTempData(dfWindData)
+    MissingWindData = filter(row -> ismissing(row.WindSpeed), dfWindData)
+    MissingTempData = filter(row -> ismissing(row.Temperature), dfWindData)
+    dfWindDataClean = dropmissing(dfWindData)
+    return Dict(
+        "MissingWindData" => MissingWindData,
+        "MissingTempData" => MissingTempData,
+        "WindTempDataNoMissing" => dfWindDataClean
+    )
+end
+
+dfWindTempData = ReadWindAndTempData("C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv")
+Redemption = RemedyMissingWindTempData(dfWindTempData)
+Redemption["MissingWindData"]
+GroupedMissingDataWind = @pipe groupby(Redemption["MissingWindData"], [:year, :month]) |>
+    combine(_, nrow => :MissingCount)
+GroupedMissingDataTemp = @pipe groupby(Redemption["MissingTempData"], [:year, :month]) |>
+    combine(_, nrow => :MissingCount)
+c["WindTempDataNoMissing"]
+
+function ReadIrradiationData(cFileIrr::String, cFileTheoretical::String)
+    dfWeatherData = CSV.File(cFileIrr) |>
+        DataFrame
+    select!(dfWeatherData, [:date, :prom_avg])
+    dfWeatherData.date = Dates.DateTime.(dfWeatherData.date, DateFormat("y-m-d H:M:S"))
+
+    dfWeatherDataTempTheoretical = CSV.File(cFileTheoretical,
+        delim = ";", header = 38) |>
+        DataFrame
+    dfWeatherDataTempTheoretical = CleanCAMSdata(dfWeatherDataTempTheoretical)
+
+    dfWeatherData = DataFrames.innerjoin(dfWeatherData, dfWeatherDataTempTheoretical, on = :date )
+    rename!(dfWeatherData, ["date", "Irradiation", "TOA", "GHI"])
+
+    dfWeatherData.Irradiation[dfWeatherData.Irradiation .== "NA"] .= "Inf"
+    dfWeatherData.Irradiation = parse.(Float64, dfWeatherData.Irradiation)
+    allowmissing!(dfWeatherData)
+    dfWeatherData.Irradiation[dfWeatherData.Irradiation .== Inf] .= missing
+
+    dfWeatherData["date_nohour"] = Dates.Date.(dfWeatherData["date"])
+    dfWeatherData["month"] = Dates.month.(dfWeatherData["date"])
+    dfWeatherData["hour"] = Dates.hour.(dfWeatherData["date"])
+    dfWeatherData["year"] = Dates.year.(dfWeatherData["date"])
+
+    dfWeatherData[:SunPosition] = SunPosition.(dfWeatherData.year,
+                                               dfWeatherData.month,
+                                               Dates.day.(dfWeatherData.date),
+                                               dfWeatherData.hour
+    )
+    dfWeatherData.Irradiation[dfWeatherData.SunPosition .< 10] .= 0
+    dfWeatherData[:ClearSkyIndex] = zeros(size(dfWeatherData)[1])
+    dfWeatherData[:ClearnessIndex] = zeros(size(dfWeatherData)[1])
+
+    dfWeatherData.ClearSkyIndex[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)] =
+        dfWeatherData.Irradiation[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)] ./
+        dfWeatherData.GHI[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)]
+
+    dfWeatherData.ClearnessIndex[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)] =
+        dfWeatherData.Irradiation[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)] ./
+        dfWeatherData.TOA[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)]
+
+
+    return dfWeatherData
+end
+
+function RemedyMissingIrradiationData(dfIrrData)
+    dfGroupedData = groupby(dfIrrData, [:year, :month])
+    dfMissingIrradiationData = filter(row -> ismissing(row.Irradiation), dfIrrData)
+    GroupedMissingIrradiationData = @pipe groupby(MissingIrradiationData, [:year, :month]) |>
+            combine(_, nrow => :MissingCount)
+    for i in 1:length(GroupedMissingIrradiationData)
+        index = (GroupedMissingIrradiationData.year[i], GroupedMissingIrradiationData.month[i])
+        dfDataToProcess = dfGroupedData[index]
+        if (GroupedMissingIrradiationData.MissingCount > 3 || index == (2016, 8))
+            dropmissing!(dfDataToProcess)
+        else
+            dfDataToProcess.Irradiation = Impute.interpolate(dfDataToProcess.Irradiation)
+        end
+    end
+    dfOutputData = combine(dfGroupedData)
+    return Dict(
+        "AggregatedMissingIrradiationData" => GroupedMissingIrradiationData,
+        "UnitMissingIrradiationData" => dfMissingIrradiationData,
+        "OutputIrradiationData" => dfOutputData
+    )
+
+end
+
+dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
+                        "C:/Users/Marcel/Desktop/mgr/data/clear_sky_irradiation_CAMS.csv")
+a = RemedyMissingIrradiationData(dfIrradiationData)
+zz = filter(row -> ismissing(row.Irradiation), dfIrradiationData)
+zzz = @pipe groupby(zz, [:year, :month]) |>
+        combine(_, nrow => :MissingCount)
+
+for i in 1:11
+    println((zzz.year[i], zzz.month[i]))
+end
+
+
+
+m = groupby(dfIrradiationData, [:year, :month])
+p = m[(2011,5)]
+p
+#p.myDate = Date(p.date)
+p[ismissing.(p.Irradiation),:]
+p.Irradiation = Impute.interpolate(p.Irradiation)
+
+
+
+function ReadIrradiationData2(cFileIrr::String, cFileTheoretical::String)
     dfWeatherDataIrr = CSV.File(cFileIrr) |>
         DataFrame
     dfWeatherDataIrr = dfWeatherDataIrr[:, ["date", "prom_avg"]]
-
-    dfWeatherDataTempWind = CSV.File(cFileWind) |>
-        DataFrame
-    dfWeatherDataTempWind = dfWeatherDataTempWind[:,["date", "temp_avg", "predkosc100m_avg"]]
 
     dfWeatherDataTempTheoretical = CSV.File(cFileTheoretical,
         delim = ";", header = 38) |>
@@ -22,12 +153,8 @@ function ReadData(cFileIrr::String, cFileWind::String, cFileTheoretical::String)
     dfWeatherDataTempTheoretical = CleanCAMSdata(dfWeatherDataTempTheoretical)
 
     # joining data sets
-    dfWeatherData = DataFrames.innerjoin(dfWeatherDataTempWind, dfWeatherDataIrr, on = :date)
-    dfWeatherData["date"] =
-        Dates.DateTime.(dfWeatherData.date, DateFormat("y-m-d H:M:S"))
     dfWeatherData = DataFrames.innerjoin(dfWeatherData, dfWeatherDataTempTheoretical, on = :date )
-    println(5)
-    rename!(dfWeatherData, ["date", "Temperature", "WindSpeed", "Irradiation", "TOA", "GHI"])
+    rename!(dfWeatherData, ["date", "Irradiation", "TOA", "GHI"])
 #    rename!(dfWeatherData, ["date", "Temperature", "WindSpeed", "Irradiation"])
 
     ##  missing data are displayed as NAs or Infs
@@ -136,15 +263,6 @@ filter(row -> (row.year==2018 && row.month == 5), zz)
 filter(row -> (row.year==2018 && row.month == 6), zz)
 
 
-
-
-yy = filter(row -> ismissing(row.WindSpeed), dfWeatherDataAll)
-yyy = @pipe groupby(yy, [:year, :month]) |>
-    combine(_, nrow => :MissingCount)
-
-xx = filter(row -> ismissing(row.Temperature), dfWeatherDataAll)
-xxx = @pipe groupby(xx, [:year, :month]) |>
-    combine(_, nrow => :MissingCount)
 
 heatmap(unique(xxx.year), unique(xxx.month), xxx.MissingCount)
 heatmap(xxx.MissingCount)
