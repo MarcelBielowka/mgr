@@ -146,9 +146,8 @@ function WindTempDistributions(dfWeatherData; kelvins::Bool = true)
     dfDataGrouped = groupby(dfData, [:month, :MonthPart])
     GroupsMapping = sort(dfDataGrouped.keymap, by = values)
     dfWeatherDistParameters = DataFrame(month = [], MonthPeriod = [], hour = [],
-                                      WindMoment1 = [], WindMoment2 = [],
-                                      TempMoment1 = [], TempMoment2 = [],
-                                      PValueKSTestWind = [], PValueKSTestTemp = [],
+                                      DistWind = [], DistTemp = [],
+                                      PValueCvMTestWind = [], PValueCvMTestTemp = [],
                                       ZeroWindSpeedRatio = [])
 
     for PeriodNum in 1:24
@@ -156,29 +155,23 @@ function WindTempDistributions(dfWeatherData; kelvins::Bool = true)
         dfCurrentPeriod = dfDataGrouped[CurrentPeriod]
         month, MonthPeriod = GroupsMapping.keys[PeriodNum]
 
-        for hour in extrema(dfDataGrouped[1].hour)[1]:extrema(dfDataGrouped[1].hour)[2]
+        for hour in 0:23
             dfCurrentHour = filter(row -> row.hour .== hour, dfCurrentPeriod)
             println("Current month: $month, period: $PeriodNum , hour: $hour")
-            DistWindMASS = fitdistr(dfCurrentHour.WindSpeed[dfCurrentHour.WindSpeed.>0], "weibull", lower = R"c(0,0)")
-            DistTempMASS = fitdistr(dfCurrentHour.Temperature, "normal")
-            PValueKSTestWind = pvalue(
-                ExactOneSampleKSTest(
-                    dfCurrentHour.WindSpeed[dfCurrentHour.WindSpeed.>0],
-                    Weibull(DistWindMASS[1][1], DistWindMASS[1][2])
-                )
-            )
-            PValueKSTestTemp = pvalue(
-                ExactOneSampleKSTest(
-                    dfCurrentHour.Temperature,
-                    Normal(DistTempMASS[1][1], DistTempMASS[1][2])
-                )
-            )
+            DistWind = st.weibull_min.fit(dfCurrentHour.WindSpeed)
+            DistTemp = st.norm.fit(dfCurrentHour.Temperature)
+            PValueCvMTestWind = st.cramervonmises(
+                    dfCurrentHour.WindSpeed, "weibull_min", args = (DistWind)
+                ).pvalue
+            PValueCvMTestTemp = st.cramervonmises(
+                dfCurrentHour.Temperature, "norm", args = (DistTemp)
+            ).pvalue
             ZeroWindSpeedRatio = length(dfCurrentHour.WindSpeed[dfCurrentHour.WindSpeed.==0]) / length(dfCurrentHour.WindSpeed)
 
             push!(dfWeatherDistParameters, (month, MonthPeriod, hour,
-                                            DistWindMASS[1][1], DistWindMASS[1][2],
-                                            DistTempMASS[1][1], DistTempMASS[1][2],
-                                            PValueKSTestWind, PValueKSTestTemp, ZeroWindSpeedRatio
+                                            DistWind, DistTemp,
+                                            PValueCvMTestWind, PValueCvMTestTemp,
+                                            ZeroWindSpeedRatio
                                             )
                 )
         end
@@ -190,8 +183,9 @@ function WindTempDistributions(dfWeatherData; kelvins::Bool = true)
     )
 end
 
+a = Juno.@enter WindTempDistributions(dfWindTempDataFinal)
 a = WindTempDistributions(dfWindTempDataFinal)
-a["WeatherDistParameters"]
+a["dfWeatherDistParameters"]
 a["dfDataGrouped"]
 
 t = ExactOneSampleKSTest(filter(row -> row.hour == 12, a["dfDataGrouped"][1]).Temperature,
