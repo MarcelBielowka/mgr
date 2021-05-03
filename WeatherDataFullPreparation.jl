@@ -57,12 +57,11 @@ end
 
 dfWindTempData = ReadWindAndTempData("C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv")
 Redemption = RemedyMissingWindTempData(dfWindTempData)
-Redemption["MissingWindData"]
 GroupedMissingDataWind = @pipe groupby(Redemption["MissingWindData"], [:year, :month]) |>
     combine(_, nrow => :MissingCount)
 GroupedMissingDataTemp = @pipe groupby(Redemption["MissingTempData"], [:year, :month]) |>
     combine(_, nrow => :MissingCount)
-c["WindTempDataNoMissing"]
+dfWindTempDataFinal = Redemption["WindTempDataNoMissing"]
 
 function ReadIrradiationData(cFileIrr::String, cFileTheoretical::String)
     dfWeatherData = CSV.File(cFileIrr) |>
@@ -117,14 +116,10 @@ function RemedyMissingIrradiationData(dfIrrData)
     return Dict(
         "AggregatedMissingIrradiationData" => GroupedMissingIrradiationData,
         "UnitMissingIrradiationData" => dfMissingIrradiationData,
-        "OutputIrradiationData" => dfOutputData
+        "IrradiationDataNoMissing" => dfOutputData
     )
 
 end
-
-dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
-                        "C:/Users/Marcel/Desktop/mgr/data/clear_sky_irradiation_CAMS.csv")
-dfIrradiationData = RemedyMissingIrradiationData(dfIrradiationData)["OutputIrradiationData"]
 
 function CalculateIndex(dfIrrData)
     dfIrrData[:SunPosition] = SunPosition.(dfIrrData.year,
@@ -148,11 +143,11 @@ function CalculateIndex(dfIrrData)
     return dfIrrData
 end
 
+dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
+                        "C:/Users/Marcel/Desktop/mgr/data/clear_sky_irradiation_CAMS.csv")
+dfIrradiationData = RemedyMissingIrradiationData(dfIrradiationData)["IrradiationDataNoMissing"]
 dfIrradiationData = CalculateIndex(dfIrradiationData)
 
-zz = filter(row -> ismissing(row.Irradiation), dfIrradiationData)
-zzz = @pipe groupby(zz, [:year, :month]) |>
-        combine(_, nrow => :MissingCount)
 
 
 ## Grouping data for modelling purposes
