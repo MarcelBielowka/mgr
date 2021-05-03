@@ -143,11 +143,8 @@ function WindTempDistributions(dfWeatherData; kelvins::Bool = true)
 
     dfData.MonthPart =
         Dates.day.(dfData.date_nohour) .> Dates.daysinmonth.(dfData.date_nohour)/2
-
     dfDataGrouped = groupby(dfData, [:month, :MonthPart])
-
     GroupsMapping = sort(dfDataGrouped.keymap, by = values)
-
     WeatherDistParameters = Dict{}()
 
     for PeriodNum in 1:24
@@ -160,12 +157,28 @@ function WindTempDistributions(dfWeatherData; kelvins::Bool = true)
             println("Current month: $month, period: $PeriodNum , hour: $hour")
             DistWindMASS = fitdistr(dfCurrentHour.WindSpeed[dfCurrentHour.WindSpeed.>0], "weibull", lower = R"c(0,0)")
             DistTempMASS = fitdistr(dfCurrentHour.Temperature, "normal")
+            PValueKSTestWind = pvalue(
+                ExactOneSampleKSTest(
+                    dfCurrentHour.WindSpeed[dfCurrentHour.WindSpeed.>0],
+                    Weibull(DistWindMASS[1][1], DistWindMASS[1][2])
+                )
+            )
+            PValueKSTestTemp = pvalue(
+                ExactOneSampleKSTest(
+                    dfCurrentHour.Temperature,
+                    Normal(DistTempMASS[1][1], DistTempMASS[1][2])
+                )
+            )
+            ZeroWindSpeedRatio = length(dfCurrentHour.WindSpeed[dfCurrentHour.WindSpeed.==0]) / length(dfCurrentHour.WindSpeed)
 
             push!(WeatherDistParameters, (month, MonthPeriod, hour) => Dict(
                                                                         "WindMean" => DistWindMASS[1][1],
                                                                         "WindStd" => DistWindMASS[1][2],
                                                                         "TempMean" => DistTempMASS[1][1],
-                                                                        "TempStd" => DistTempMASS[1][2]
+                                                                        "TempStd" => DistTempMASS[1][2],
+                                                                        "PValueKSTestWind" => PValueKSTestWind,
+                                                                        "PValueKSTestTemp" => PValueKSTestTemp,
+                                                                        "ZeroWindSpeedRatio" => ZeroWindSpeedRatio
                                                                         )
                                                                    )
         end
@@ -181,7 +194,12 @@ a = WindTempDistributions(dfWindTempDataFinal)
 a["WeatherDistParameters"]
 a["dfDataGrouped"]
 
-
+t = ExactOneSampleKSTest(filter(row -> row.hour == 12, a["dfDataGrouped"][1]).Temperature,
+    Normal(
+        a["WeatherDistParameters"][1, false, 12]["TempMean"],
+        a["WeatherDistParameters"][1, false, 12]["TempStd"]
+    ))
+pvalue(t)
 histogram(filter(row -> row.hour == 12, a["dfDataGrouped"][1]).Temperature, normalize = true)
 a["WeatherDistParameters"][1, false, 12]
 plot!(Normal(
@@ -195,6 +213,93 @@ plot!(Weibull(
         a["WeatherDistParameters"][3, true, 9]["WindMean"],
         a["WeatherDistParameters"][3, true, 9]["WindStd"]
     ), lw = 3)
+
+
+function IrradiationDistributions(dfWeatherData)
+    dfData = deepcopy(dfWeatherData)
+    dfData.MonthPart =
+        Dates.day.(dfData.date_nohour) .> Dates.daysinmonth.(dfData.date_nohour)/2
+    dfDataGrouped = groupby(dfData, [:month, :MonthPart])
+    GroupsMapping = sort(dfDataGrouped.keymap, by = values)
+    WeatherDistParameters = Dict{}()
+
+    for PeriodNum in 1:24
+        CurrentPeriod = GroupsMapping.vals[PeriodNum]
+        dfCurrentPeriod = dfDataGrouped[CurrentPeriod]
+        month, MonthPeriod = GroupsMapping.keys[PeriodNum]
+
+        for hour in extrema(dfDataGrouped[1].hour)[1]:extrema(dfDataGrouped[1].hour)[2]
+            dfCurrentHour = filter(row -> row.hour .== hour, dfCurrentPeriod)
+            ratioClearSky = size(dfCurrentHour[dfCurrentHour.ClearSkyIndex.>0, :])[1] / size(dfCurrentHour)[1]
+            ratioClearness = size(dfCurrentHour[dfCurrentHour.ClearnessIndex.>0, :])[1] / size(dfCurrentHour)[1]
+            println("Current month: $month, period: $PeriodNum , hour: $hour")
+            println("Ratio of 0 Clear Sky index to all data is $ratioClearSky and of Clearness index is $ratioClearness")
+            if ratioClearSky < 0.5
+                ClearSkyParam = nothing
+            else
+                ClearSkyParam = st.beta.fit(dfCurrentHour.ClearSkyIndex)
+            end
+
+            if ratioClearness < 0.5
+                ClearnessParam = nothing
+            else
+                ClearnessParam = st.beta.fit(dfCurrentHour.ClearnessIndex)
+            end
+            push!(WeatherDistParameters, (month, MonthPeriod, hour) => Dict(
+                                                                        "ClearSkyParam" => ClearSkyParam,
+                                                                        "ClearnessParam" => ClearnessParam
+                                                                        )
+                                                                   )
+        end
+    end
+    return Dict(
+        "WeatherDistParameters" => WeatherDistParameters,
+        "dfDataGrouped" => dfDataGrouped
+    )
+end
+
+t = Juno.@enter IrradiationDistributions(dfIrradiationData)
+t = IrradiationDistributions(dfIrradiationData)
+w = t["WeatherDistParameters"][(12, false, 12)]["ClearSkyParam"]
+s = t["WeatherDistParameters"][(12, false, 12)]["ClearnessParam"]
+v = t["WeatherDistParameters"][(12, false, 9)]["ClearSkyParam"]
+u = t["WeatherDistParameters"][(12, false, 9)]["ClearnessParam"]
+r = t["WeatherDistParameters"][(8, true, 14)]["ClearnessParam"]
+
+histogram(filter(row -> row.hour == 12, t["dfDataGrouped"][23]).ClearSkyIndex,
+    normalize = true, bins = 30)
+x = 0:0.01:1.4
+y = pdf.(Beta(w[1],w[2]), (x.-w[3])./w[4]) ./ w[4]
+z = cdf.(Beta(0.893,1.38), (x.-0.0339)./0.713) ./ 0.713
+plot!(x,y, lw = 5)
+
+histogram(filter(row -> row.hour == 12, t["dfDataGrouped"][23]).ClearnessIndex,
+    normalize = true, bins = 30)
+x = 0:0.01:1
+y = pdf.(Beta(s[1],s[2]), (x.-s[3])./s[4]) ./ s[4]
+plot!(x,y, lw = 5)
+
+histogram(filter(row -> row.hour == 9, t["dfDataGrouped"][23]).ClearSkyIndex,
+    normalize = true, bins = 20)
+x = 0.01:0.01:1.5
+y = pdf.(Beta(v[1],v[2]), (x.-v[3])./v[4]) ./ v[4]
+plot!(x,y, lw = 3)
+y = st.beta.pdf.(x, v[1], v[2], v[3], v[4])
+
+histogram(filter(row -> row.hour == 9, t["dfDataGrouped"][23]).ClearnessIndex,
+    normalize = true, bins = 30)
+x = 0:0.01:1
+y = pdf.(Beta(u[1],u[2]), (x.-u[3])./u[4]) ./ u[4]
+plot!(x,y,lwd = 3)
+
+histogram(filter(row -> row.hour == 14, t["dfDataGrouped"][16]).ClearnessIndex,
+    normalize = true, bins = 30)
+x = 0:0.01:1
+y = pdf.(Beta(r[1],r[2]), (x.-r[3])./r[4]) ./ r[4]
+plot!(x,y,lwd = 3)
+
+ExactOneSampleKSTest(a, Beta(r[1], r[2]))
+z = st.beta.pdf.(x,u[1],u[2], u[3], u[4])
 
 ##
 # wind production
