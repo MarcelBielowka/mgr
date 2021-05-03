@@ -312,6 +312,54 @@ plot!(x,y,lwd = 3)
 ExactOneSampleKSTest(a, Beta(r[1], r[2]))
 z = st.beta.pdf.(x,u[1],u[2], u[3], u[4])
 
+function IrradiationDistributions(dfWeatherData)
+    dfData = deepcopy(dfWeatherData)
+    dfData.MonthPart =
+        Dates.day.(dfData.date_nohour) .> Dates.daysinmonth.(dfData.date_nohour)/2
+    dfDataGrouped = groupby(dfData, [:month, :MonthPart])
+    GroupsMapping = sort(dfDataGrouped.keymap, by = values)
+    dfWeatherDistParameters = DataFrame(month = [], MonthPeriod = [], hour = [],
+                                        DistIrradiation = [],
+                                        PValueCvMTestIrradiation = [],
+                                        ratioIrradiation = [])
+
+    for PeriodNum in 1:24
+        CurrentPeriod = GroupsMapping.vals[PeriodNum]
+        dfCurrentPeriod = dfDataGrouped[CurrentPeriod]
+        month, MonthPeriod = GroupsMapping.keys[PeriodNum]
+
+        for hour in 0:23
+            dfCurrentHour = filter(row -> row.hour .== hour, dfCurrentPeriod)
+            ratioIrradiation = size(dfCurrentHour[dfCurrentHour.Irradiation.>0, :])[1] / size(dfCurrentHour)[1]
+            println("Current month: $month, period: $PeriodNum , hour: $hour")
+            println("Irradiation ratio is $ratioIrradiation")
+            if ratioIrradiation < 0.5
+                DistIrradiation = nothing
+                PValueCvMTestIrradiation = nothing
+            else
+                DistIrradiation = st.beta.fit(dfCurrentHour.Irradiation)
+                PValueCvMTestIrradiation = st.cramervonmises(
+                    dfCurrentHour.Irradiation, "beta", args = (DistIrradiation)
+                ).pvalue
+            end
+            push!(dfWeatherDistParameters, (month, MonthPeriod, hour,
+                                            DistIrradiation,
+                                            PValueCvMTestIrradiation,
+                                            ratioIrradiation)
+            )
+        end
+    end
+    return Dict(
+        "dfWeatherDistParameters" => dfWeatherDistParameters,
+        "dfDataGrouped" => dfDataGrouped
+    )
+end
+
+t = IrradiationDistributions(dfIrradiationData)
+t["dfWeatherDistParameters"]
+c = filter(row -> !isnothing(row.PValueCvMTestIrradiation), t["dfWeatherDistParameters"])
+filter(row -> row.PValueCvMTestIrradiation < 0.01, c)
+
 ##
 # wind production
 function WindProductionForecast(P_nam, V, V_nam, V_cutin, V_cutoff)
