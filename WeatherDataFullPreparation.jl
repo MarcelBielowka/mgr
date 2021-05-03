@@ -88,15 +88,6 @@ function ReadIrradiationData(cFileIrr::String, cFileTheoretical::String)
     dfWeatherData["hour"] = Dates.hour.(dfWeatherData["date"])
     dfWeatherData["year"] = Dates.year.(dfWeatherData["date"])
 
-    dfWeatherData[:SunPosition] = SunPosition.(dfWeatherData.year,
-                                               dfWeatherData.month,
-                                               Dates.day.(dfWeatherData.date),
-                                               dfWeatherData.hour
-    )
-    dfWeatherData.Irradiation[dfWeatherData.SunPosition .< 10] .= 0
-    dfWeatherData[:ClearSkyIndex] = zeros(size(dfWeatherData)[1])
-    dfWeatherData[:ClearnessIndex] = zeros(size(dfWeatherData)[1])
-
     return dfWeatherData
 end
 
