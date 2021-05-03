@@ -5,6 +5,7 @@ using Pipe, Statistics, Missings
 using Impute
 include("SolarAngle.jl")
 PyStats = pyimport("scipy.stats")
+@rlibrary MASS
 
 #using JuliaInterpreter
 #push!(JuliaInterpreter.compiled_modules, Base)
@@ -152,50 +153,59 @@ dfIrradiationData = CalculateIndex(dfIrradiationData)
 
 ## Grouping data for modelling purposes
 
-function RetrieveGroupedData(dfWeatherData; kelvins::Bool = true)
+function WindTempDistributions(dfWeatherData; kelvins::Bool = true)
+    dfData = deepcopy(dfWeatherData)
     if kelvins
-        dfWeatherData.Temperature = dfWeatherData.Temperature .+ 273.15
+        dfData.Temperature = dfData.Temperature .+ 273.15
     end
 
-    dfWeatherData.MonthPart =
-        Dates.day.(dfWeatherData.date_nohour) .> Dates.daysinmonth.(dfWeatherData.date_nohour)/2
+    dfData.MonthPart =
+        Dates.day.(dfData.date_nohour) .> Dates.daysinmonth.(dfData.date_nohour)/2
 
-    dfWeatherDataGrouped = groupby(dfWeatherData, [:month, :MonthPart])
+    dfDataGrouped = groupby(dfData, [:month, :MonthPart])
 
-    GroupsMapping = sort(dfWeatherDataGrouped.keymap, by = values)
+    GroupsMapping = sort(dfDataGrouped.keymap, by = values)
 
     WeatherDistParameters = Dict{}()
 
     for PeriodNum in 1:24
         CurrentPeriod = GroupsMapping.vals[PeriodNum]
-        dfCurrentPeriod = dfWeatherDataGrouped[CurrentPeriod]
+        dfCurrentPeriod = dfDataGrouped[CurrentPeriod]
         month, MonthPeriod = GroupsMapping.keys[PeriodNum]
 
-        for hour in extrema(dfWeatherDataGrouped[1].hour)[1]:extrema(dfWeatherDataGrouped[1].hour)[2]
+        for hour in extrema(dfDataGrouped[1].hour)[1]:extrema(dfDataGrouped[1].hour)[2]
             dfCurrentHour = filter(row -> row.hour .== hour, dfCurrentPeriod)
             println("Current month: $month, period: $PeriodNum , hour: $hour")
-
             DistWindMASS = fitdistr(dfCurrentHour.WindSpeed[dfCurrentHour.WindSpeed.>0], "weibull", lower = R"c(0,0)")
-            if length(dfCurrentHour.ClearnessIndex[dfCurrentHour.ClearnessIndex.>0.01]) > 30
-                try
-                    DistSolarMASS = fitdistr(dfCurrentHour.ClearnessIndex, "beta", start = start = R"list(shape1 = 1, shape2 = 1)")
-                catch
-                    DistSolarMASS = fitdistr(dfCurrentHour.ClearnessIndex[dfCurrentHour.ClearnessIndex .> 0.0001], "beta", start = start = R"list(shape1 = 1, shape2 = 1)")
-                end
-            else
-                DistSolarMASS = nothing
-            end
             DistTempMASS = fitdistr(dfCurrentHour.Temperature, "normal")
 
-            push!(WeatherDistParameters, (month, MonthPeriod, hour) => ["WindParam" => [DistWindMASS[1][1] DistWindMASS[1][2]],
-                                                                          "SolarParam" => !isnothing(DistSolarMASS) ? [DistSolarMASS[1][1] DistSolarMASS[1][2]] : nothing,
-                                                                          "TempParam" => [DistTempMASS[1][1] DistTempMASS[1][2]],
+            push!(WeatherDistParameters, (month, MonthPeriod, hour) => ["WindMean" => DistWindMASS[1][1],
+                                                                        "WindStd" => DistWindMASS[1][2],
+                                                                        "TempMean" => DistTempMASS[1][1],
+                                                                        "TempStd" => DistTempMASS[1][2]
                                                                    ])
         end
     end
 
-    return WeatherDistParameters, dfWeatherDataGrouped
+    return Dict(
+        "WeatherDistParameters" => WeatherDistParameters,
+        "dfDataGrouped" => dfDataGrouped
+    )
 end
+
+a = WindTempDistributions(dfWindTempDataFinal)
+a["WeatherDistParameters"]
+a["dfDataGrouped"]
+
+
+histogram(filter(row -> row.hour == 12, a["dfDataGrouped"][1]).Temperature, normalize = true)
+a["WeatherDistParameters"][1, false, 12]
+plot!(Normal(
+        a["WeatherDistParameters"][1, false, 12][2][2][1],
+        a["WeatherDistParameters"][1, false, 12][2][2][2]
+    ), lw = 3)
+
+KS
 
 ##
 # wind production
