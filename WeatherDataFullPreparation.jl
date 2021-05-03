@@ -145,7 +145,11 @@ function WindTempDistributions(dfWeatherData; kelvins::Bool = true)
         Dates.day.(dfData.date_nohour) .> Dates.daysinmonth.(dfData.date_nohour)/2
     dfDataGrouped = groupby(dfData, [:month, :MonthPart])
     GroupsMapping = sort(dfDataGrouped.keymap, by = values)
-    WeatherDistParameters = Dict{}()
+    dfWeatherDistParameters = DataFrame(month = [], MonthPeriod = [], hour = [],
+                                      WindMoment1 = [], WindMoment2 = [],
+                                      TempMoment1 = [], TempMoment2 = [],
+                                      PValueKSTestWind = [], PValueKSTestTemp = [],
+                                      ZeroWindSpeedRatio = [])
 
     for PeriodNum in 1:24
         CurrentPeriod = GroupsMapping.vals[PeriodNum]
@@ -171,21 +175,17 @@ function WindTempDistributions(dfWeatherData; kelvins::Bool = true)
             )
             ZeroWindSpeedRatio = length(dfCurrentHour.WindSpeed[dfCurrentHour.WindSpeed.==0]) / length(dfCurrentHour.WindSpeed)
 
-            push!(WeatherDistParameters, (month, MonthPeriod, hour) => Dict(
-                                                                        "WindMean" => DistWindMASS[1][1],
-                                                                        "WindStd" => DistWindMASS[1][2],
-                                                                        "TempMean" => DistTempMASS[1][1],
-                                                                        "TempStd" => DistTempMASS[1][2],
-                                                                        "PValueKSTestWind" => PValueKSTestWind,
-                                                                        "PValueKSTestTemp" => PValueKSTestTemp,
-                                                                        "ZeroWindSpeedRatio" => ZeroWindSpeedRatio
-                                                                        )
-                                                                   )
+            push!(dfWeatherDistParameters, (month, MonthPeriod, hour,
+                                            DistWindMASS[1][1], DistWindMASS[1][2],
+                                            DistTempMASS[1][1], DistTempMASS[1][2],
+                                            PValueKSTestWind, PValueKSTestTemp, ZeroWindSpeedRatio
+                                            )
+                )
         end
     end
 
     return Dict(
-        "WeatherDistParameters" => WeatherDistParameters,
+        "dfWeatherDistParameters" => dfWeatherDistParameters,
         "dfDataGrouped" => dfDataGrouped
     )
 end
