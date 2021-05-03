@@ -179,11 +179,13 @@ function WindTempDistributions(dfWeatherData; kelvins::Bool = true)
             DistWindMASS = fitdistr(dfCurrentHour.WindSpeed[dfCurrentHour.WindSpeed.>0], "weibull", lower = R"c(0,0)")
             DistTempMASS = fitdistr(dfCurrentHour.Temperature, "normal")
 
-            push!(WeatherDistParameters, (month, MonthPeriod, hour) => ["WindMean" => DistWindMASS[1][1],
+            push!(WeatherDistParameters, (month, MonthPeriod, hour) => Dict(
+                                                                        "WindMean" => DistWindMASS[1][1],
                                                                         "WindStd" => DistWindMASS[1][2],
                                                                         "TempMean" => DistTempMASS[1][1],
                                                                         "TempStd" => DistTempMASS[1][2]
-                                                                   ])
+                                                                        )
+                                                                   )
         end
     end
 
@@ -201,8 +203,8 @@ a["dfDataGrouped"]
 histogram(filter(row -> row.hour == 12, a["dfDataGrouped"][1]).Temperature, normalize = true)
 a["WeatherDistParameters"][1, false, 12]
 plot!(Normal(
-        a["WeatherDistParameters"][1, false, 12][2][2][1],
-        a["WeatherDistParameters"][1, false, 12][2][2][2]
+        a["WeatherDistParameters"][1, false, 12]["TempMean"],
+        a["WeatherDistParameters"][1, false, 12]["TempStd"]
     ), lw = 3)
 
 KS
