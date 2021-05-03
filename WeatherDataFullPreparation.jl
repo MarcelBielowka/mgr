@@ -215,45 +215,63 @@ function IrradiationDistributions(dfWeatherData)
         Dates.day.(dfData.date_nohour) .> Dates.daysinmonth.(dfData.date_nohour)/2
     dfDataGrouped = groupby(dfData, [:month, :MonthPart])
     GroupsMapping = sort(dfDataGrouped.keymap, by = values)
-    WeatherDistParameters = Dict{}()
+    dfWeatherDistParameters = DataFrame(month = [], MonthPeriod = [], hour = [],
+                                        DistClearSky = [], DistClearness = [],
+                                        PValueCvMTestClearSky = [],
+                                        PValueCvMTestClearness = [],
+                                        ratioClearSky = [],
+                                        ratioClearness = [])
 
     for PeriodNum in 1:24
         CurrentPeriod = GroupsMapping.vals[PeriodNum]
         dfCurrentPeriod = dfDataGrouped[CurrentPeriod]
         month, MonthPeriod = GroupsMapping.keys[PeriodNum]
 
-        for hour in extrema(dfDataGrouped[1].hour)[1]:extrema(dfDataGrouped[1].hour)[2]
+        for hour in 0:23
             dfCurrentHour = filter(row -> row.hour .== hour, dfCurrentPeriod)
             ratioClearSky = size(dfCurrentHour[dfCurrentHour.ClearSkyIndex.>0, :])[1] / size(dfCurrentHour)[1]
             ratioClearness = size(dfCurrentHour[dfCurrentHour.ClearnessIndex.>0, :])[1] / size(dfCurrentHour)[1]
             println("Current month: $month, period: $PeriodNum , hour: $hour")
             println("Ratio of 0 Clear Sky index to all data is $ratioClearSky and of Clearness index is $ratioClearness")
             if ratioClearSky < 0.5
-                ClearSkyParam = nothing
+                DistClearSky = nothing
+                PValueCvMTestClearSky = nothing
             else
-                ClearSkyParam = st.beta.fit(dfCurrentHour.ClearSkyIndex)
+                DistClearSky = st.beta.fit(dfCurrentHour.ClearSkyIndex)
+                PValueCvMTestClearSky = st.cramervonmises(
+                    dfCurrentHour.ClearSkyIndex, "beta", args = (DistClearSky)
+                ).pvalue
             end
 
             if ratioClearness < 0.5
-                ClearnessParam = nothing
+                DistClearness = nothing
+                PValueCvMTestClearness = nothing
             else
-                ClearnessParam = st.beta.fit(dfCurrentHour.ClearnessIndex)
+                DistClearness = st.beta.fit(dfCurrentHour.ClearnessIndex)
+                PValueCvMTestClearness = st.cramervonmises(
+                    dfCurrentHour.ClearnessIndex, "beta", args = (DistClearness)
+                ).pvalue
             end
-            push!(WeatherDistParameters, (month, MonthPeriod, hour) => Dict(
-                                                                        "ClearSkyParam" => ClearSkyParam,
-                                                                        "ClearnessParam" => ClearnessParam
-                                                                        )
-                                                                   )
+            push!(dfWeatherDistParameters, (month, MonthPeriod, hour,
+                                            DistClearSky, DistClearness,
+                                            PValueCvMTestClearSky, PValueCvMTestClearness,
+                                            ratioClearSky, ratioClearness)
+            )
         end
     end
     return Dict(
-        "WeatherDistParameters" => WeatherDistParameters,
+        "dfWeatherDistParameters" => dfWeatherDistParameters,
         "dfDataGrouped" => dfDataGrouped
     )
 end
 
 t = Juno.@enter IrradiationDistributions(dfIrradiationData)
 t = IrradiationDistributions(dfIrradiationData)
+c = filter(row -> !isnothing(row.PValueCvMTestClearSky), (t["dfWeatherDistParameters"]))
+filter(row -> row.PValueCvMTestClearSky < 0.05, c)
+filter
+
+
 w = t["WeatherDistParameters"][(12, false, 12)]["ClearSkyParam"]
 s = t["WeatherDistParameters"][(12, false, 12)]["ClearnessParam"]
 v = t["WeatherDistParameters"][(12, false, 9)]["ClearSkyParam"]
