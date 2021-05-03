@@ -207,7 +207,12 @@ plot!(Normal(
         a["WeatherDistParameters"][1, false, 12]["TempStd"]
     ), lw = 3)
 
-KS
+histogram(filter(row -> row.hour == 9, a["dfDataGrouped"][6]).WindSpeed, normalize = true)
+a["WeatherDistParameters"][3, true, 9]
+plot!(Weibull(
+        a["WeatherDistParameters"][3, true, 9]["WindMean"],
+        a["WeatherDistParameters"][3, true, 9]["WindStd"]
+    ), lw = 3)
 
 ##
 # wind production
