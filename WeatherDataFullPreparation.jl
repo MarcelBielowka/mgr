@@ -270,48 +270,6 @@ t = IrradiationDistributions(dfIrradiationData)
 c = filter(row -> !isnothing(row.PValueCvMTestClearSky), (t["dfWeatherDistParameters"]))
 select!(filter(row -> row.PValueCvMTestClearness < 0.05, c), [:month, :MonthPeriod, :hour, :DistClearness, :PValueCvMTestClearness])
 
-
-w = t["WeatherDistParameters"][(12, false, 12)]["ClearSkyParam"]
-s = t["WeatherDistParameters"][(12, false, 12)]["ClearnessParam"]
-v = t["WeatherDistParameters"][(12, false, 9)]["ClearSkyParam"]
-u = t["WeatherDistParameters"][(12, false, 9)]["ClearnessParam"]
-r = t["WeatherDistParameters"][(8, true, 14)]["ClearnessParam"]
-
-histogram(filter(row -> row.hour == 12, t["dfDataGrouped"][23]).ClearSkyIndex,
-    normalize = true, bins = 30)
-x = 0:0.01:1.4
-y = pdf.(Beta(w[1],w[2]), (x.-w[3])./w[4]) ./ w[4]
-z = cdf.(Beta(0.893,1.38), (x.-0.0339)./0.713) ./ 0.713
-plot!(x,y, lw = 5)
-
-histogram(filter(row -> row.hour == 12, t["dfDataGrouped"][23]).ClearnessIndex,
-    normalize = true, bins = 30)
-x = 0:0.01:1
-y = pdf.(Beta(s[1],s[2]), (x.-s[3])./s[4]) ./ s[4]
-plot!(x,y, lw = 5)
-
-histogram(filter(row -> row.hour == 9, t["dfDataGrouped"][23]).ClearSkyIndex,
-    normalize = true, bins = 20)
-x = 0.01:0.01:1.5
-y = pdf.(Beta(v[1],v[2]), (x.-v[3])./v[4]) ./ v[4]
-plot!(x,y, lw = 3)
-y = st.beta.pdf.(x, v[1], v[2], v[3], v[4])
-
-histogram(filter(row -> row.hour == 9, t["dfDataGrouped"][23]).ClearnessIndex,
-    normalize = true, bins = 30)
-x = 0:0.01:1
-y = pdf.(Beta(u[1],u[2]), (x.-u[3])./u[4]) ./ u[4]
-plot!(x,y,lwd = 3)
-
-histogram(filter(row -> row.hour == 14, t["dfDataGrouped"][16]).ClearnessIndex,
-    normalize = true, bins = 30)
-x = 0:0.01:1
-y = pdf.(Beta(r[1],r[2]), (x.-r[3])./r[4]) ./ r[4]
-plot!(x,y,lwd = 3)
-
-ExactOneSampleKSTest(a, Beta(r[1], r[2]))
-z = st.beta.pdf.(x,u[1],u[2], u[3], u[4])
-
 function IrradiationDistributions(dfWeatherData)
     dfData = deepcopy(dfWeatherData)
     dfData.MonthPart =
