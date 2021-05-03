@@ -4,7 +4,7 @@ using HypothesisTests, RCall, PyCall
 using Pipe, Statistics, Missings
 using Impute
 include("SolarAngle.jl")
-PyStats = pyimport("scipy.stats")
+st = pyimport("scipy.stats")
 @rlibrary MASS
 
 #using JuliaInterpreter
@@ -96,15 +96,6 @@ function ReadIrradiationData(cFileIrr::String, cFileTheoretical::String)
     dfWeatherData.Irradiation[dfWeatherData.SunPosition .< 10] .= 0
     dfWeatherData[:ClearSkyIndex] = zeros(size(dfWeatherData)[1])
     dfWeatherData[:ClearnessIndex] = zeros(size(dfWeatherData)[1])
-
-    dfWeatherData.ClearSkyIndex[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)] =
-        dfWeatherData.Irradiation[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)] ./
-        dfWeatherData.GHI[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)]
-
-    dfWeatherData.ClearnessIndex[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)] =
-        dfWeatherData.Irradiation[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)] ./
-        dfWeatherData.TOA[(dfWeatherData.Irradiation .> 0) .& (ismissing.(dfWeatherData.Irradiation).==0)]
-
 
     return dfWeatherData
 end
