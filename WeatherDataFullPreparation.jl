@@ -268,8 +268,7 @@ end
 t = Juno.@enter IrradiationDistributions(dfIrradiationData)
 t = IrradiationDistributions(dfIrradiationData)
 c = filter(row -> !isnothing(row.PValueCvMTestClearSky), (t["dfWeatherDistParameters"]))
-filter(row -> row.PValueCvMTestClearSky < 0.05, c)
-filter
+select!(filter(row -> row.PValueCvMTestClearness < 0.05, c), [:month, :MonthPeriod, :hour, :DistClearness, :PValueCvMTestClearness])
 
 
 w = t["WeatherDistParameters"][(12, false, 12)]["ClearSkyParam"]
