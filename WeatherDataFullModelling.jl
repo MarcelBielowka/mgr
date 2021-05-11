@@ -44,17 +44,30 @@ plot2TempWeekly = plot(NovWeekData.date, NovWeekData.Temperature, title = "Tempe
 plot(plot1TempWeekly, plot2TempWeekly, layout = (2,1))
 
 
-FirstModel = ARCHModels.fit(ARMA{1,1}, dfWindTempData.WindSpeed)
 spec = ARCH{0}([0.3])
 myData = dfWindTempData.WindSpeed
-model = UnivariateARCHModel(ARCH{0}([0.0]), dfWindTempData.WindSpeed, meanspec = ARMA{1,1}(zeros(3)))
-testModel = R"arima"(dfWindTempData.WindSpeed, order = R"c(1,0,1)")
-prediction = R"predict"(testModel)
-abc =
+outputDF = DataFrame(p=[], q=[], aic=[])
+
+for p in 1:6, q in 1:5
+    model = UnivariateARCHModel(ARCH{0}([0.0]), dfWindTempData.WindSpeed, meanspec = ARMA{p,q}(zeros(p+q+1)))
+    println("Fitting model ARMA($p, $q)")
+    fittedModel = fit(model)
+    push!(outputDF, (p,q,aic(fittedModel)))
+end
+
+model = UnivariateARCHModel(ARCH{0}([0.0]), dfWindTempData.WindSpeed, meanspec = ARMA{8,2}(zeros(11)))
 t = fit(model)
+aic(t)
+
+t = selectmodel(ARCH{0}, dfWindTempData.WindSpeed,
+    meanspec = ARMA{8,2}(zeros(11)), minlags = 1, maxlags = 8)
+
+testModel = R"arima"(dfWindTempData.WindSpeed, order = R"c(1,0,1)", method = "ML")
+testModel[1]
+testModel[6]
+prediction = R"predict"(testModel)
 testModel[9]
 p = ARMA{1,1}([0.5, 0.3, 0.4])
-z = fit(p, dfWindTempData.WindSpeed)
 
 predict(t, :return)
 dfWindTempData.WindSpeed
