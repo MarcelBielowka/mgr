@@ -218,7 +218,7 @@ function IrradiationDistributions(dfWeatherData)
     dfWeatherDistParameters = DataFrame(month = [], MonthPeriod = [], hour = [],
                                         DistClearSky = [], DistClearness = [],
                                         PValueCvMTestClearSky = [],
-                                        PValueCvMTestClearness = [],
+                                        PValueCvMTestClearSky2 = [],
                                         ratioClearSky = [],
                                         ratioClearness = [])
 
@@ -244,17 +244,17 @@ function IrradiationDistributions(dfWeatherData)
             end
 
             if ratioClearness < 0.5
-                DistClearness = nothing
-                PValueCvMTestClearness = nothing
+                DistClearSky2 = nothing
+                PValueCvMTestClearSky2 = nothing
             else
-                DistClearness = st.beta.fit(dfCurrentHour.ClearnessIndex)
-                PValueCvMTestClearness = st.cramervonmises(
-                    dfCurrentHour.ClearnessIndex, "beta", args = (DistClearness)
+                DistClearSky2 = st.weibull_min.fit(dfCurrentHour.ClearSkyIndex)
+                PValueCvMTestClearSky2 = st.cramervonmises(
+                    dfCurrentHour.ClearSkyIndex, "weibull_min", args = (DistClearSky2)
                 ).pvalue
             end
             push!(dfWeatherDistParameters, (month, MonthPeriod, hour,
-                                            DistClearSky, DistClearness,
-                                            PValueCvMTestClearSky, PValueCvMTestClearness,
+                                            DistClearSky, DistClearSky2,
+                                            PValueCvMTestClearSky, PValueCvMTestClearSky2,
                                             ratioClearSky, ratioClearness)
             )
         end
@@ -268,7 +268,7 @@ end
 t = Juno.@enter IrradiationDistributions(dfIrradiationData)
 t = IrradiationDistributions(dfIrradiationData)
 c = filter(row -> !isnothing(row.PValueCvMTestClearSky), (t["dfWeatherDistParameters"]))
-select!(filter(row -> row.PValueCvMTestClearness < 0.05, c), [:month, :MonthPeriod, :hour, :DistClearness, :PValueCvMTestClearness])
+select!(filter(row -> row.PValueCvMTestClearSky < 0.05, c), [:month, :MonthPeriod, :hour, :DistClearness, :PValueCvMTestClearSky2])
 
 function IrradiationDistributions(dfWeatherData)
     dfData = deepcopy(dfWeatherData)

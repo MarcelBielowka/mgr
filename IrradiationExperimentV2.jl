@@ -57,11 +57,59 @@ tra = plot(dfIrrDataFull.date, dfIrrDataFull.ClearSkyIndex,
     title = "Clear Sky index across the year")
 bra = plot(dfIrrDataFull.date, dfIrrDataFull.I_global_horizontal,
     title = "Irradiation across the year")
-HypothesisTests.ADFTest(dfIrrDataFull.ClearSkyIndex, :constant, 24)
+bra = plot(dfIrrDataFull.date[dfIrrDataFull.Month.==5], dfIrrDataFull.ClearSkyIndex[dfIrrDataFull.Month.==5],
+    title = "Irradiation across the month of May")
+
+zra = plot(dfIrrDataFull.date[(dfIrrDataFull.Month.==2) .& (dfIrrDataFull.ClearSkyIndex .> 0)],
+    dfIrrDataFull.ClearSkyIndex[(dfIrrDataFull.Month.==2) .& (dfIrrDataFull.ClearSkyIndex .> 0)],
+    title = "Clear Sky index across the month of February")
+
+zra = plot(dfIrrDataFull.date[(dfIrrDataFull.Month.==5) .& (dfIrrDataFull.ClearSkyIndex .> 0)],
+    dfIrrDataFull.ClearSkyIndex[(dfIrrDataFull.Month.==5) .& (dfIrrDataFull.ClearSkyIndex .> 0)],
+    title = "Clear Sky index across the month of May")
+
+zra = plot(dfIrrDataFull.date[(dfIrrDataFull.Month.==8) .& (dfIrrDataFull.ClearSkyIndex .> 0)],
+    dfIrrDataFull.ClearSkyIndex[(dfIrrDataFull.Month.==8) .& (dfIrrDataFull.ClearSkyIndex .> 0)],
+    title = "Clear Sky index across the month of August")
+
+zra = plot(dfIrrDataFull.date[(dfIrrDataFull.Month.==11) .& (dfIrrDataFull.ClearSkyIndex .> 0)],
+    dfIrrDataFull.ClearSkyIndex[(dfIrrDataFull.Month.==11) .& (dfIrrDataFull.ClearSkyIndex .> 0)],
+    title = "Clear Sky index across the month of November")
+
+zra = plot(dfIrrDataFull.hour[Dates.Date.(dfIrrDataFull.date) .== Dates.Date("2019-08-18")],
+    dfIrrDataFull.ClearSkyIndex[Dates.Date.(dfIrrDataFull.date) .== Dates.Date("2019-08-18")],
+    title = "Clear Sky index across 18.08")
+
+zra = plot(dfIrrDataFull.date[(dfIrrDataFull.date .>= Dates.DateTime("2019-08-01")) .& (dfIrrDataFull.date .<= Dates.DateTime("2019-08-07")) .& (dfIrrDataFull.ClearSkyIndex .> 0)],
+    dfIrrDataFull.ClearSkyIndex[(dfIrrDataFull.date .>= Dates.DateTime("2019-08-01")) .& (dfIrrDataFull.date .<= Dates.DateTime("2019-08-07")) .& (dfIrrDataFull.ClearSkyIndex .> 0)],
+    title = "Clear Sky index across the first week of August")
+
+zra = bar(dfIrrDataFull.date[(dfIrrDataFull.date .>= Dates.DateTime("2019-08-01")) .& (dfIrrDataFull.date .<= Dates.DateTime("2019-08-07"))],
+    dfIrrDataFull.ClearSkyIndex[(dfIrrDataFull.date .>= Dates.DateTime("2019-08-01")) .& (dfIrrDataFull.date .<= Dates.DateTime("2019-08-07"))],
+    title = "Clear Sky index across the first week of August")
+
+zra1 = bar(dfIrrDataFull.date[(dfIrrDataFull.date .>= Dates.DateTime("2019-11-01")) .& (dfIrrDataFull.date .<= Dates.DateTime("2019-11-07"))],
+    dfIrrDataFull.ClearSkyIndex[(dfIrrDataFull.date .>= Dates.DateTime("2019-11-01")) .& (dfIrrDataFull.date .<= Dates.DateTime("2019-11-07"))])
+
+zra2 = bar(dfIrrDataFull.date[(dfIrrDataFull.date .>= Dates.DateTime("2019-11-08")) .& (dfIrrDataFull.date .<= Dates.DateTime("2019-11-14"))],
+    dfIrrDataFull.ClearSkyIndex[(dfIrrDataFull.date .>= Dates.DateTime("2019-11-08")) .& (dfIrrDataFull.date .<= Dates.DateTime("2019-11-14"))])
+
+zra3 = bar(dfIrrDataFull.date[(dfIrrDataFull.date .>= Dates.DateTime("2019-11-15")) .& (dfIrrDataFull.date .<= Dates.DateTime("2019-11-21"))],
+    dfIrrDataFull.ClearSkyIndex[(dfIrrDataFull.date .>= Dates.DateTime("2019-11-15")) .& (dfIrrDataFull.date .<= Dates.DateTime("2019-11-21"))])
+
+zra4 = bar(dfIrrDataFull.date[(dfIrrDataFull.date .>= Dates.DateTime("2019-11-22")) .& (dfIrrDataFull.date .<= Dates.DateTime("2019-11-29"))],
+    dfIrrDataFull.ClearSkyIndex[(dfIrrDataFull.date .>= Dates.DateTime("2019-11-22")) .& (dfIrrDataFull.date .<= Dates.DateTime("2019-11-29"))])
+
+plot(zra1, zra2, zra3, zra4, layout = (2,2), size = (1200, 800))
+
+
+HypothesisTests.ADFTest(dfIrrDataFull.ClearSkyIndex, :none, 24)
 HypothesisTests.ADFTest(dfIrrDataFull.I_global_horizontal, :constant, 24)
 
 
-function IrradiationDistributions(dfWeatherData)
+
+
+function IrradiationDistributions(dfWeatherData; disttype = "weibull_min")
     dfData = deepcopy(dfWeatherData)
     dfDataGrouped = groupby(dfData, :Month)
     GroupsMapping = sort(dfDataGrouped.keymap, by = values)
@@ -84,9 +132,16 @@ function IrradiationDistributions(dfWeatherData)
                 DistClearSky = nothing
                 PValueCvMTestClearSky = nothing
             else
-                DistClearSky = st.weibull_min.fit(dfCurrentHour.ClearSkyIndex)
+                if disttype == "weibull_min"
+                    DistClearSky = st.weibull_min.fit(dfCurrentHour.ClearSkyIndex)
+                elseif disttype == "beta"
+                    DistClearSky = st.beta.fit(dfCurrentHour.ClearSkyIndex)
+                else
+                    println("Invalid type of distribution")
+                    return nothing
+                end
                 PValueCvMTestClearSky = st.cramervonmises(
-                    dfCurrentHour.ClearSkyIndex, "weibull_min", args = (DistClearSky)
+                    dfCurrentHour.ClearSkyIndex, disttype, args = (DistClearSky)
                 ).pvalue
             end
             push!(dfWeatherDistParameters, (Month, hour,
@@ -103,7 +158,15 @@ function IrradiationDistributions(dfWeatherData)
 end
 
 abc = IrradiationDistributions(dfIrrDataFull)
-abc = Juno.@enter IrradiationDistributions(dfIrrDataFull)
 abc["dfWeatherDistParameters"]
+filter(row -> (!isnothing(row.PValueCvMTestClearSky)),
+    abc["dfWeatherDistParameters"])
 filter(row -> (!isnothing(row.PValueCvMTestClearSky) && row.PValueCvMTestClearSky < 0.05),
     abc["dfWeatherDistParameters"])
+
+xyz = IrradiationDistributions(dfIrrDataFull, disttype = "beta")
+xyz["dfWeatherDistParameters"]
+filter(row -> (!isnothing(row.PValueCvMTestClearSky)),
+    xyz["dfWeatherDistParameters"])
+filter(row -> (!isnothing(row.PValueCvMTestClearSky) && row.PValueCvMTestClearSky < 0.05),
+    xyz["dfWeatherDistParameters"])
