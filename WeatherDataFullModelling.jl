@@ -49,21 +49,28 @@ dfWindTempTestData = filter(row -> (row.date>=Dates.Date("2018-11-01") && row.da
 dfWindTempValidationData = filter(row -> row.year == 2017, dfWindTempData)
 dfWindTempRealisedData = filter(row -> row.year == 2019, dfWindTempData)
 
-outputDF = DataFrame(p=[], q=[], RMSE = [], aic=[])
-
-for p in 0:10, q in 0:10
-    if (p!=0 && q!=0)
+outputDF = DataFrame(p=[], q=[], RMSE = [], aic = [])
+function FindBestModel()
+    outputDF = DataFrame(p=[], q=[], RMSE = [], aic = [])
+    for p in 0:10, q in 0:10
         println("Fitting model ARMA($p, $q)")
         ModelTrainData = R"forecast::Arima"(dfWindTempTrainData.WindSpeed, order = R"c"(p,0,q), method = "ML")
         ModelTestData = R"forecast::Arima"(dfWindTempTestData.WindSpeed, model = ModelTrainData)
         RMSE = R"forecast::accuracy"(ModelTestData)[2]
-        aic = ModelTestData[6]
+        aic = ModelTrainData[6][1]
         push!(outputDF, (p, q, RMSE, aic))
-    #println("Fitting model ARMA($p, $q)")
-    #fittedModel = fit(model)
-    #push!(outputDF, (p,q,aic(fittedModel)))
+        #println("Fitting model ARMA($p, $q)")
+        #fittedModel = fit(model)
+        #push!(outputDF, (p,q,aic(fittedModel)))
     end
+    return outputDF
 end
+
+@time a = FindBestModel()
+a
+
+p = 0; q = 1
+[]
 
 myModelInitSpec = UnivariateARCHModel(ARCH{0}([0.0]), dfWindTempTrainData.WindSpeed, meanspec = ARMA{1,3}(zeros(5)))
 myModel = fit(myModelInitSpec)
@@ -79,7 +86,7 @@ a[:RMSE]
 R"aic(testModel)"
 testModel[1]
 testModel[5]
-testModel[6]
+testModel[6][1]
 prediction = R"predict"(testModel)
 testModel[9]
 p = ARMA{1,1}([0.5, 0.3, 0.4])
