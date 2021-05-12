@@ -1,7 +1,7 @@
 using Dates, RCall, StatsPlots, Distributions, Pipe, HypothesisTests
 using ARCHModels, GLM
 @rlibrary MASS
-@rlibrary tseries
+@rlibrary forecast
 
 include("WeatherDataFullPreparation.jl")
 
@@ -20,6 +20,7 @@ plot(dfWindTempData.date, dfWindTempData.WindSpeed, title = "Wind speed")
 plot(dfWindTempData.date, dfWindTempData.Temperature, title = "Temperature")
 
 HypothesisTests.ADFTest(dfWindTempData.WindSpeed, :constant, 1000)
+HypothesisTests.ADFTest((dfWindTempData.Temperature), :trend, 168*2)
 HypothesisTests.ADFTest(diff(dfWindTempData.Temperature), :trend, 168*2)
 
 MayData = filter(row -> (row.month .== 5 && row.year == 2019), dfWindTempData)
@@ -43,27 +44,41 @@ plot1TempWeekly = plot(MayWeekData.date, MayWeekData.Temperature, title = "Tempe
 plot2TempWeekly = plot(NovWeekData.date, NovWeekData.Temperature, title = "Temperature, 1st week November 2019", legend = nothing)
 plot(plot1TempWeekly, plot2TempWeekly, layout = (2,1))
 
+dfWindTempTrainData = filter(row -> (row.date>=Dates.Date("2018-01-01") && row.date<= Dates.DateTime("2018-10-31T23:50")), dfWindTempData)
+dfWindTempTestData = filter(row -> (row.date>=Dates.Date("2018-11-01") && row.date<= Dates.DateTime("2018-12-31T23:50")), dfWindTempData)
+dfWindTempValidationData = filter(row -> row.year == 2017, dfWindTempData)
+dfWindTempRealisedData = filter(row -> row.year == 2019, dfWindTempData)
 
-spec = ARCH{0}([0.3])
-myData = dfWindTempData.WindSpeed
-outputDF = DataFrame(p=[], q=[], aic=[])
+outputDF = DataFrame(p=[], q=[], RMSE = [], aic=[])
 
-for p in 1:6, q in 1:5
-    model = UnivariateARCHModel(ARCH{0}([0.0]), dfWindTempData.WindSpeed, meanspec = ARMA{p,q}(zeros(p+q+1)))
-    println("Fitting model ARMA($p, $q)")
-    fittedModel = fit(model)
-    push!(outputDF, (p,q,aic(fittedModel)))
+for p in 0:10, q in 0:10
+    if (p!=0 && q!=0)
+        println("Fitting model ARMA($p, $q)")
+        ModelTrainData = R"forecast::Arima"(dfWindTempTrainData.WindSpeed, order = R"c"(p,0,q), method = "ML")
+        ModelTestData = R"forecast::Arima"(dfWindTempTestData.WindSpeed, model = ModelTrainData)
+        RMSE = R"forecast::accuracy"(ModelTestData)[2]
+        aic = ModelTestData[6]
+        push!(outputDF, (p, q, RMSE, aic))
+    #println("Fitting model ARMA($p, $q)")
+    #fittedModel = fit(model)
+    #push!(outputDF, (p,q,aic(fittedModel)))
+    end
 end
 
-model = UnivariateARCHModel(ARCH{0}([0.0]), dfWindTempData.WindSpeed, meanspec = ARMA{8,2}(zeros(11)))
-t = fit(model)
-aic(t)
+myModelInitSpec = UnivariateARCHModel(ARCH{0}([0.0]), dfWindTempTrainData.WindSpeed, meanspec = ARMA{1,3}(zeros(5)))
+myModel = fit(myModelInitSpec)
+myModel
+myModel.meanspec.coefs
+aic(myModel)
 
-t = selectmodel(ARCH{0}, dfWindTempData.WindSpeed,
-    meanspec = ARMA{8,2}(zeros(11)), minlags = 1, maxlags = 8)
 
-testModel = R"arima"(dfWindTempData.WindSpeed, order = R"c(1,0,1)", method = "ML")
+testModel = R"forecast::Arima"(dfWindTempTrainData.WindSpeed, order = R"c(1,0,3)", method = "ML")
+abc = R"forecast::Arima"(dfWindTempTestData.WindSpeed, model = testModel)
+a = R"forecast::accuracy"(abc)
+a[:RMSE]
+R"aic(testModel)"
 testModel[1]
+testModel[5]
 testModel[6]
 prediction = R"predict"(testModel)
 testModel[9]
