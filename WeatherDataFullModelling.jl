@@ -1,7 +1,7 @@
 using Dates, RCall, StatsPlots, Distributions, Pipe, HypothesisTests
 using ARCHModels, GLM
-@rlibrary MASS
-@rlibrary forecast
+#@rlibrary MASS
+#@rlibrary forecast
 
 include("WeatherDataFullPreparation.jl")
 
@@ -46,19 +46,18 @@ plot(plot1TempWeekly, plot2TempWeekly, layout = (2,1))
 
 dfWindTempTrainData = filter(row -> (row.date>=Dates.Date("2018-01-01") && row.date<= Dates.DateTime("2018-10-31T23:50")), dfWindTempData)
 dfWindTempTestData = filter(row -> (row.date>=Dates.Date("2018-11-01") && row.date<= Dates.DateTime("2018-12-31T23:50")), dfWindTempData)
+dfWindTempEstimationData = filter(row -> row.year == 2018, dfWindTempData)
 dfWindTempValidationData = filter(row -> row.year == 2017, dfWindTempData)
 dfWindTempRealisedData = filter(row -> row.year == 2019, dfWindTempData)
 
 outputDF = DataFrame(p=[], q=[], RMSE = [], aic = [])
-function FindBestModel()
-    outputDF = DataFrame(p=[], q=[], RMSE = [], aic = [])
-    for p in 0:10, q in 0:10
+function FindBestModel(data, maxp, maxq)
+    outputDF = DataFrame(p=[], q=[], aic = [])
+    for p in 0:maxp, q in 0:maxq
         println("Fitting model ARMA($p, $q)")
-        ModelTrainData = R"forecast::Arima"(dfWindTempTrainData.WindSpeed, order = R"c"(p,0,q), method = "ML")
-        ModelTestData = R"forecast::Arima"(dfWindTempTestData.WindSpeed, model = ModelTrainData)
-        RMSE = R"forecast::accuracy"(ModelTestData)[2]
-        aic = ModelTrainData[6][1]
-        push!(outputDF, (p, q, RMSE, aic))
+        myModelInitSpec = UnivariateARCHModel(ARCH{0}([0.0]), dfWindTempTrainData.WindSpeed, meanspec = ARMA{p,q}(zeros(p+q+1)))
+        myModel = fit(myModelInitSpec)
+        push!(outputDF, (p, q, aic(myModel)))
         #println("Fitting model ARMA($p, $q)")
         #fittedModel = fit(model)
         #push!(outputDF, (p,q,aic(fittedModel)))
@@ -66,24 +65,37 @@ function FindBestModel()
     return outputDF
 end
 
-@time a = FindBestModel()
-a
+@time outputDF = FindBestModel(dfWindTempTrainData.WindSpeed, 8, 8)
+outputDF
 
 p = 0; q = 1
 []
 
-myModelInitSpec = UnivariateARCHModel(ARCH{0}([0.0]), dfWindTempTrainData.WindSpeed, meanspec = ARMA{1,3}(zeros(5)))
+myModelInitSpec = UnivariateARCHModel(ARCH{0}([0.0]),
+    dfWindTempEstimationData.WindSpeed[dfWindTempEstimationData.date .< Dates.DateTime("2018-11-01")],
+    meanspec = ARMA{1,3}(zeros(5)))
 myModel = fit(myModelInitSpec)
-myModel
+predict.(myModel, :return, 1:3)
+testDAta = deepcopy(dfWindTempEstimationData[dfWindTempEstimationData.date .< Dates.DateTime("2018-11-01"),:])
+select!(testDAta, [:date, :WindSpeed])
+push!(testDAta, (testDAta.date[size(testDAta)[1]] + Dates.Hour(1), predict(myModel, :return, 1)))
 myModel.meanspec.coefs
 aic(myModel)
+bic(myModel)
 
 
-testModel = R"forecast::Arima"(dfWindTempTrainData.WindSpeed, order = R"c(1,0,3)", method = "ML")
+testModel = R"forecast::Arima"(dfWindTempTrainData.WindSpeed, order = R"c(8,0,3)", method = "ML")
 abc = R"forecast::Arima"(dfWindTempTestData.WindSpeed, model = testModel)
 a = R"forecast::accuracy"(abc)
-a[:RMSE]
-R"aic(testModel)"
+Forecast = R"forecast::forecast"(testModel, h = 24, dfWindTempTestData.WindSpeed)
+R"forecast::accuracy"(Forecast)
+
+testModel = R"forecast::Arima"(dfWindTempTrainData.WindSpeed, order = R"c(2,0,1)", method = "ML")
+Forecast2 = R"forecast::forecast"(testModel, h = 24, dfWindTempTestData.WindSpeed)
+R"forecast::accuracy"(Forecast2)
+
+Forecast2[1]
+
 testModel[1]
 testModel[5]
 testModel[6][1]
