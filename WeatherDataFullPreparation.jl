@@ -28,7 +28,7 @@ function ReadWindAndTempData(cFileWind::String)
     select!(dfWindData, [:date, :temp_avg, :predkosc100m_avg])
     rename!(dfWindData, [:date, :Temperature, :WindSpeed])
 
-    dfWindData[!, "date"] =
+    dfWindData["date"] =
         Dates.DateTime.(dfWindData.date, DateFormat("y-m-d H:M:S"))
     dfWindData.Temperature[dfWindData.Temperature .== "NA"] .= "Inf"
     dfWindData.Temperature = parse.(Float64, dfWindData.Temperature)
@@ -37,10 +37,10 @@ function ReadWindAndTempData(cFileWind::String)
     dfWindData.Temperature[dfWindData.Temperature .== Inf] .= missing
     dfWindData.WindSpeed[dfWindData.WindSpeed .== Inf] .= missing
 
-    dfWindData[!, "date_nohour"] = Dates.Date.(dfWindData.date)
-    dfWindData[!, "month"] = Dates.month.(dfWindData.date)
-    dfWindData[!, "hour"] = Dates.hour.(dfWindData.date)
-    dfWindData[!, "year"] = Dates.year.(dfWindData.date)
+    dfWindData["date_nohour"] = Dates.Date.(dfWindData["date"])
+    dfWindData["month"] = Dates.month.(dfWindData["date"])
+    dfWindData["hour"] = Dates.hour.(dfWindData["date"])
+    dfWindData["year"] = Dates.year.(dfWindData["date"])
 
     return dfWindData
 end
