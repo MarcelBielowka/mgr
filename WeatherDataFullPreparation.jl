@@ -219,11 +219,9 @@ function IrradiationDistributions(dfWeatherData)
     dfDataGrouped = groupby(dfData, [:month, :MonthPart])
     GroupsMapping = sort(dfDataGrouped.keymap, by = values)
     dfWeatherDistParameters = DataFrame(month = [], MonthPeriod = [], hour = [],
-                                        DistClearSky = [], DistClearness = [],
+                                        DistClearSky = [],
                                         PValueCvMTestClearSky = [],
-                                        PValueCvMTestClearSky2 = [],
-                                        ratioClearSky = [],
-                                        ratioClearness = [])
+                                        ratioClearSky = [])
 
     for PeriodNum in 1:24
         CurrentPeriod = GroupsMapping.vals[PeriodNum]
@@ -233,32 +231,28 @@ function IrradiationDistributions(dfWeatherData)
         for hour in 0:23
             dfCurrentHour = filter(row -> row.hour .== hour, dfCurrentPeriod)
             ratioClearSky = size(dfCurrentHour[dfCurrentHour.ClearSkyIndex.>0, :])[1] / size(dfCurrentHour)[1]
-            ratioClearness = size(dfCurrentHour[dfCurrentHour.ClearnessIndex.>0, :])[1] / size(dfCurrentHour)[1]
-            println("Current month: $month, period: $PeriodNum , hour: $hour")
-            println("Ratio of 0 Clear Sky index to all data is $ratioClearSky and of Clearness index is $ratioClearness")
+            println("Current month: $month, period: $MonthPeriod , hour: $hour")
+            println("Clear sky ratio is $ratioClearSky")
             if ratioClearSky < 0.5
                 DistClearSky = nothing
                 PValueCvMTestClearSky = nothing
             else
-                DistClearSky = st.beta.fit(dfCurrentHour.ClearSkyIndex)
+                if disttype == "weibull_min"
+                    DistClearSky = st.weibull_min.fit(dfCurrentHour.ClearSkyIndex)
+                elseif disttype == "beta"
+                    DistClearSky = st.beta.fit(dfCurrentHour.ClearSkyIndex)
+                else
+                    println("Invalid type of distribution")
+                    return nothing
+                end
                 PValueCvMTestClearSky = st.cramervonmises(
-                    dfCurrentHour.ClearSkyIndex, "beta", args = (DistClearSky)
+                    dfCurrentHour.ClearSkyIndex, disttype, args = (DistClearSky)
                 ).pvalue
             end
-
-            if ratioClearness < 0.5
-                DistClearSky2 = nothing
-                PValueCvMTestClearSky2 = nothing
-            else
-                DistClearSky2 = st.weibull_min.fit(dfCurrentHour.ClearSkyIndex)
-                PValueCvMTestClearSky2 = st.cramervonmises(
-                    dfCurrentHour.ClearSkyIndex, "weibull_min", args = (DistClearSky2)
-                ).pvalue
-            end
-            push!(dfWeatherDistParameters, (month, MonthPeriod, hour,
-                                            DistClearSky, DistClearSky2,
-                                            PValueCvMTestClearSky, PValueCvMTestClearSky2,
-                                            ratioClearSky, ratioClearness)
+            push!(dfWeatherDistParameters, (Month, MonthPeriod, hour,
+                                            DistClearSky,
+                                            PValueCvMTestClearSky,
+                                            ratioClearSky)
             )
         end
     end
