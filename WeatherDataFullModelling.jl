@@ -1,7 +1,8 @@
-using Dates, RCall, StatsPlots, Distributions, Pipe, HypothesisTests
-using ARCHModels, GLM
+using RCall
+using Dates, StatsPlots, Distributions, Pipe, HypothesisTests
+using TSAnalysis, GLM
 #@rlibrary MASS
-#@rlibrary forecast
+@rlibrary forecast
 
 include("WeatherDataFullPreparation.jl")
 
@@ -71,11 +72,18 @@ outputDF
 p = 0; q = 1
 []
 
+ModelSpec = ARIMASettings()
+
+
+
+
+
+
 myModelInitSpec = UnivariateARCHModel(ARCH{0}([0.0]),
     dfWindTempEstimationData.WindSpeed[dfWindTempEstimationData.date .< Dates.DateTime("2018-11-01")],
     meanspec = ARMA{1,3}(zeros(5)))
 myModel = fit(myModelInitSpec)
-predict.(myModel, :return, 1:3)
+predict.(myModel, :return, 1:6, dfWindTempEstimationData.WindSpeed)
 testDAta = deepcopy(dfWindTempEstimationData[dfWindTempEstimationData.date .< Dates.DateTime("2018-11-01"),:])
 select!(testDAta, [:date, :WindSpeed])
 push!(testDAta, (testDAta.date[size(testDAta)[1]] + Dates.Hour(1), predict(myModel, :return, 1)))
