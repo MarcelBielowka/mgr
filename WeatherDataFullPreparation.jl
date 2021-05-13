@@ -47,26 +47,22 @@ end
 
 function RemedyMissingWindTempData(dfWindData)
     MissingWindData = filter(row -> ismissing(row.WindSpeed), dfWindData)
-    GroupedMissingDataWind = @pipe groupby(MissingWindData, [:year, :month]) |>
-        combine(_, nrow => :MissingCount)
     MissingTempData = filter(row -> ismissing(row.Temperature), dfWindData)
-    GroupedMissingDataTemp = @pipe groupby(MissingTempData, [:year, :month]) |>
-        combine(_, nrow => :MissingCount)
     dfWindDataClean = dropmissing(dfWindData)
     return Dict(
-        "MissingDataWind" => MissingWindData,
-        "MissingDataTemp" => MissingTempData,
-        "GroupedMissingDataWind" => GroupedMissingDataWind,
-        "GroupedMissingDataTemp" => GroupedMissingDataTemp,
+        "MissingWindData" => MissingWindData,
+        "MissingTempData" => MissingTempData,
         "WindTempDataNoMissing" => dfWindDataClean
     )
 end
 
-#dfWindTempData = ReadWindAndTempData("C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv")
-#Redemption = RemedyMissingWindTempData(dfWindTempData)
-#dfMissingDataWind = Redemption["GroupedMissingDataWind"]
-#dfMissingDataTemp = Redemption["GroupedMissingDataTemp"]
-#dfWindTempDataFinal = Redemption["WindTempDataNoMissing"]
+dfWindTempData = ReadWindAndTempData("C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv")
+Redemption = RemedyMissingWindTempData(dfWindTempData)
+GroupedMissingDataWind = @pipe groupby(Redemption["MissingWindData"], [:year, :month]) |>
+    combine(_, nrow => :MissingCount)
+GroupedMissingDataTemp = @pipe groupby(Redemption["MissingTempData"], [:year, :month]) |>
+    combine(_, nrow => :MissingCount)
+dfWindTempDataFinal = Redemption["WindTempDataNoMissing"]
 
 function ReadIrradiationData(cFileIrr::String, cFileTheoretical::String)
     dfWeatherData = CSV.File(cFileIrr) |>
@@ -101,10 +97,11 @@ function RemedyMissingIrradiationData(dfIrrData)
             combine(_, nrow => :MissingCount)
     dfOutputData = dropmissing(dfIrrData)
     return Dict(
-        "MissingDataIrradiation" => dfMissingIrradiationData,
-        "GruopedMissingDataIrradiation" => GroupedMissingIrradiationData,
+        "AggregatedMissingIrradiationData" => GroupedMissingIrradiationData,
+        "UnitMissingIrradiationData" => dfMissingIrradiationData,
         "IrradiationDataNoMissing" => dfOutputData
     )
+
 end
 
 function CalculateIndex(dfIrrData)
@@ -129,10 +126,10 @@ function CalculateIndex(dfIrrData)
     return dfIrrData
 end
 
-#dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
-#                        "C:/Users/Marcel/Desktop/mgr/data/clear_sky_irradiation_CAMS.csv")
-#dfIrradiationData = RemedyMissingIrradiationData(dfIrradiationData)["IrradiationDataNoMissing"]
-#dfIrradiationData = CalculateIndex(dfIrradiationData)
+dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
+                        "C:/Users/Marcel/Desktop/mgr/data/clear_sky_irradiation_CAMS.csv")
+dfIrradiationData = RemedyMissingIrradiationData(dfIrradiationData)["IrradiationDataNoMissing"]
+dfIrradiationData = CalculateIndex(dfIrradiationData)
 
 
 
@@ -186,30 +183,30 @@ function WindTempDistributions(dfWeatherData; kelvins::Bool = true)
     )
 end
 
-#a = Juno.@enter WindTempDistributions(dfWindTempDataFinal)
-#a = WindTempDistributions(dfWindTempDataFinal)
-#a["dfWeatherDistParameters"]
-#a["dfDataGrouped"]
+a = Juno.@enter WindTempDistributions(dfWindTempDataFinal)
+a = WindTempDistributions(dfWindTempDataFinal)
+a["dfWeatherDistParameters"]
+a["dfDataGrouped"]
 
-#t = ExactOneSampleKSTest(filter(row -> row.hour == 12, a["dfDataGrouped"][1]).Temperature,
-#    Normal(
-#        a["WeatherDistParameters"][1, false, 12]["TempMean"],
-#        a["WeatherDistParameters"][1, false, 12]["TempStd"]
-#    ))
-#pvalue(t)
-#histogram(filter(row -> row.hour == 12, a["dfDataGrouped"][1]).Temperature, normalize = true)
-#a["WeatherDistParameters"][1, false, 12]
-#plot!(Normal(
-#        a["WeatherDistParameters"][1, false, 12]["TempMean"],
-#        a["WeatherDistParameters"][1, false, 12]["TempStd"]
-#    ), lw = 3)
-#
-#histogram(filter(row -> row.hour == 9, a["dfDataGrouped"][6]).WindSpeed, normalize = true)
-#a["WeatherDistParameters"][3, true, 9]
-#plot!(Weibull(
-#        a["WeatherDistParameters"][3, true, 9]["WindMean"],
-#        a["WeatherDistParameters"][3, true, 9]["WindStd"]
-#    ), lw = 3)
+t = ExactOneSampleKSTest(filter(row -> row.hour == 12, a["dfDataGrouped"][1]).Temperature,
+    Normal(
+        a["WeatherDistParameters"][1, false, 12]["TempMean"],
+        a["WeatherDistParameters"][1, false, 12]["TempStd"]
+    ))
+pvalue(t)
+histogram(filter(row -> row.hour == 12, a["dfDataGrouped"][1]).Temperature, normalize = true)
+a["WeatherDistParameters"][1, false, 12]
+plot!(Normal(
+        a["WeatherDistParameters"][1, false, 12]["TempMean"],
+        a["WeatherDistParameters"][1, false, 12]["TempStd"]
+    ), lw = 3)
+
+histogram(filter(row -> row.hour == 9, a["dfDataGrouped"][6]).WindSpeed, normalize = true)
+a["WeatherDistParameters"][3, true, 9]
+plot!(Weibull(
+        a["WeatherDistParameters"][3, true, 9]["WindMean"],
+        a["WeatherDistParameters"][3, true, 9]["WindStd"]
+    ), lw = 3)
 
 
 function IrradiationDistributions(dfWeatherData)
@@ -268,10 +265,10 @@ function IrradiationDistributions(dfWeatherData)
     )
 end
 
-#t = Juno.@enter IrradiationDistributions(dfIrradiationData)
-#t = IrradiationDistributions(dfIrradiationData)
-#c = filter(row -> !isnothing(row.PValueCvMTestClearSky), (t["dfWeatherDistParameters"]))
-#select!(filter(row -> row.PValueCvMTestClearSky < 0.05, c), [:month, :MonthPeriod, :hour, :DistClearness, :PValueCvMTestClearSky2])
+t = Juno.@enter IrradiationDistributions(dfIrradiationData)
+t = IrradiationDistributions(dfIrradiationData)
+c = filter(row -> !isnothing(row.PValueCvMTestClearSky), (t["dfWeatherDistParameters"]))
+select!(filter(row -> row.PValueCvMTestClearSky < 0.05, c), [:month, :MonthPeriod, :hour, :DistClearness, :PValueCvMTestClearSky2])
 
 function IrradiationDistributions(dfWeatherData)
     dfData = deepcopy(dfWeatherData)
@@ -316,10 +313,10 @@ function IrradiationDistributions(dfWeatherData)
     )
 end
 
-#t = IrradiationDistributions(dfIrradiationData)
-#t["dfWeatherDistParameters"]
-#c = filter(row -> !isnothing(row.PValueCvMTestIrradiation), t["dfWeatherDistParameters"])
-#filter(row -> row.PValueCvMTestIrradiation < 0.01, c)
+t = IrradiationDistributions(dfIrradiationData)
+t["dfWeatherDistParameters"]
+c = filter(row -> !isnothing(row.PValueCvMTestIrradiation), t["dfWeatherDistParameters"])
+filter(row -> row.PValueCvMTestIrradiation < 0.01, c)
 
 ##
 # wind production
