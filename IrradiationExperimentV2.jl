@@ -103,7 +103,9 @@ zra4 = bar(dfIrrDataFull.date[(dfIrrDataFull.date .>= Dates.DateTime("2019-11-22
 plot(zra1, zra2, zra3, zra4, layout = (2,2), size = (1200, 800))
 
 
-HypothesisTests.ADFTest(dfIrrDataFull.ClearSkyIndex, :none, 24)
+HypothesisTests.ADFTest(dfIrrDataFull.ClearSkyIndex, :none, 168)
+HypothesisTests.ADFTest(dfIrrDataFull.ClearSkyIndex, :constant, 168)
+HypothesisTests.ADFTest(dfIrrDataFull.ClearSkyIndex[dfIrrDataFull.ClearSkyIndex.>0], :constant, 169)
 HypothesisTests.ADFTest(dfIrrDataFull.I_global_horizontal, :constant, 24)
 
 
