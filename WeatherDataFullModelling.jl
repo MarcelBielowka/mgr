@@ -1,115 +1,106 @@
-using RCall
-using Dates, StatsPlots, Distributions, Pipe, HypothesisTests
-using TSAnalysis, GLM
-#@rlibrary MASS
-@rlibrary forecast
+using Dates, RCall, StatsPlots, Distributions, Pipe
+@rlibrary MASS
 
 include("WeatherDataFullPreparation.jl")
 
-dfWindTempDataRaw = ReadWindAndTempData("C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv")
-WindTempDataCleanUp = RemedyMissingWindTempData(dfWindTempDataRaw)
-dfWindTempData = WindTempDataCleanUp["WindTempDataNoMissing"]
+# set seed
+Random.seed!(72945)
 
-filter!(row -> row.date >= Dates.DateTime("2017-01-01"), dfWindTempData)
+# extract data
+dfWeatherDataUngrouped = ReadData()
+#group data
+WeatherDistParameters, dfWeatherDataGropued = RetrieveGroupedData(dfWeatherDataUngrouped)
+WeatherDistParameters
+dfWeatherDataGropued
 
-R"pacf"(dfWindTempData.WindSpeed)
-R"acf"(dfWindTempData.WindSpeed)
-R"pacf"(dfWindTempData.Temperature)
-R"acf"(dfWindTempData.Temperature)
+# select the day for which the analysis is conducted
+DayOfYear = rand(1:365)
+DateAnalysed = Date(2018,12,31) + Dates.Day(DayOfYear)
+MonthPart = Dates.day.(DateAnalysed) .> Dates.daysinmonth.(DateAnalysed)/2
 
-plot(dfWindTempData.date, dfWindTempData.WindSpeed, title = "Wind speed")
-plot(dfWindTempData.date, dfWindTempData.Temperature, title = "Temperature")
+# take the parameters for that day
+WeatherParamsDay = [WeatherDistParameters[(Dates.month(DateAnalysed), MonthPart, hour)] for hour in 0:23]
+WeatherParamsDay[1][1][2]
+# prepare the relevant distributions
+WindDistHour = Weibull(WeatherParamsDay[1][1][2][1], WeatherParamsDay[1][1][2][2])
 
-HypothesisTests.ADFTest(dfWindTempData.WindSpeed, :constant, 1000)
-HypothesisTests.ADFTest((dfWindTempData.Temperature), :trend, 168*2)
-HypothesisTests.ADFTest(diff(dfWindTempData.Temperature), :trend, 168*2)
+# calculate the forecasts
+WindForecastDist = [mean(rand(WindDistHour, 1000)) for i in 1:10000]
+ProductionForecastWind = WindProductionForecast.(2.0, WindForecastDist, 11.5, 3.0, 20.0)
+mean(ProductionForecastWind)
+ProductionForecastWindPoint = WindProductionForecast(2.0, mean(WindForecastDist), 11.5, 3.0, 20.0)
+ProductionForecastWindPoint = WindProductionForecast(2.0, 20, 11.5, 3.0, 20.0)
 
-MayData = filter(row -> (row.month .== 5 && row.year == 2019), dfWindTempData)
-NovData = filter(row -> (row.month .== 11 && row.year == 2019), dfWindTempData)
-MayWeekData = filter(row -> (row.date >= Dates.Date("2019-05-01") && row.date <= Dates.Date("2019-05-07")), dfWindTempData)
-NovWeekData = filter(row -> (row.date >= Dates.Date("2019-11-01") && row.date <= Dates.Date("2019-11-07")), dfWindTempData)
-
-plot1Wind = plot(MayData.date, MayData.WindSpeed, title = "Wind speed series across May 2019", legend = nothing)
-plot2Wind = plot(NovData.date, NovData.WindSpeed, title = "Wind speed series across November 2019", legend = nothing)
-plot(plot1Wind, plot2Wind, layout = (2,1))
-
-plot1Temp = plot(MayData.date, MayData.Temperature, title = "Temperature series across May")
-plot2Temp = plot(NovData.date, NovData.Temperature, title = "Temperature series across November")
-plot(plot1Temp, plot2Temp, layout = (2,1))
-
-plot1WindWeekly = plot(MayWeekData.date, MayWeekData.WindSpeed, title = "Wind speed, 1st week May 2019", legend = nothing)
-plot2WindWeekly = plot(NovWeekData.date, NovWeekData.WindSpeed, title = "Wind speed, 1st week November 2019", legend = nothing)
-plot(plot1WindWeekly, plot2WindWeekly, layout = (2,1))
-
-plot1TempWeekly = plot(MayWeekData.date, MayWeekData.Temperature, title = "Temperature, 1st week May 2019", legend = nothing)
-plot2TempWeekly = plot(NovWeekData.date, NovWeekData.Temperature, title = "Temperature, 1st week November 2019", legend = nothing)
-plot(plot1TempWeekly, plot2TempWeekly, layout = (2,1))
-
-dfWindTempTrainData = filter(row -> (row.date>=Dates.Date("2018-01-01") && row.date<= Dates.DateTime("2018-10-31T23:50")), dfWindTempData)
-dfWindTempTestData = filter(row -> (row.date>=Dates.Date("2018-11-01") && row.date<= Dates.DateTime("2018-12-31T23:50")), dfWindTempData)
-dfWindTempEstimationData = filter(row -> row.year == 2018, dfWindTempData)
-dfWindTempValidationData = filter(row -> row.year == 2017, dfWindTempData)
-dfWindTempRealisedData = filter(row -> row.year == 2019, dfWindTempData)
-
-outputDF = DataFrame(p=[], q=[], RMSE = [], aic = [])
-function FindBestModel(data, maxp, maxq)
-    outputDF = DataFrame(p=[], q=[], aic = [])
-    for p in 0:maxp, q in 0:maxq
-        println("Fitting model ARMA($p, $q)")
-        myModelInitSpec = UnivariateARCHModel(ARCH{0}([0.0]), dfWindTempTrainData.WindSpeed, meanspec = ARMA{p,q}(zeros(p+q+1)))
-        myModel = fit(myModelInitSpec)
-        push!(outputDF, (p, q, aic(myModel)))
-        #println("Fitting model ARMA($p, $q)")
-        #fittedModel = fit(model)
-        #push!(outputDF, (p,q,aic(fittedModel)))
-    end
-    return outputDF
-end
-
-@time outputDF = FindBestModel(dfWindTempTrainData.WindSpeed, 8, 8)
-outputDF
-
-p = 0; q = 1
-[]
-
-ModelSpec = ARIMASettings()
+histogram(WindForecastDist, normalize = true)
+histogram(ProductionForecastWind, normalize = true)
 
 
+#dfWeatherData.Temperature = dfWeatherData.Temperature .+ 273.15
+#dfWeatherData.MonthPart =
+#    Dates.day.(dfWeatherData.date_nohour) .> Dates.daysinmonth.(dfWeatherData.date_nohour)/2
+
+#dfWeatherDataGrouped = groupby(dfWeatherData, [:month, :MonthPart])
+
+#GroupsMapping = sort(dfWeatherDataGrouped.keymap, by = values)
+#GroupsMapping.vals[1]
+#GroupsMapping.keys
+
+#WeatherDistParameters = Dict{}()
+#month, monthperiod = GroupsMapping.keys[1]
+
+#m = dfWeatherDataGrouped[1]
+#m_subs = m[m.hour .== 14, :]
+#a = fitdistr(m_subs.WindSpeed[m_subs.WindSpeed.>0], "weibull", lower = "c(0,0)")
+
+#for PeriodNum in 1:24
+#    CurrentPeriod = GroupsMapping.vals[PeriodNum]
+#    dfCurrentPeriod = dfWeatherDataGrouped[CurrentPeriod]
+#    month, MonthPeriod = GroupsMapping.keys[PeriodNum]
+#
+#    for hour in extrema(dfWeatherDataGrouped[1].hour)[1]:extrema(dfWeatherDataGrouped[1].hour)[2]
+#        dfCurrentHour = filter(row -> row.hour .== hour, dfCurrentPeriod)
+#        println("Current month: $month, period: $PeriodNum , hour: $hour")
+
+#        DistWindMASS = fitdistr(dfCurrentHour.WindSpeed[dfCurrentHour.WindSpeed.>0], "weibull", lower = R"c(0,0)")
+#        DistSolarMASS = fitdistr(dfCurrentHour.Irradiation, "normal")
+#        DistTempMASS = fitdistr(dfCurrentHour.Temperature, "normal")
+
+#        push!(WeatherDistParameters, (month, MonthPeriod, hour) => ["WindParam" => [DistWindMASS[1][1] DistWindMASS[1][2]],
+#                                                                      "SolarParam" => [DistSolarMASS[1][1] DistSolarMASS[1][2]],
+#                                                                      "TempParam" => [DistTempMASS[1][1] DistTempMASS[1][2]],
+#                                                               ])
+#    end
+#end
+
+#temp = dfWeatherDataGrouped[22][dfWeatherDataGrouped[22].hour .== 18,:].WindSpeed
+#fitdistr(temp[temp.>0], "weibull", lower = R"c(0,0)")
 
 
 
+#DayOfYear = rand(1:365)
 
-myModelInitSpec = UnivariateARCHModel(ARCH{0}([0.0]),
-    dfWindTempEstimationData.WindSpeed[dfWindTempEstimationData.date .< Dates.DateTime("2018-11-01")],
-    meanspec = ARMA{1,3}(zeros(5)))
-myModel = fit(myModelInitSpec)
-predict.(myModel, :return, 1:6, dfWindTempEstimationData.WindSpeed)
-testDAta = deepcopy(dfWindTempEstimationData[dfWindTempEstimationData.date .< Dates.DateTime("2018-11-01"),:])
-select!(testDAta, [:date, :WindSpeed])
-push!(testDAta, (testDAta.date[size(testDAta)[1]] + Dates.Hour(1), predict(myModel, :return, 1)))
-myModel.meanspec.coefs
-aic(myModel)
-bic(myModel)
+#DateAnalysed = Date(2018,12,31) + Dates.Day(DayOfYear)
+#MonthPart = Dates.day.(DateAnalysed) .> Dates.daysinmonth.(DateAnalysed)/2
 
+# for hour in 0:23
+#    Weather = WeatherDistParameters[(Dates.month(DateAnalysed), MonthPart, hour)]
+#    println("$hour")
+#    println(Weather)
+#end
 
-testModel = R"forecast::Arima"(dfWindTempTrainData.WindSpeed, order = R"c(8,0,3)", method = "ML")
-abc = R"forecast::Arima"(dfWindTempTestData.WindSpeed, model = testModel)
-a = R"forecast::accuracy"(abc)
-Forecast = R"forecast::forecast"(testModel, h = 24, dfWindTempTestData.WindSpeed)
-R"forecast::accuracy"(Forecast)
+a = WeatherDistParameters[2, false, 1][1][2]
+DistTemp = Weibull(WeatherDistParameters[1, true, 22][1][2][1], WeatherDistParameters[1, true, 22][1][2][2])
+m = rand(DistTemp, 1000)
+histogram(m, normalize = true)
+plot!(DistTemp, lw = 5, color =:red)
+p = mean(rand(DistTemp, 1000))
+t = [mean(rand(DistTemp, 1000)) for i in 1:10000]
+mean(t)
+histogram(t, normalize = true)
+plot!(Normal(mean(t), std(t)), lw = 3)
 
-testModel = R"forecast::Arima"(dfWindTempTrainData.WindSpeed, order = R"c(2,0,1)", method = "ML")
-Forecast2 = R"forecast::forecast"(testModel, h = 24, dfWindTempTestData.WindSpeed)
-R"forecast::accuracy"(Forecast2)
+ForecastWind = WindProductionForecast.(2.0, mean(t), 11.5, 3.0, 20.0)*10
+mean(ForecastWind) * 10
+histogram(ForecastWind, normalize = true)
 
-Forecast2[1]
-
-testModel[1]
-testModel[5]
-testModel[6][1]
-prediction = R"predict"(testModel)
-testModel[9]
-p = ARMA{1,1}([0.5, 0.3, 0.4])
-
-predict(t, :return)
-dfWindTempData.WindSpeed
+(11.5 - 3) ^ 3 / -(3 - 11.5) ^ 3 * 2 * 10
