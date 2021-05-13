@@ -449,3 +449,6 @@ function Plotting(dfData, dfDataWithoutMissing)
     return plot1, plot2, plot3, FinalPlot4, FinalPlot5, plot10, plot11, plot12
 end
     # jeden kolor dla barow + srednia wieloletnia dla danego miesiaca -
+
+
+println("Chupacabra")
