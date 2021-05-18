@@ -110,10 +110,9 @@ end
 test = ClearAndModifyHouseholdData(dfHouseholdDataShort)
 test2 = groupby(test[1], :LCLid)
 abc = unstack(test2[8], :Hour, :Date, :Consumption)
-sum(abc[1,2:ncol(abc)])
-sum(abc[nrow(abc),2:ncol(abc)])
+ismissing(sum(abc[1,2:ncol(abc)])) || ismissing(sum(abc[nrow(abc),2:ncol(abc)]))
 
-
+size(test2[1])[1]
 
 for col in 1:ncol(abc)
     println(col, " ", any(ismissing.(abc[:,col])))
@@ -148,6 +147,10 @@ function ClearAndModifyHouseholdData(dfHouseholdData)
     dfHouseholdDataByHousehold = @pipe groupby(dfHouseholdData, :LCLid)
     iCompleteHouseholds = findall([length(unique(dfHouseholdDataByHousehold[i].Date)) for i in 1:length(dfHouseholdDataByHousehold)] .==365)
     dfHouseholdDataCompleteHouseholds = dfHouseholdDataByHousehold[iCompleteHouseholds]
+    iHouseholdsMissingDataCheck = findall(
+        [nrow(dfHouseholdDataCompleteHouseholds[i]) for i in 1:length(dfHouseholdDataCompleteHouseholds)] .>= 8670
+    )
+    dfHouseholdDataCompleteHouseholds = dfHouseholdDataCompleteHouseholds[iHouseholdsMissingDataCheck]
     dfHouseholdDataShortCompleteDoubles = combine(dfHouseholdDataCompleteHouseholds,
         [:Date, :Hour, :Consumption])
 
