@@ -19,10 +19,12 @@ end
 
 dfWeatherDataIrr.prom_avg = parse.(Float64, dfWeatherDataIrr.prom_avg)
 
-dfWeatherDataIrr[:prom_avg] = recode(dfWeatherDataIrr[:prom_avg], -999 => missing)
+dfWeatherDataIrr.prom_avg[dfWeatherDataIrr.prom_avg .== -999] = missing
+dfWeatherDataIrr = dfWeatherDataIrr[dfWeatherDataIrr.prom_avg.!=-999,:]
+dfWeatherDataIrr[!,:prom_avg] = recode(dfWeatherDataIrr[!,:prom_avg], -999 => missing)
 dropmissing!(dfWeatherDataIrr)
 
-dfWeatherDataIrr["date"] =
+dfWeatherDataIrr[!,"date"] =
     Dates.DateTime.(dfWeatherDataIrr.date, DateFormat("y-m-d H:M:S"))
 filter!(row -> row.date > DateTime("2018-12-31T23:40"), dfWeatherDataIrr)
 

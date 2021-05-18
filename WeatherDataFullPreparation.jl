@@ -41,6 +41,8 @@ function ReadWindAndTempData(cFileWind::String)
     dfWindData[!, "month"] = Dates.month.(dfWindData.date)
     dfWindData[!, "hour"] = Dates.hour.(dfWindData.date)
     dfWindData[!, "year"] = Dates.year.(dfWindData.date)
+    dfWindData[!, "MonthPart"] =
+        Dates.day.(dfWindData.date_nohour) .> Dates.daysinmonth.(dfWindData.date_nohour)/2
 
     return dfWindData
 end
@@ -143,9 +145,6 @@ function WindTempDistributions(dfWeatherData; kelvins::Bool = true)
     if kelvins
         dfData.Temperature = dfData.Temperature .+ 273.15
     end
-
-    dfData.MonthPart =
-        Dates.day.(dfData.date_nohour) .> Dates.daysinmonth.(dfData.date_nohour)/2
     dfDataGrouped = groupby(dfData, [:month, :MonthPart])
     GroupsMapping = sort(dfDataGrouped.keymap, by = values)
     dfWeatherDistParameters = DataFrame(month = [], MonthPeriod = [], hour = [],
@@ -446,6 +445,3 @@ function Plotting(dfData, dfDataWithoutMissing)
     return plot1, plot2, plot3, FinalPlot4, FinalPlot5, plot10, plot11, plot12
 end
     # jeden kolor dla barow + srednia wieloletnia dla danego miesiaca -
-
-
-println("Chupacabra")
