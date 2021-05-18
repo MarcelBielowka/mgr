@@ -112,11 +112,15 @@ test2 = groupby(test[1], :LCLid)
 abc = unstack(test2[8], :Hour, :Date, :Consumption)
 ismissing(sum(abc[1,2:ncol(abc)])) || ismissing(sum(abc[nrow(abc),2:ncol(abc)]))
 
+xyz = unstack(test2[1], :Hour, :Date, :Consumption)
+all([length(unique(xyz[:, i])) for i in 2:ncol(xyz)] .>15)
+all([length(unique(xyz[:, i])) for i in 2:ncol(xyz)] .< 5)
+t = [sum(ismissing.(abc[:, i])) for i in 2:ncol(abc)]
+
 size(test2[1])[1]
 
 for col in 1:ncol(abc)
-    println(col, " ", any(ismissing.(abc[:,col])))
-    #println(col)
+    println(length)
 end
 
 abc[:, 204:207]
@@ -133,6 +137,7 @@ for i in 0:364
 end
 
 Dates.dayofyear(Date("2013-07-24"))
+test3 = CheckHouseholdDataQuality(test[1])
 
 filter(row -> row.Date == Dates.Date("2013-04-20"), a)
 ###############################################
@@ -173,6 +178,37 @@ function ClearAndModifyHouseholdData(dfHouseholdData)
     # return the outcome
     return dfHouseholdDataShortComplete, iNonUniqueIndices
 end
+
+
+function CheckHouseholdDataQuality(dfHouseholdData)
+    dfHouseholdDataByHousehold = groupby(dfHouseholdData, :LCLid)
+    iIndicesToStay = []
+    for i in 1:length(dfHouseholdDataByHousehold)
+        dfCurrentHouseholdData = unstack(dfHouseholdDataByHousehold[i],
+            :Hour, :Date, :Consumption)
+        StartEndDataError =
+            ismissing(
+                sum(dfCurrentHouseholdData[1,2:ncol(dfCurrentHouseholdData)])
+            ) || ismissing(
+                sum(dfCurrentHouseholdData[nrow(dfCurrentHouseholdData),2:ncol(dfCurrentHouseholdData)])
+            )
+        if StartEndDataError
+            println("Household $i failed the start/end data test and will be removed")
+        else
+            VariableDataTest = all([length(unique(dfCurrentHouseholdData[:,i])) for i in 2:ncol(dfCurrentHouseholdData)].>=15)
+            MissingDataTest = all([sum(ismissing.(abc[:, i])) for i in 2:ncol(abc)] .< 5)
+            if VariableDataTest && MissingDataTest
+                println("Household $i is good to go")
+                append!(iIndicesToStay, i)
+            else
+                println("Household $i failed the Variable or missing data test. Variable is $VariableDataTest and missing is $MissingDataTest")
+            end
+        end
+    end
+    dfHouseholdDataToReturn = dfHouseholdDataByHousehold[iIndicesToStay]
+    return dfHouseholdDataToReturn
+end
+
 
 ###############################################
 ####### Grouping data by month and day ########
