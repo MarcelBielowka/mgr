@@ -107,6 +107,35 @@ function ProcessRawHouseholdData(cMainDir, cFileName)
     return dfFilteredData_hourly
 end
 
+test = ClearAndModifyHouseholdData(dfHouseholdDataShort)
+test2 = groupby(test[1], :LCLid)
+abc = unstack(test2[8], :Hour, :Date, :Consumption)
+sum(abc[1,2:ncol(abc)])
+sum(abc[nrow(abc),2:ncol(abc)])
+
+
+
+for col in 1:ncol(abc)
+    println(col, " ", any(ismissing.(abc[:,col])))
+    #println(col)
+end
+
+abc[:, 204:207]
+
+a = test2[8]
+for i in 0:364
+    testdate = Dates.Date("2013-01-01") + Dates.Day(i)
+    xxx = filter(row -> row.Date == testdate, a)
+    println("Test date $testdate, number of rows ", nrow(xxx))
+    if nrow(xxx) < 24
+        println("Stop")
+        break
+    end
+end
+
+Dates.dayofyear(Date("2013-07-24"))
+
+filter(row -> row.Date == Dates.Date("2013-04-20"), a)
 ###############################################
 ####### Further cloeaning - see below #########
 ###############################################
