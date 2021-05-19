@@ -108,36 +108,6 @@ function ProcessRawHouseholdData(cMainDir, cFileName)
 end
 
 test = ClearAndModifyHouseholdData(dfHouseholdDataShort)
-test2 = groupby(test[1], :LCLid)
-abc = unstack(test2[3957], :Hour, :Date, :Consumption)
-ismissing(sum(abc[1,2:ncol(abc)])) || ismissing(sum(abc[nrow(abc),2:ncol(abc)]))
-
-findall([length(unique(abc[:, i])) for i in 2:ncol(xyz)] .<=10)
-t = [length(unique(abc[:, i])) for i in 2:ncol(xyz)]
-all([length(unique(xyz[:, i])) for i in 2:ncol(xyz)] .< 5)
-t = [sum(ismissing.(abc[:, i])) for i in 2:ncol(abc)]
-nrow(test2[3957])
-
-size(test2[1])[1]
-
-for col in 1:ncol(abc)
-    println(length)
-end
-
-abc[:, 204:207]
-
-a = test2[8]
-for i in 0:364
-    testdate = Dates.Date("2013-01-01") + Dates.Day(i)
-    xxx = filter(row -> row.Date == testdate, a)
-    println("Test date $testdate, number of rows ", nrow(xxx))
-    if nrow(xxx) < 24
-        println("Stop")
-        break
-    end
-end
-
-Dates.dayofyear(Date("2013-07-24"))
 test3 = CheckHouseholdDataQuality(test[1], 10, 5)
 
 filter(row -> row.Date == Dates.Date("2013-04-20"), a)
@@ -172,9 +142,6 @@ function ClearAndModifyHouseholdData(dfHouseholdData)
         println("There are some households with missing data. Execution stopped")
         return nothing
     end
-    # Add month and day of week columns
-    dfHouseholdDataShortComplete.Month = Dates.month.(dfHouseholdDataShortComplete.Date)
-    dfHouseholdDataShortComplete.DayOfWeek = Dates.dayofweek.(dfHouseholdDataShortComplete.Date)
 
     # return the outcome
     return dfHouseholdDataShortComplete, iNonUniqueIndices
@@ -208,7 +175,13 @@ function CheckHouseholdDataQuality(dfHouseholdData, iMinDiffDataPoints, iMaxMiss
             end
         end
     end
-    dfHouseholdDataToReturn = dfHouseholdDataByHousehold[iIndicesToStay]
+    dfHouseholdDataClean = dfHouseholdDataByHousehold[iIndicesToStay]
+    dfHouseholdDataToReturn = combine(dfHouseholdDataClean,
+        [:Date, :Hour, :Consumption])
+
+    # Add month and day of week columns
+    dfHouseholdDataToReturn.Month = Dates.month.(dfHouseholdDataToReturn.Date)
+    dfHouseholdDataToReturn.DayOfWeek = Dates.dayofweek.(dfHouseholdDataToReturn.Date)
     return dfHouseholdDataToReturn
 end
 
