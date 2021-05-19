@@ -163,7 +163,7 @@ function CheckHouseholdDataQuality(dfHouseholdData, iMinDiffDataPoints, iMaxMiss
             println("Household $i failed the start/end data test and will be removed")
         else
             # VariableDataTest = all([length(unique(dfCurrentHouseholdData[:,i])) for i in 2:ncol(dfCurrentHouseholdData)].>=iMinDiffDataPoints)
-            MissingDataTest = all([sum(ismissing.(abc[:, i])) for i in 2:ncol(abc)] .< iMaxMissingDataPoints)
+            MissingDataTest = all([sum(ismissing.(dfCurrentHouseholdData[:, i])) for i in 2:ncol(dfCurrentHouseholdData)] .< iMaxMissingDataPoints)
             #if VariableDataTest && MissingDataTest
             if MissingDataTest
                 println("Household $i is good to go")
