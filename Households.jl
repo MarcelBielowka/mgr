@@ -35,6 +35,8 @@ function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
     else
         println("None of the households has duplicated values. All is fine")
     end
+    println("Some further data validation and cleaning")
+    dfHouseholdDataShortComplete = CheckHouseholdDataQuality(dfHouseholdDataShortComplete, 10, 5)
 
     println("Splitting data by month and day of week")
     dfHouseholdDataToCluster = PrepareDataForClustering(dfHouseholdDataShortComplete)
@@ -107,10 +109,7 @@ function ProcessRawHouseholdData(cMainDir, cFileName)
     return dfFilteredData_hourly
 end
 
-test = ClearAndModifyHouseholdData(dfHouseholdDataShort)
-test3 = CheckHouseholdDataQuality(test[1], 10, 5)
 
-filter(row -> row.Date == Dates.Date("2013-04-20"), a)
 ###############################################
 ####### Further cloeaning - see below #########
 ###############################################
