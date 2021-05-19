@@ -211,8 +211,8 @@ function PrepareDaysDataForClustering(dfHouseholdDataByMonth, CurrentMonth, Curr
         unstack(_, :IDAndDay, :Consumption)
     for column in eachcol(CurrentPeriod)
         Impute.impute!(column, Impute.Interpolate())
-        Impute.impute!(column, Impute.LOCF())
-        Impute.impute!(column, Impute.NOCB())
+        #Impute.impute!(column, Impute.LOCF())
+        #Impute.impute!(column, Impute.NOCB())
     end
     disallowmissing!(CurrentPeriod)
     return CurrentPeriod
