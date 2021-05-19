@@ -109,13 +109,14 @@ end
 
 test = ClearAndModifyHouseholdData(dfHouseholdDataShort)
 test2 = groupby(test[1], :LCLid)
-abc = unstack(test2[8], :Hour, :Date, :Consumption)
+abc = unstack(test2[3957], :Hour, :Date, :Consumption)
 ismissing(sum(abc[1,2:ncol(abc)])) || ismissing(sum(abc[nrow(abc),2:ncol(abc)]))
 
-xyz = unstack(test2[1], :Hour, :Date, :Consumption)
-all([length(unique(xyz[:, i])) for i in 2:ncol(xyz)] .>15)
+findall([length(unique(abc[:, i])) for i in 2:ncol(xyz)] .<=10)
+t = [length(unique(abc[:, i])) for i in 2:ncol(xyz)]
 all([length(unique(xyz[:, i])) for i in 2:ncol(xyz)] .< 5)
 t = [sum(ismissing.(abc[:, i])) for i in 2:ncol(abc)]
+nrow(test2[3957])
 
 size(test2[1])[1]
 
@@ -137,7 +138,7 @@ for i in 0:364
 end
 
 Dates.dayofyear(Date("2013-07-24"))
-test3 = CheckHouseholdDataQuality(test[1])
+test3 = CheckHouseholdDataQuality(test[1], 10, 5)
 
 filter(row -> row.Date == Dates.Date("2013-04-20"), a)
 ###############################################
@@ -180,7 +181,7 @@ function ClearAndModifyHouseholdData(dfHouseholdData)
 end
 
 
-function CheckHouseholdDataQuality(dfHouseholdData)
+function CheckHouseholdDataQuality(dfHouseholdData, iMinDiffDataPoints, iMaxMissingDataPoints)
     dfHouseholdDataByHousehold = groupby(dfHouseholdData, :LCLid)
     iIndicesToStay = []
     for i in 1:length(dfHouseholdDataByHousehold)
@@ -195,8 +196,8 @@ function CheckHouseholdDataQuality(dfHouseholdData)
         if StartEndDataError
             println("Household $i failed the start/end data test and will be removed")
         else
-            VariableDataTest = all([length(unique(dfCurrentHouseholdData[:,i])) for i in 2:ncol(dfCurrentHouseholdData)].>=15)
-            MissingDataTest = all([sum(ismissing.(abc[:, i])) for i in 2:ncol(abc)] .< 5)
+            VariableDataTest = all([length(unique(dfCurrentHouseholdData[:,i])) for i in 2:ncol(dfCurrentHouseholdData)].>=iMinDiffDataPoints)
+            MissingDataTest = all([sum(ismissing.(abc[:, i])) for i in 2:ncol(abc)] .< iMaxMissingDataPoints)
             if VariableDataTest && MissingDataTest
                 println("Household $i is good to go")
                 append!(iIndicesToStay, i)
