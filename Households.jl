@@ -6,7 +6,7 @@ using Clustering, StatsPlots, Random
 using FreqTables, Impute, Distances
 using DataFramesMeta
 cd("C:/Users/Marcel/Desktop/mgr/kody")
-cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
+# cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
 
 ###############################################
 ###### The very households weightlifting ######
@@ -201,7 +201,7 @@ function PrepareDataForClustering(dfHouseholdData)
     dfHouseholdDataToCluster = deepcopy(dfHouseholdData)
     dfHouseholdDataToCluster.IDAndDay = string.(dfHouseholdDataToCluster.LCLid,
         dfHouseholdDataToCluster.Month, Dates.day.(dfHouseholdDataToCluster.Date))
-    select!(dfHouseholdDataToCluster, Not([:LCLid, :Date]))
+    select!(dfHouseholdDataToCluster, Not([:LCLid, :Date, :DayOfWeek]))
     dfHouseholdDataByMonth = @pipe groupby(dfHouseholdDataToCluster,
         [:Month, :flag], sort = true)
     return dfHouseholdDataByMonth
@@ -241,7 +241,7 @@ function RunTestClustering(dfHouseholdDataByMonth, SelectedDays)
             SelectedDays[1][testNumber], SelectedDays[2][testNumber])
         # run clustering
         TestClusters = Clustering.kmeans(
-            Matrix(CurrentPeriod[:,5:size(CurrentPeriod)[2]]), NumberOfTestClusters)
+            Matrix(CurrentPeriod[:,4:size(CurrentPeriod)[2]]), NumberOfTestClusters)
         # silhouettes
         TestSillhouettes = Clustering.silhouettes(TestClusters.assignments, TestClusters.counts,
                 pairwise(
