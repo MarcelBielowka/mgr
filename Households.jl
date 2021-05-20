@@ -12,7 +12,7 @@ cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
 ###### The very households weightlifting ######
 ###############################################
 
-function GetHouseholdsData(cMasterDir, dInputHolidaysCalendar, dOutputHolidaysCalendar; FixedSeed = 72945)
+function GetHouseholdsData(cMasterDir, dInputHolidaysCalendar; FixedSeed = 72945)
     dfHouseholdDataFull = ReadRawData(cMasterDir)
     println("Start processing data")
     # Filter only data for 2013
