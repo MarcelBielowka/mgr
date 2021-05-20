@@ -4,6 +4,7 @@
 using CSV, DataFrames, Dates, Pipe, Statistics
 using Clustering, StatsPlots, Random
 using FreqTables, Impute, Distances
+using DataFramesMeta
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
 
@@ -11,7 +12,7 @@ cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
 ###### The very households weightlifting ######
 ###############################################
 
-function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
+function GetHouseholdsData(cMasterDir, dInputHolidaysCalendar, dOutputHolidaysCalendar; FixedSeed = 72945)
     dfHouseholdDataFull = ReadRawData(cMasterDir)
     println("Start processing data")
     # Filter only data for 2013
@@ -36,13 +37,13 @@ function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
         println("None of the households has duplicated values. All is fine")
     end
     println("Some further data validation and cleaning")
-    dfHouseholdDataShortComplete = CheckHouseholdDataQuality(dfHouseholdDataShortComplete, 10, 5)
+    dfHouseholdDataShortComplete = CheckHouseholdDataQuality(dfHouseholdDataShortComplete, 10, 5, dInputHolidaysCalendar)
 
     println("Splitting data by month and day of week")
     dfHouseholdDataToCluster = PrepareDataForClustering(dfHouseholdDataShortComplete)
 
     Random.seed!(FixedSeed)
-    SelectedDays = (rand(1:12, 3), rand(1:7, 3))
+    SelectedDays = (rand(1:12, 3), rand(["Weekday", "Saturday", "SundayHoliday"], 3))
     println("Days selected for test runs are $SelectedDays")
     TestClusteringData = RunTestClustering(dfHouseholdDataToCluster, SelectedDays)
 
@@ -147,7 +148,8 @@ function ClearAndModifyHouseholdData(dfHouseholdData)
 end
 
 
-function CheckHouseholdDataQuality(dfHouseholdData, iMinDiffDataPoints, iMaxMissingDataPoints)
+function CheckHouseholdDataQuality(dfHouseholdData,
+        iMinDiffDataPoints, iMaxMissingDataPoints, dInputHolidaysCalendar)
     dfHouseholdDataByHousehold = groupby(dfHouseholdData, :LCLid)
     iIndicesToStay = []
     for i in 1:length(dfHouseholdDataByHousehold)
@@ -179,8 +181,14 @@ function CheckHouseholdDataQuality(dfHouseholdData, iMinDiffDataPoints, iMaxMiss
         [:Date, :Hour, :Consumption])
 
     # Add month and day of week columns
-    dfHouseholdDataToReturn.Month = Dates.month.(dfHouseholdDataToReturn.Date)
-    dfHouseholdDataToReturn.DayOfWeek = Dates.dayofweek.(dfHouseholdDataToReturn.Date)
+    insertcols!(dfHouseholdDataToReturn, :Month => Dates.month.(dfHouseholdDataToReturn.Date))
+    insertcols!(dfHouseholdDataToReturn, :DayOfWeek => Dates.dayofweek.(dfHouseholdDataToReturn.Date))
+    insertcols!(dfHouseholdDataToReturn, :flag => "Weekday")
+    dfHouseholdDataToReturn.flag[dfHouseholdDataToReturn.DayOfWeek .== 6] .= "Saturday"
+    dfHouseholdDataToReturn.flag[dfHouseholdDataToReturn.DayOfWeek .== 7] .= "SundayHoliday"
+    for i in eachindex(dInputHolidaysCalendar)
+        dfHouseholdDataToReturn.flag[dfHouseholdDataToReturn.Date .== dInputHolidaysCalendar[i]] .= "SundayHoliday"
+    end
     return dfHouseholdDataToReturn
 end
 
@@ -195,7 +203,7 @@ function PrepareDataForClustering(dfHouseholdData)
         dfHouseholdDataToCluster.Month, Dates.day.(dfHouseholdDataToCluster.Date))
     select!(dfHouseholdDataToCluster, Not([:LCLid, :Date]))
     dfHouseholdDataByMonth = @pipe groupby(dfHouseholdDataToCluster,
-        [:Month, :DayOfWeek], sort = true)
+        [:Month, :flag], sort = true)
     return dfHouseholdDataByMonth
 end
 
@@ -206,13 +214,13 @@ end
 # due to memory overflows we can't transform them this way at once
 # instead, we work with period by period
 # additional point - data imputation
-function PrepareDaysDataForClustering(dfHouseholdDataByMonth, CurrentMonth, CurrentDayOfWeek)
-    CurrentPeriod = @pipe dfHouseholdDataByMonth[(CurrentMonth, CurrentDayOfWeek)] |>
+function PrepareDaysDataForClustering(dfHouseholdDataByMonth, CurrentMonth, CurrentFlag)
+    CurrentPeriod = @pipe dfHouseholdDataByMonth[(CurrentMonth, CurrentFlag)] |>
         unstack(_, :IDAndDay, :Consumption)
     for column in eachcol(CurrentPeriod)
         Impute.impute!(column, Impute.Interpolate())
-        Impute.impute!(column, Impute.LOCF())
-        Impute.impute!(column, Impute.NOCB())
+#        Impute.impute!(column, Impute.LOCF())
+#        Impute.impute!(column, Impute.NOCB())
     end
     disallowmissing!(CurrentPeriod)
     return CurrentPeriod
@@ -227,7 +235,7 @@ function RunTestClustering(dfHouseholdDataByMonth, SelectedDays)
 
     # loop over the test dates
     for testNumber in 1:length(SelectedDays[1]), NumberOfTestClusters in 2:7
-        println("Month ", SelectedDays[1][testNumber], " , day ", SelectedDays[2][testNumber], ", number of clusters $NumberOfTestClusters" )
+        println("Month ", SelectedDays[1][testNumber], " , day type ", SelectedDays[2][testNumber], ", number of clusters $NumberOfTestClusters" )
         # get data in wide format
         CurrentPeriod = PrepareDaysDataForClustering(dfHouseholdDataByMonth,
             SelectedDays[1][testNumber], SelectedDays[2][testNumber])
@@ -269,10 +277,11 @@ function RunFinalClustering(dfHouseholdDataByMonth, OptimalNumberOfClusters)
     # the function runs just like above
     HouseholdProfiles = Dict{}()
     HouseholdProfilesClusteringCounts = Dict{}()
-    for Month in 1:12, Day in 1:7
-        println("Month ", Month, " , day ", Day)
+    FlagType = ["Weekday", "Saturday", "SundayHoliday"]
+    for Month in 1:12, FlagTypeNum in 1:3
+        println("Month ", Month, " , day ", FlagType[FlagTypeNum])
         CurrentPeriod = PrepareDaysDataForClustering(dfHouseholdDataByMonth,
-            Month, Day)
+            Month, FlagType[FlagTypeNum])
         ClustersOnDay = Clustering.kmeans(
             Matrix(CurrentPeriod[:,4:size(CurrentPeriod)[2]]), OptimalNumberOfClusters
         )
