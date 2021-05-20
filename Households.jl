@@ -241,7 +241,7 @@ function RunTestClustering(dfHouseholdDataByMonth, SelectedDays)
             SelectedDays[1][testNumber], SelectedDays[2][testNumber])
         # run clustering
         TestClusters = Clustering.kmeans(
-            Matrix(CurrentPeriod[:,4:size(CurrentPeriod)[2]]), NumberOfTestClusters)
+            Matrix(CurrentPeriod[:,5:size(CurrentPeriod)[2]]), NumberOfTestClusters)
         # silhouettes
         TestSillhouettes = Clustering.silhouettes(TestClusters.assignments, TestClusters.counts,
                 pairwise(
@@ -283,7 +283,7 @@ function RunFinalClustering(dfHouseholdDataByMonth, OptimalNumberOfClusters)
         CurrentPeriod = PrepareDaysDataForClustering(dfHouseholdDataByMonth,
             Month, FlagType[FlagTypeNum])
         ClustersOnDay = Clustering.kmeans(
-            Matrix(CurrentPeriod[:,4:size(CurrentPeriod)[2]]), OptimalNumberOfClusters
+            Matrix(CurrentPeriod[:,5:size(CurrentPeriod)[2]]), OptimalNumberOfClusters
         )
         dfClusteringOutput = hcat(CurrentPeriod.Hour, ClustersOnDay.centers) |> DataFrame
         rename!(dfClusteringOutput,
