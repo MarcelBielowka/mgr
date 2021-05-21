@@ -11,7 +11,7 @@ cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
 ###### The very households weightlifting ######
 ###############################################
 
-function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
+function GetHouseholdsData(cMasterDir, dHolidayCalendar; FixedSeed = 72945)
     dfHouseholdDataFull = ReadRawData(cMasterDir)
     println("Start processing data")
     # Filter only data for 2013
@@ -37,6 +37,9 @@ function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
     end
     println("Some further data validation and cleaning")
     dfHouseholdDataShortComplete = CheckHouseholdDataQuality(dfHouseholdDataShortComplete, 10, 5)
+
+    println("Add some further data and holidays servicing")
+    dfHouseholdDataShortComplete = AddMonthDayOfWeek(dfHouseholdDataShortComplete, dHolidayCalendar)
 
     println("Splitting data by month and day of week")
     dfHouseholdDataToCluster = PrepareDataForClustering(dfHouseholdDataShortComplete)
@@ -178,12 +181,22 @@ function CheckHouseholdDataQuality(dfHouseholdData, iMinDiffDataPoints, iMaxMiss
     dfHouseholdDataToReturn = combine(dfHouseholdDataClean,
         [:Date, :Hour, :Consumption])
 
-    # Add month and day of week columns
-    dfHouseholdDataToReturn.Month = Dates.month.(dfHouseholdDataToReturn.Date)
-    dfHouseholdDataToReturn.DayOfWeek = Dates.dayofweek.(dfHouseholdDataToReturn.Date)
     return dfHouseholdDataToReturn
 end
 
+function AddMonthDayOfWeek(dfHouseholdData, dHolidayCalendar)
+    println("Adding Month and DayOfWeek variables")
+    dfHouseholdDataClean = deepcopy(dfHouseholdData)
+    insertcols!(dfHouseholdDataClean,
+                :Month => Dates.month.(dfHouseholdDataClean.Date),
+                :DayOfWeek => Dates.dayofweek.(dfHouseholdDataClean.Date))
+    #dfHouseholdData.DayOfWeek[dfHouseholdData.DayOfWeek .==7] .= "SundayHoliday"
+    for i in 1:length(dHolidayCalendar)
+        println("Moving day ", dHolidayCalendar[i], " to Sunday group")
+        dfHouseholdDataClean.DayOfWeek[dfHouseholdDataClean.Date .== dHolidayCalendar[i]] .= 7
+    end
+    return dfHouseholdDataClean
+end
 
 ###############################################
 ####### Grouping data by month and day ########
