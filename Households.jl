@@ -57,7 +57,7 @@ function GetHouseholdsData(cMasterDir, dHolidayCalendar; FixedSeed = 72945)
     ClusteringOutput = Dict(
         "FinalClusteringOutput" => FinalClusteringOutput[1],
         "ClusteringCounts" => FinalClusteringOutput[2],
-        "PCAOutputs" => FinalClusteringOutput[3],
+        "PCAOutput" => FinalClusteringOutput[3],
         "ClusteredData" => dfHouseholdDataToCluster,
         "SillhouettesScoreAverage" => TestClusteringData[1],
         "FinalNumberOfClusters" => TestClusteringData[2]
@@ -322,7 +322,7 @@ end
 function RunPlots(FinalHouseholdData)
     plotSillhouettes = @df FinalHouseholdData["SillhouettesScoreAverage"] StatsPlots.groupedbar(:NumberOfClusters, :SillhouetteScore,
         group = :TestDays,
-        color = [RGB(192/255, 0, 0) RGB(146/255, 0, 0) RGB(100/255, 0, 0) RGB(54/255, 0, 0), RGB(8/255, 0, 0)],
+        color = [RGB(192/255, 0, 0) RGB(146/255, 0, 0) RGB(100/255, 0, 0) RGB(54/255, 0, 0) RGB(8/255, 0, 0)],
         xlabel = "Number of clusters",
         ylabel = "Average silhouette score",
         legendtitle = "Test Day",
@@ -364,6 +364,15 @@ function RunPlots(FinalHouseholdData)
         cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(7,1)])),
         color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
 
+    PlotPCAJanMon = @df FinalHouseholdData["PCAOutput"][(1,1)] StatsPlots.scatter(:PC1, :PC2,
+        color = RGB(192/255,0,0), main = "PCA analysis, January Monday", legend = :none)
+
+    PlotPCAJanSun = @df FinalHouseholdData["PCAOutput"][(1,7)] StatsPlots.scatter(:PC1, :PC2,
+        color = RGB(192/255,0,0), main = "PCA analysis, January Sunday", legend = :none)
+
+    PlotPCAJunMon = @df FinalHouseholdData["PCAOutput"][(7,1)] StatsPlots.scatter(:PC1, :PC2,
+        color = RGB(192/255,0,0), main = "PCA analysis, July Monday", legend = :none)
+
     return Dict(
         "PlotSillhouettes" => plotSillhouettes,
         "PlotOfJanMonData" => PlotOfJanMonData,
@@ -371,6 +380,9 @@ function RunPlots(FinalHouseholdData)
         "PlotOfJulSunData" => PlotOfJulSunData,
         "PlotOfClusterJanMon" => PlotOfClusterJanMon,
         "PlotOfClusterJanSun" => PlotOfClusterJanSun,
-        "PlotOfClusterJulMon" => PlotOfClusterJulMon
+        "PlotOfClusterJulMon" => PlotOfClusterJulMon,
+        "PlotPCAJanMon" => PlotPCAJanMon,
+        "PlotPCAJanSun" => PlotPCAJanSun,
+        "PlotPCAJulMon" => PlotPCAJulMon,
     )
 end
