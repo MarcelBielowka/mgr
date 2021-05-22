@@ -365,13 +365,13 @@ function RunPlots(FinalHouseholdData)
         color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
 
     PlotPCAJanMon = @df FinalHouseholdData["PCAOutput"][(1,1)] StatsPlots.scatter(:PC1, :PC2,
-        color = RGB(192/255,0,0), main = "PCA analysis, January Monday", legend = :none)
+        color = RGB(192/255,0,0), title = "PCA analysis, January Monday", legend = :none)
 
     PlotPCAJanSun = @df FinalHouseholdData["PCAOutput"][(1,7)] StatsPlots.scatter(:PC1, :PC2,
-        color = RGB(192/255,0,0), main = "PCA analysis, January Sunday", legend = :none)
+        color = RGB(192/255,0,0), title = "PCA analysis, January Sunday", legend = :none)
 
-    PlotPCAJunMon = @df FinalHouseholdData["PCAOutput"][(7,1)] StatsPlots.scatter(:PC1, :PC2,
-        color = RGB(192/255,0,0), main = "PCA analysis, July Monday", legend = :none)
+    PlotPCAJulMon = @df FinalHouseholdData["PCAOutput"][(7,1)] StatsPlots.scatter(:PC1, :PC2,
+        color = RGB(192/255,0,0), title = "PCA analysis, July Monday", legend = :none)
 
     return Dict(
         "PlotSillhouettes" => plotSillhouettes,
