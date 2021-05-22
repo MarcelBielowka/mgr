@@ -320,33 +320,43 @@ function RunPlots(FinalHouseholdData)
     dfWideDataToPlotJanSun = PrepareDaysDataForClustering(FinalHouseholdData["ClusteredData"],1,7)
 
     #January Mondays plot
-    PlotOfClusterJanMon = @df dfWideDataToPlotJanMon StatsPlots.plot(:Hour,
+    PlotOfJanMonData = @df dfWideDataToPlotJanMon StatsPlots.plot(:Hour,
         cols(4:3000),
         color = RGB(150/255,150/255,150/255), linealpha = 0.05,
         legend = :none,
         ylim = [0,5],
         title = "January Monday")
-    @df FinalHouseholdData["FinalClusteringOutput"][(1,1)] StatsPlots.plot!(:Hour,
+    PlotOfClusterJanMon = @df FinalHouseholdData["FinalClusteringOutput"][(1,1)] StatsPlots.plot(:Hour,
         cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(1,1)])),
         color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
 
-    PlotOfClusterJanSun = @df dfWideDataToPlotJanSun StatsPlots.plot(:Hour,
+    PlotOfJanSunData = @df dfWideDataToPlotJanSun StatsPlots.plot(:Hour,
         cols(4:3000),
         color = RGB(150/255,150/255,150/255), linealpha = 0.05,
         legend = :none,
         ylim = [0,5],
         title = "January Sunday")
-    @df FinalHouseholdData["FinalClusteringOutput"][(1,7)] StatsPlots.plot!(:Hour,
+    PlotOfClusterJanSun = @df FinalHouseholdData["FinalClusteringOutput"][(1,7)] StatsPlots.plot(:Hour,
         cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(1,7)])),
         color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
 
-    PlotOfClusterJulMon = @df dfWideDataToPlotJulMon StatsPlots.plot(:Hour,
+    PlotOfJulSunData = @df dfWideDataToPlotJulMon StatsPlots.plot(:Hour,
         cols(4:3000),
         color = RGB(150/255,150/255,150/255), linealpha = 0.05,
         legend = :none,
         ylim = [0,5],
         title = "July Monday")
-    @df FinalHouseholdData["FinalClusteringOutput"][(7,1)] StatsPlots.plot!(:Hour,
+    PlotOfClusterJulMon = @df FinalHouseholdData["FinalClusteringOutput"][(7,1)] StatsPlots.plot(:Hour,
         cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(7,1)])),
         color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
+
+    return Dict(
+        "PlotSillhouettes" => plotSillhouettes,
+        "PlotOfJanMonData" => PlotOfJanMonData,
+        "PlotOfJanSunData" => PlotOfJanSunData,
+        "PlotOfJulSunData" => PlotOfJulSunData,
+        "PlotOfClusterJanMon" => PlotOfClusterJanMon,
+        "PlotOfClusterJanSun" => PlotOfClusterJanSun,
+        "PlotOfClusterJulMon" => PlotOfClusterJulMon
+    )
 end
