@@ -46,7 +46,7 @@ function GetHouseholdsData(cMasterDir, dHolidayCalendar; FixedSeed = 72945)
     dfHouseholdDataToCluster = PrepareDataForClustering(dfHouseholdDataShortComplete)
 
     Random.seed!(FixedSeed)
-    SelectedDays = (rand(1:12, 3), rand(1:7, 3))
+    SelectedDays = (rand(1:12, 5), rand(1:7, 5))
     println("Days selected for test runs are $SelectedDays")
     TestClusteringData = RunTestClustering(dfHouseholdDataToCluster, SelectedDays)
 
@@ -57,6 +57,7 @@ function GetHouseholdsData(cMasterDir, dHolidayCalendar; FixedSeed = 72945)
     ClusteringOutput = Dict(
         "FinalClusteringOutput" => FinalClusteringOutput[1],
         "ClusteringCounts" => FinalClusteringOutput[2],
+        "PCAOutputs" => FinalClusteringOutput[3],
         "ClusteredData" => dfHouseholdDataToCluster,
         "SillhouettesScoreAverage" => TestClusteringData[1],
         "FinalNumberOfClusters" => TestClusteringData[2]
@@ -281,10 +282,13 @@ end
 ###############################################
 function RunFinalClustering(dfHouseholdDataByMonth, OptimalNumberOfClusters)
     # the function runs just like above
+    # additionally, PCA is also run to show cluster separation quality
     HouseholdProfiles = Dict{}()
     HouseholdProfilesClusteringCounts = Dict{}()
+    PCAOutputs = Dict{}()
     for Month in 1:12, Day in 1:7
         println("Month ", Month, " , day ", Day)
+        # clustering
         CurrentPeriod = PrepareDaysDataForClustering(dfHouseholdDataByMonth,
             Month, Day)
         ClustersOnDay = Clustering.kmeans(
@@ -296,11 +300,20 @@ function RunFinalClustering(dfHouseholdDataByMonth, OptimalNumberOfClusters)
         )
         dfClusteringOutput.Hour = convert.(Int, dfClusteringOutput.Hour)
 
+        # PCA
+        PcaOnDay = fit(PCA, Matrix(CurrentPeriod[:,4:size(CurrentPeriod)[2]]), maxoutdim = OptimalNumberOfClusters)
+        dfPcaOutput = MultivariateStats.transform(
+            PcaOnDay, Matrix(CurrentPeriod[:,4:size(CurrentPeriod)[2]])
+        ) |> transpose |> DataFrame
+        rename!(dfPcaOutput, [:PC1, :PC2])
+
+        # Pushing to final dictionaries
         push!(HouseholdProfiles, (Month, Day) => dfClusteringOutput)
         push!(HouseholdProfilesClusteringCounts, (Month, Day) => ClustersOnDay.counts)
+        push!(PCAOutputs, (Month, Day) => dfPcaOutput)
     end
 
-    return HouseholdProfiles, HouseholdProfilesClusteringCounts
+    return HouseholdProfiles, HouseholdProfilesClusteringCounts, PCAOutputs
 end
 
 ###############################################
@@ -309,7 +322,7 @@ end
 function RunPlots(FinalHouseholdData)
     plotSillhouettes = @df FinalHouseholdData["SillhouettesScoreAverage"] StatsPlots.groupedbar(:NumberOfClusters, :SillhouetteScore,
         group = :TestDays,
-        color = [RGB(192/255, 0, 0) RGB(100/255, 0, 0) RGB(8/255, 0, 0)],
+        color = [RGB(192/255, 0, 0) RGB(146/255, 0, 0) RGB(100/255, 0, 0) RGB(54/255, 0, 0), RGB(8/255, 0, 0)],
         xlabel = "Number of clusters",
         ylabel = "Average silhouette score",
         legendtitle = "Test Day",
