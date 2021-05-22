@@ -319,70 +319,38 @@ end
 ###############################################
 #################### Plots ####################
 ###############################################
-function RunPlots(FinalHouseholdData)
-    plotSillhouettes = @df FinalHouseholdData["SillhouettesScoreAverage"] StatsPlots.groupedbar(:NumberOfClusters, :SillhouetteScore,
-        group = :TestDays,
-        color = [RGB(192/255, 0, 0) RGB(146/255, 0, 0) RGB(100/255, 0, 0) RGB(54/255, 0, 0) RGB(8/255, 0, 0)],
-        xlabel = "Number of clusters",
-        ylabel = "Average silhouette score",
-        legendtitle = "Test Day",
-        title = "Average sillhouette score")
+function RunPlots(FinalHouseholdData, month, day; silhouettes = true)
+    if silhouettes
+        PlotSillhouettes = @df FinalHouseholdData["SillhouettesScoreAverage"] StatsPlots.groupedbar(:NumberOfClusters, :SillhouetteScore,
+            group = :TestDays,
+            color = [RGB(192/255, 0, 0) RGB(146/255, 0, 0) RGB(100/255, 0, 0) RGB(54/255, 0, 0) RGB(8/255, 0, 0)],
+            xlabel = "Number of clusters",
+            ylabel = "Average silhouette score",
+            legendtitle = "Test Day",
+            title = "Average sillhouette score")
+    else
+        PlotSillhouettes = nothing
+    end
 
     #######
-    dfWideDataToPlotJanMon = PrepareDaysDataForClustering(FinalHouseholdData["ClusteredData"],1,1)
-    dfWideDataToPlotJulMon = PrepareDaysDataForClustering(FinalHouseholdData["ClusteredData"],7,1)
-    dfWideDataToPlotJanSun = PrepareDaysDataForClustering(FinalHouseholdData["ClusteredData"],1,7)
-
+    dfWideDataToPlot = PrepareDaysDataForClustering(FinalHouseholdData["ClusteredData"],month,day)
     #January Mondays plot
-    PlotOfJanMonData = @df dfWideDataToPlotJanMon StatsPlots.plot(:Hour,
+    PlotDataAndProfiles = @df dfWideDataToPlot StatsPlots.plot(:Hour,
         cols(4:3000),
         color = RGB(150/255,150/255,150/255), linealpha = 0.05,
         legend = :none,
         ylim = [0,5],
-        title = "January Monday")
-    PlotOfClusterJanMon = @df FinalHouseholdData["FinalClusteringOutput"][(1,1)] StatsPlots.plot(:Hour,
+        title = "Original data and profiles for month $month and day $day")
+    @df FinalHouseholdData["FinalClusteringOutput"][(month,day)] StatsPlots.plot!(:Hour,
         cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(1,1)])),
         color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
 
-    PlotOfJanSunData = @df dfWideDataToPlotJanSun StatsPlots.plot(:Hour,
-        cols(4:3000),
-        color = RGB(150/255,150/255,150/255), linealpha = 0.05,
-        legend = :none,
-        ylim = [0,5],
-        title = "January Sunday")
-    PlotOfClusterJanSun = @df FinalHouseholdData["FinalClusteringOutput"][(1,7)] StatsPlots.plot(:Hour,
-        cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(1,7)])),
-        color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
-
-    PlotOfJulSunData = @df dfWideDataToPlotJulMon StatsPlots.plot(:Hour,
-        cols(4:3000),
-        color = RGB(150/255,150/255,150/255), linealpha = 0.05,
-        legend = :none,
-        ylim = [0,5],
-        title = "July Monday")
-    PlotOfClusterJulMon = @df FinalHouseholdData["FinalClusteringOutput"][(7,1)] StatsPlots.plot(:Hour,
-        cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(7,1)])),
-        color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
-
-    PlotPCAJanMon = @df FinalHouseholdData["PCAOutput"][(1,1)] StatsPlots.scatter(:PC1, :PC2,
-        color = RGB(192/255,0,0), title = "PCA analysis, January Monday", legend = :none)
-
-    PlotPCAJanSun = @df FinalHouseholdData["PCAOutput"][(1,7)] StatsPlots.scatter(:PC1, :PC2,
-        color = RGB(192/255,0,0), title = "PCA analysis, January Sunday", legend = :none)
-
-    PlotPCAJulMon = @df FinalHouseholdData["PCAOutput"][(7,1)] StatsPlots.scatter(:PC1, :PC2,
-        color = RGB(192/255,0,0), title = "PCA analysis, July Monday", legend = :none)
+    PlotPCA = @df FinalHouseholdData["PCAOutput"][(month,day)] StatsPlots.scatter(:PC1, :PC2,
+        color = RGB(192/255,0,0), title = "PCA analysis for month $month and day $day", legend = :none)
 
     return Dict(
-        "PlotSillhouettes" => plotSillhouettes,
-        "PlotOfJanMonData" => PlotOfJanMonData,
-        "PlotOfJanSunData" => PlotOfJanSunData,
-        "PlotOfJulSunData" => PlotOfJulSunData,
-        "PlotOfClusterJanMon" => PlotOfClusterJanMon,
-        "PlotOfClusterJanSun" => PlotOfClusterJanSun,
-        "PlotOfClusterJulMon" => PlotOfClusterJulMon,
-        "PlotPCAJanMon" => PlotPCAJanMon,
-        "PlotPCAJanSun" => PlotPCAJanSun,
-        "PlotPCAJulMon" => PlotPCAJulMon,
+        "PlotSillhouettes" => PlotSillhouettes,
+        "PlotDataAndProfiles" => PlotDataAndProfiles,
+        "PlotPCA" => PlotPCA,
     )
 end
