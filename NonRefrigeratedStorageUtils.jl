@@ -45,18 +45,20 @@ function GetDistanceMap(Map)
     return DistancesFinal
 end
 
-function GetInitialConsDataFrame(StorageID, SimLength)
+function GetInitialConsDataFrame(StorageID, SimLength, LightningEnergyConsumption)
     Hours = repeat([i for i in 0:23], SimLength)
     Days = repeat([1], 24)
     for i in 2:SimLength
         Days = vcat(Days, repeat([i], 24))
     end
+    ConsumptionLightning = repeat(LightningEnergyConsumption, length(Hours))
     InitialDataFrame = DataFrames.DataFrame(
         ID = repeat([Int(StorageID)], length(Hours)),
         Day = Days,
         Hour = Hours,
         ConsumptionIn = zeros(length(Hours)),
-        ConsumptionOut = zeros(length(Hours))
+        ConsumptionOut = zeros(length(Hours)),
+        ConsumptionLightning = ConsumptionLightning
     )
     return InitialDataFrame
 end
@@ -101,7 +103,8 @@ end
 # Storage constructor
 function Storage(ID, SimLength, SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
                  ConveyorSectionLength, ConveyorSectionWidth, StorageSlotHeight,
-                 FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2)
+                 FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2,
+                 LightningEnergyConsumption)
     StorageMap = GetStorageMap(SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString)
     DistanceMap = GetDistanceMap(StorageMap)
     WarehouseMaxCapacity = sum(isnothing.(StorageMap))
@@ -111,7 +114,7 @@ function Storage(ID, SimLength, SlotsLength, SlotsWidth, SlotsHeight, HandlingRo
             ConveyorEfficiency, FrictionCoefficient,
             ConveyorMassPerM2, StorageSlotHeight
     )
-    dfInitCons = GetInitialConsDataFrame(ID, SimLength)
+    dfInitCons = GetInitialConsDataFrame(ID, SimLength, LightningEnergyConsumption)
     Storage(
         ID,
         StorageMap,
@@ -268,12 +271,14 @@ function CreateNewStorage(ID, SimLength,
     ConveyorSectionLength, ConveyorSectionWidth, StorageSlotHeight,
     FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2,
     ConsignmentLength, ConsignmentWidth, ConsignmentHeight,
+    LightningEnergyConsumption,
     DistWeightCon, DistInitFill)
 
     NewStorage = Storage(ID, SimLength,
         SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
         ConveyorSectionLength, ConveyorSectionWidth, StorageSlotHeight,
-        FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2)
+        FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2,
+        LightningEnergyConsumption)
 
     InitFill = NewStorage.MaxCapacity * rand(DistInitFill)
 

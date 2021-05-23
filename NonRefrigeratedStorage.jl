@@ -27,11 +27,20 @@ function SimOneRun(RunID, SimWindow,
     StorageSlotHeight, ConveyorMassPerM2,
     ConsignmentLength, ConsignmentWidth, ConsignmentHeight,
     FrictionCoefficient,  HandlingRoadString,
+    LightningMinimum, LightningLampLumenPerW, LightningLampWork,
     DistWeightCon, DistInitFill,
     ArrivalsDict, DeparturesDict)
 
     # Additional consigns to send - any demand that was not met the previous hour
     AdditionalConsignsToSend = 0
+
+    # Area of the storage
+    # Needed for lightning calculation - to be added to the consumption across all days at the end of the run
+    # as per lightning norm PN-EN 12464-1:2004: 20 lx = 20 lm/m2
+    StorageArea = SlotsLength * ConveyorSectionWidth * SlotsWidth * ConveyorSectionLength + 2 * SlotsLength * ConveyorSectionLength
+    LightningLampLumen = LightningLampLumenPerW * LightningLampWork
+    NumberOfLamps = StorageArea * LightningMinimum / LightningLampLumen
+    LightningEnergyConsumption = NumberOfLamps * LightningLampWork
 
     # Initiate a new storage
     NewStorage = CreateNewStorage(RunID, SimWindow,
@@ -39,6 +48,7 @@ function SimOneRun(RunID, SimWindow,
         ConveyorSectionLength, ConveyorSectionWidth, StorageSlotHeight,
         FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2,
         ConsignmentLength, ConsignmentWidth, ConsignmentHeight,
+        LightningEnergyConsumption,
         DistWeightCon, DistInitFill)
     println("New warehouse is created. Dimensions are: $SlotsLength x $SlotsWidth x $SlotsHeight and the maximum capacity is ", NewStorage.MaxCapacity)
 
@@ -150,7 +160,7 @@ end
 Random.seed!(72945)
 #@time a = SimOneRun(40, 45,93,7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-@time a = SimOneRun(1, 10, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+@time a = SimOneRun(1, 30, 45, 51, 7, 1.4, 1.4, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
         DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 a.ElectricityConsumption
 a.DispatchedConsignments[1]
@@ -160,7 +170,7 @@ a.DispatchedConsignments[1]
 
 #@time a = SimWrapper(100, 20, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-@time a = SimWrapper(1000, 20, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+@time a = SimWrapper(1000, 20, 45, 51, 7, 1.4, 1.4, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
         DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 #@time a = SimWrapper(100, 20, 45, 93, 7, 1.4, 1, 0.8,
 #        1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
