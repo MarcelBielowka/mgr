@@ -51,7 +51,7 @@ function GetInitialConsDataFrame(StorageID, SimLength, LightningEnergyConsumptio
     for i in 2:SimLength
         Days = vcat(Days, repeat([i], 24))
     end
-    ConsumptionLightning = repeat(LightningEnergyConsumption, length(Hours))
+    ConsumptionLightning = repeat([LightningEnergyConsumption], length(Hours))
     InitialDataFrame = DataFrames.DataFrame(
         ID = repeat([Int(StorageID)], length(Hours)),
         Day = Days,

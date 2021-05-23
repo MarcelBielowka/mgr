@@ -41,6 +41,7 @@ function SimOneRun(RunID, SimWindow,
     LightningLampLumen = LightningLampLumenPerW * LightningLampWork
     NumberOfLamps = StorageArea * LightningMinimum / LightningLampLumen
     LightningEnergyConsumption = NumberOfLamps * LightningLampWork
+    println("In the new storage there will be $NumberOfLamps lamps using $LightningEnergyConsumption W of power")
 
     # Initiate a new storage
     NewStorage = CreateNewStorage(RunID, SimWindow,
@@ -160,8 +161,9 @@ end
 Random.seed!(72945)
 #@time a = SimOneRun(40, 45,93,7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-@time a = SimOneRun(1, 30, 45, 51, 7, 1.4, 1.4, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+@time a = SimOneRun(1, 30, 45, 51, 7, 1.4, 1.4, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||", 20, 60, 150,
         DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
+
 a.ElectricityConsumption
 a.DispatchedConsignments[1]
 
