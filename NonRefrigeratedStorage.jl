@@ -43,4 +43,7 @@ Random.seed!(72945)
 #        1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||", 20, 60, 150,
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 
-# WarehouseOutputAggregated = ExtractFinalStorageData(WarehouseOutputNonAggregated)
+#WarehouseOutputAggregated = ExtractFinalStorageData(WarehouseOutputNonAggregated)
+# WarehouseOutputAggregated["dfWarehouseEnergyConsumption"]
+# WarehouseOutputAggregated["dfConsignmenstHistory"]
+# WarehouseOutputAggregated["ExampleStorage"]
