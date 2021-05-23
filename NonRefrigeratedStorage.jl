@@ -36,9 +36,11 @@ Random.seed!(72945)
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 #@time a = SimWrapper(1000, 20, 45, 51, 7, 1.4, 1.4, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-@time testOutput = SimWrapper(10, 10, 45, 51, 7, 1.4, 1.4, 0.8,
-        1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||", 20, 60, 150,
-        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
+#@time WarehouseOutputNonAggregated = SimWrapper(10, 10, 45, 51, 7, 1.4, 1.4, 0.8,
+#        1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||", 20, 60, 150,
+#        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 #@time a = SimWrapper(30, 10, 45, 93, 7, 1.4, 1.4, 0.8,
 #        1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||", 20, 60, 150,
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
+
+# WarehouseOutputAggregated = ExtractFinalStorageData(WarehouseOutputNonAggregated)
