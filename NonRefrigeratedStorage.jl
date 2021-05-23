@@ -133,6 +133,13 @@ function SimOneRun(RunID, SimWindow,
             println("At EOD $Day ", sum(isnothing.(NewStorage.StorageMap)), " free slots remain")
         else
             println("This is a weekend day. No consignments are coming")
+            dfConsignmentNumberHistory = vcat(dfConsignmentNumberHistory, DataFrame(
+                                                                            Day = repeat([Day], 24),
+                                                                            Hour = collect(0:1:23),
+                                                                            ConsignmentsIn = repeat([0],24),
+                                                                            ConsignmentsOut = repeat([0],24),
+                                                                        )
+            )
         end
     end
     # returning the outcome
@@ -188,12 +195,14 @@ a.DispatchedConsignments[1]
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 #@time a = SimWrapper(1000, 20, 45, 51, 7, 1.4, 1.4, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-@time a = SimWrapper(30, 10, 45, 51, 7, 1.4, 1.4, 0.8,
+@time testOutput = SimWrapper(10, 10, 45, 51, 7, 1.4, 1.4, 0.8,
         1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||", 20, 60, 150,
         DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 #@time a = SimWrapper(30, 10, 45, 93, 7, 1.4, 1.4, 0.8,
 #        1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||", 20, 60, 150,
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
+
+FinalDF = a[1]["Storage"]
 
 #####
 # tests
@@ -234,3 +243,4 @@ MyStorage.ElectricityConsumption[:,"ConsumptionIn"]
 
 a = DataFrame(a = [], b = [])
 push!(a, (1,2))
+a = vcat(a, DataFrame(a = collect(0:23), b = repeat([1],24)))
