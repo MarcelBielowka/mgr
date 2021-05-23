@@ -46,8 +46,24 @@ a.DispatchedConsignments[1]
 #        1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||", 20, 60, 150,
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 
-FinalDF = a[1]["Storage"]
+testOutput[1]["Storage"]
+FinalDF = testOutput[1]["Storage"].ElectricityConsumption
+for i in 2:length(testOutput)
+    FinalDF = vcat(FinalDF, testOutput[i]["Storage"].ElectricityConsumption)
+end
 
+insertcols!(FinalDF, :ConsumptionTotal => FinalDF.ConsumptionIn .+ FinalDF.ConsumptionOut .+ FinalDF.ConsumptionLightning)
+Chupcabara = @pipe groupby(FinalDF, [:Day, :Hour]) |>
+    combine(_, :ConsumptionTotal => mean => :Consumption,
+                :ConsumptionTotal => std => :ConsumptionSampleStd,
+                nrow => :Counts)
+insertcols!(Chupcabara, :ConsumptionAvgStd => Chupcabara.ConsumptionSampleStd./sqrt.(Chupcabara.Counts))
+
+
+
+FinalDF = vcat([FinalDF, testOutput[i]["Storage"].ElectricityConsumption for i in 2:length(testOutput)])
+first(FinalDF, 5)
+length(testOutput)
 #####
 # tests
 MyStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
