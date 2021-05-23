@@ -8,7 +8,8 @@ include("NonRefrigeratedStorageUtils.jl")
 #    floor.(0.5.*[0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0])) |> collect |> Dict
 ArrivalsDict = zip(0:23,
     floor.([0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0])) |> collect |> Dict
-DeparturesDict = deepcopy(ArrivalsDict)
+DeparturesDict = zip(0:23,
+    floor.([0, 0, 0, 0, 0, 0, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 0, 0])) |> collect |> Dict
 
 #DistNumConsIn = Distributions.Poisson(48)
 #DistNumConsOut = Distributions.Poisson(30)
