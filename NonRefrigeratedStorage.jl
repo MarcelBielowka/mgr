@@ -40,8 +40,16 @@ function SimOneRun(RunID, SimWindow,
     StorageArea = SlotsLength * ConveyorSectionWidth * SlotsWidth * ConveyorSectionLength + 2 * SlotsLength * ConveyorSectionLength
     LightningLampLumen = LightningLampLumenPerW * LightningLampWork
     NumberOfLamps = ceil(StorageArea * LightningMinimum / LightningLampLumen)
-    LightningEnergyConsumption = NumberOfLamps * LightningLampWork
-    println("In the new storage there will be $NumberOfLamps lamps using $LightningEnergyConsumption W of power")
+    LightningEnergyConsumption = NumberOfLamps * LightningLampWork / 1000
+    println("In the new storage there will be $NumberOfLamps lamps using $LightningEnergyConsumption kW of power")
+
+    # History of consignments coming in and out
+    dfConsignmentNumberHistory = DataFrame(
+        Day = Int[],
+        Hour = Int[],
+        ConsignmentsIn = [],
+        ConsignmentsOut = [],
+    )
 
     # Initiate a new storage
     NewStorage = CreateNewStorage(RunID, SimWindow,
@@ -67,6 +75,7 @@ function SimOneRun(RunID, SimWindow,
                 NumConsOut = rand(DistNumConsOut) + AdditionalConsignsToSend
                 AdditionalConsignsToSend = 0
                 println("There are $NumConsIn new consignments coming in and $NumConsOut going out")
+                push!(dfConsignmentNumberHistory, (Day, Hour, NumConsIn, NumConsOut))
 
                 # Departure section
                 if NumConsOut == 0
@@ -127,7 +136,10 @@ function SimOneRun(RunID, SimWindow,
         end
     end
     # returning the outcome
-    return NewStorage
+    return Dict(
+        "Storage" => NewStorage,
+        "ConsignmentsHistory" => dfConsignmentNumberHistory
+    )
 end
 
 function SimWrapper(NumberOfRuns, SimWindow,
@@ -161,10 +173,10 @@ end
 Random.seed!(72945)
 #@time a = SimOneRun(40, 45,93,7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-@time a = SimOneRun(1, 30, 45, 51, 7, 1.4, 1.4, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||", 20, 60, 150,
+@time a = SimOneRun(1, 10, 45, 51, 7, 1.4, 1.4, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||", 20, 60, 150,
         DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 
-a.ElectricityConsumption
+a["Storage"].ElectricityConsumption
 a.DispatchedConsignments[1]
 
 #@time a = SimOneRun(1, 20, 45, 93, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
@@ -215,3 +227,6 @@ CurrentCons = Consignment(
 MyStorage.ElectricityConsumption[(MyStorage.ElectricityConsumption.Hour .==5) .&
     (MyStorage.ElectricityConsumption.Day .==7), "ConsumptionIn"] .+=5
 MyStorage.ElectricityConsumption[:,"ConsumptionIn"]
+
+a = DataFrame(a = [], b = [])
+push!(a, (1,2))
