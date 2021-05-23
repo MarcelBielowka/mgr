@@ -45,72 +45,76 @@ function SimOneRun(RunID, SimWindow,
     # Simulation - for each day and each hour
     for Day in 1:1:SimWindow
         println("Day $Day")
-        for Hour in 0:1:23
-            println("Hour $Hour")
-            # Get the number of the incoming and departing consignments
-            DistNumConsIn = Distributions.Poisson(ArrivalsDict[Hour])
-            DistNumConsOut = Distributions.Poisson(DeparturesDict[Hour])
-            NumConsIn = rand(DistNumConsIn)
-            NumConsOut = rand(DistNumConsOut) + AdditionalConsignsToSend
-            AdditionalConsignsToSend = 0
-            println("There are $NumConsIn new consignments coming in and $NumConsOut going out")
+        if !(Day % 7 == 6 || Day % 7 == 0)
+            println("Workday. Consignments will be coming")
+            for Hour in 0:1:23
+                println("Hour $Hour")
+                # Get the number of the incoming and departing consignments
+                DistNumConsIn = Distributions.Poisson(ArrivalsDict[Hour])
+                DistNumConsOut = Distributions.Poisson(DeparturesDict[Hour])
+                NumConsIn = rand(DistNumConsIn)
+                NumConsOut = rand(DistNumConsOut) + AdditionalConsignsToSend
+                AdditionalConsignsToSend = 0
+                println("There are $NumConsIn new consignments coming in and $NumConsOut going out")
 
-            # Departure section
-            if NumConsOut == 0
-                # if there are no consignments to be sent, nothing happens
-                println("No consignments are sent out")
-            else
-                # otherwise, we check if there are any consignments in the warehouse
-                for ConsOutID in 1:NumConsOut
-                    if any(isa.(NewStorage.StorageMap, Consignment))
-                        # if there are, send them
-                        println("Consignment $ConsOutID")
-                        ExpediatedConsign = ExpediateConsignment!(NewStorage, Day, Hour)
+                # Departure section
+                if NumConsOut == 0
+                    # if there are no consignments to be sent, nothing happens
+                    println("No consignments are sent out")
+                else
+                    # otherwise, we check if there are any consignments in the warehouse
+                    for ConsOutID in 1:NumConsOut
+                        if any(isa.(NewStorage.StorageMap, Consignment))
+                            # if there are, send them
+                            println("Consignment $ConsOutID")
+                            ExpediatedConsign = ExpediateConsignment!(NewStorage, Day, Hour)
+                            NewStorage.ElectricityConsumption[(NewStorage.ElectricityConsumption.Day .==Day) .&
+                                (NewStorage.ElectricityConsumption.Hour .==Hour), "ConsumptionOut"] .+= ExpediatedConsign.EnergyConsumption["Out"]
+                        else
+                            # if not, add the unmet demand to the next hour
+                            println("There are no more consignments in the warehouse")
+                            AdditionalConsignsToSend += 1
+                        end
+                    end
+                end
+
+                # Arrival section
+                # If there are some consignments which did not fit in the previous hour
+                # check, if they can fit in now
+                if length(NewStorage.WaitingQueue) > 0
+                    LoopEnd = min(length(NewStorage.WaitingQueue), sum(isnothing.(NewStorage.StorageMap)))
+                    println("$LoopEnd consignments are coming from the queue")
+                    for ConsWait in 1:LoopEnd
+                        println(ConsWait)
+                        ConsignFromQueue = dequeue!(NewStorage.WaitingQueue)
+                        LocateSlot!(ConsignFromQueue, NewStorage)
                         NewStorage.ElectricityConsumption[(NewStorage.ElectricityConsumption.Day .==Day) .&
-                            (NewStorage.ElectricityConsumption.Hour .==Hour), "ConsumptionOut"] .+= ExpediatedConsign.EnergyConsumption["Out"]
-                    else
-                        # if not, add the unmet demand to the next hour
-                        println("There are no more consignments in the warehouse")
-                        AdditionalConsignsToSend += 1
+                            (NewStorage.ElectricityConsumption.Hour .==Hour), "ConsumptionIn"] .+= ConsignFromQueue.EnergyConsumption["In"]
+                    end
+                end
+
+                # New consignments
+                if NumConsIn == 0
+                    # if there are no new consignments, nothing happens
+                    println("No consignments are admitted")
+                else
+                    # OTherwise, create them and add to the warehouse
+                    for ConsInID in 1:NumConsIn
+                        CurrentCons = Consignment(
+                            Dict("Day" => Day, "Hour" => Hour, "ID" => ConsInID),
+                            NewStorage, 1.2, 0.8, 1.2, min(rand(DistWeightCon), 1500)
+                        )
+                        LocateSlot!(CurrentCons, NewStorage)
+                        NewStorage.ElectricityConsumption[(NewStorage.ElectricityConsumption.Day .==Day) .&
+                            (NewStorage.ElectricityConsumption.Hour .==Hour), "ConsumptionIn"] .+= CurrentCons.EnergyConsumption["In"]
                     end
                 end
             end
-
-            # Arrival section
-            # If there are some consignments which did not fit in the previous hour
-            # check, if they can fit in now
-            if length(NewStorage.WaitingQueue) > 0
-                LoopEnd = min(length(NewStorage.WaitingQueue), sum(isnothing.(NewStorage.StorageMap)))
-                println("$LoopEnd consignments are coming from the queue")
-                for ConsWait in 1:LoopEnd
-                    println(ConsWait)
-                    ConsignFromQueue = dequeue!(NewStorage.WaitingQueue)
-                    LocateSlot!(ConsignFromQueue, NewStorage)
-                    NewStorage.ElectricityConsumption[(NewStorage.ElectricityConsumption.Day .==Day) .&
-                        (NewStorage.ElectricityConsumption.Hour .==Hour), "ConsumptionIn"] .+= ConsignFromQueue.EnergyConsumption["In"]
-                end
-            end
-
-            # New consignments
-            if NumConsIn == 0
-                # if there are no new consignments, nothing happens
-                println("No consignments are admitted")
-            else
-                # OTherwise, create them and add to the warehouse
-                for ConsInID in 1:NumConsIn
-                    CurrentCons = Consignment(
-                        Dict("Day" => Day, "Hour" => Hour, "ID" => ConsInID),
-                        NewStorage, 1.2, 0.8, 1.2, min(rand(DistWeightCon), 1500)
-                    )
-                    LocateSlot!(CurrentCons, NewStorage)
-                    NewStorage.ElectricityConsumption[(NewStorage.ElectricityConsumption.Day .==Day) .&
-                        (NewStorage.ElectricityConsumption.Hour .==Hour), "ConsumptionIn"] .+= CurrentCons.EnergyConsumption["In"]
-                end
-            end
+            println("At EOD $Day ", sum(isnothing.(NewStorage.StorageMap)), " free slots remain")
+        else
+            println("This is a weekend day. No consignments are coming")
         end
-        println("At EOD $Day ", sum(isnothing.(NewStorage.StorageMap)), " free slots remain")
     end
-
     # returning the outcome
     return NewStorage
 end
