@@ -47,18 +47,28 @@ a.DispatchedConsignments[1]
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 
 testOutput[1]["Storage"]
+testOutput[1]["ConsignmentsHistory"]
+FinalConsignmentDF = testOutput[1]["ConsignmentsHistory"]
 FinalDF = testOutput[1]["Storage"].ElectricityConsumption
 for i in 2:length(testOutput)
     FinalDF = vcat(FinalDF, testOutput[i]["Storage"].ElectricityConsumption)
+    FinalConsignmentDF = vcat(FinalConsignmentDF, testOutput[i]["ConsignmentsHistory"])
 end
+
+
+
 
 insertcols!(FinalDF, :ConsumptionTotal => FinalDF.ConsumptionIn .+ FinalDF.ConsumptionOut .+ FinalDF.ConsumptionLightning)
 Chupcabara = @pipe groupby(FinalDF, [:Day, :Hour]) |>
     combine(_, :ConsumptionTotal => mean => :Consumption,
                 :ConsumptionTotal => std => :ConsumptionSampleStd,
                 nrow => :Counts)
+Bebok = @pipe groupby(FinalConsignmentDF,  [:Day, :Hour]) |>
+    combine(_, :ConsignmentsIn => mean,
+                :ConsignmentsOut => mean)
 insertcols!(Chupcabara, :ConsumptionAvgStd => Chupcabara.ConsumptionSampleStd./sqrt.(Chupcabara.Counts))
 
+trombocyt = ExtractFinalStorageData(testOutput)
 
 
 FinalDF = vcat([FinalDF, testOutput[i]["Storage"].ElectricityConsumption for i in 2:length(testOutput)])

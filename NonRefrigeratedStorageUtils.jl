@@ -455,10 +455,10 @@ end
 
 function ExtractFinalStorageData(OutputDictionary)
     dfOutputDataSample = OutputDictionary[1]["Storage"].ElectricityConsumption
-    dfConsignmentHistorySample = OutputDictionary[1]["ConsignmentsHistory"]
+    dfConsignmentsHistorySample = OutputDictionary[1]["ConsignmentsHistory"]
     for i in 2:length(OutputDictionary)
         dfOutputDataSample = vcat(dfOutputDataSample, OutputDictionary[i]["Storage"].ElectricityConsumption)
-        dfConsignmentHistorySample = vcat(dfConsignmentHistory, OutputDictionary[i]["ConsignmentsHistory"])
+        dfConsignmentsHistorySample = vcat(dfConsignmentsHistorySample, OutputDictionary[i]["ConsignmentsHistory"])
     end
 
     insertcols!(dfOutputDataSample, :ConsumptionTotal =>
@@ -470,22 +470,22 @@ function ExtractFinalStorageData(OutputDictionary)
     insertcols!(dfOutputData, :ConsumptionStd => dfOutputData.ConsumptionSampleStd./sqrt.(dfOutputData.Counts))
     select!(dfOutputData, [:Day, :Hour, :Consumption, :ConsumptionStd])
 
-    dfConsignmentHistory = @pipe groupby(dfConsignmentHistorySample, [:Day, :Hour]) |>
+    dfConsignmentsHistory = @pipe groupby(dfConsignmentsHistorySample, [:Day, :Hour]) |>
         combine(_, :ConsignmentsIn => mean => :ConsignmentIn,
                    :ConsignmentsIn => std => :ConsignmentInStdSample,
                    :ConsignmentsOut => mean => :ConsignmentOut,
-                   :ConsignmentsOut => std => :ConsignmentOutSample,
+                   :ConsignmentsOut => std => :ConsignmentOutStdSample,
                    nrow => :Counts
             )
-    insertcols!(dfConsignmentHistory,
-        :ConsignmentInStd => dfConsignmentHistory.ConsignmentInStdSample ./ sqrt.(dfConsignmentHistory.Counts),
-        :ConsignmentOutStd => dfConsignmentHistory.ConsignmentOutStdSample ./ sqrt.(dfConsignmentHistory.Counts)
+    insertcols!(dfConsignmentsHistory,
+        :ConsignmentInStd => dfConsignmentsHistory.ConsignmentInStdSample ./ sqrt.(dfConsignmentsHistory.Counts),
+        :ConsignmentOutStd => dfConsignmentsHistory.ConsignmentOutStdSample ./ sqrt.(dfConsignmentsHistory.Counts)
     )
-    select!(dfConsignmentHistory, [:Day, :Hour, :ConsignmentIn, :ConsignmentOut, :ConsignmentInStd, :ConsignmentOutStd])
+    select!(dfConsignmentsHistory, [:Day, :Hour, :ConsignmentIn, :ConsignmentOut, :ConsignmentInStd, :ConsignmentOutStd])
 
     return Dict(
         "dfWarehouseEnergyConsumption" => dfOutputData,
-        "dfConsignmentHistory" => dfConsignmentHistory,
+        "dfConsignmenstHistory" => dfConsignmentsHistory,
         "ExampleStorage" => OutputDictionary[1]["Storage"]
     )
 
