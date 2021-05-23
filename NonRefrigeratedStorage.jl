@@ -148,6 +148,7 @@ function SimWrapper(NumberOfRuns, SimWindow,
     StorageSlotHeight, ConveyorMassPerM2,
     ConsignmentLength, ConsignmentWidth, ConsignmentHeight,
     FrictionCoefficient,  HandlingRoadString,
+    LightningMinimum, LightningLampLumenPerW, LightningLampWork,
     DistWeightCon, DistInitFill,
     ArrivalsDict, DeparturesDict)
 
@@ -161,6 +162,7 @@ function SimWrapper(NumberOfRuns, SimWindow,
             StorageSlotHeight, ConveyorMassPerM2,
             ConsignmentLength, ConsignmentWidth, ConsignmentHeight,
             FrictionCoefficient,  HandlingRoadString,
+            LightningMinimum, LightningLampLumenPerW, LightningLampWork,
             DistWeightCon, DistInitFill,
             ArrivalsDict, DeparturesDict)
         push!(FinalDictionary, Run => Output)
@@ -184,12 +186,14 @@ a.DispatchedConsignments[1]
 
 #@time a = SimWrapper(100, 20, 45, 51, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-@time a = SimWrapper(1000, 20, 45, 51, 7, 1.4, 1.4, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
-        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-#@time a = SimWrapper(100, 20, 45, 93, 7, 1.4, 1, 0.8,
-#        1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
+#@time a = SimWrapper(1000, 20, 45, 51, 7, 1.4, 1.4, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-
+@time a = SimWrapper(30, 10, 45, 51, 7, 1.4, 1.4, 0.8,
+        1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||", 20, 60, 150,
+        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
+#@time a = SimWrapper(30, 10, 45, 93, 7, 1.4, 1.4, 0.8,
+#        1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||", 20, 60, 150,
+#        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 
 #####
 # tests
