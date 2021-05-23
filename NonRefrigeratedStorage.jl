@@ -26,11 +26,8 @@ DistInitFill = Distributions.Uniform(0.2, 0.5)
 Random.seed!(72945)
 #@time a = SimOneRun(40, 45,93,7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-@time a = SimOneRun(1, 10, 45, 51, 7, 1.4, 1.4, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||", 20, 60, 150,
-        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-
-a["Storage"].ElectricityConsumption
-a.DispatchedConsignments[1]
+#@time a = SimOneRun(1, 10, 45, 51, 7, 1.4, 1.4, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||", 20, 60, 150,
+#        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 
 #@time a = SimOneRun(1, 20, 45, 93, 7, 1.4, 1, 0.8, 1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||",
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
@@ -45,72 +42,3 @@ a.DispatchedConsignments[1]
 #@time a = SimWrapper(30, 10, 45, 93, 7, 1.4, 1.4, 0.8,
 #        1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||", 20, 60, 150,
 #        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-
-testOutput[1]["Storage"]
-testOutput[1]["ConsignmentsHistory"]
-FinalConsignmentDF = testOutput[1]["ConsignmentsHistory"]
-FinalDF = testOutput[1]["Storage"].ElectricityConsumption
-for i in 2:length(testOutput)
-    FinalDF = vcat(FinalDF, testOutput[i]["Storage"].ElectricityConsumption)
-    FinalConsignmentDF = vcat(FinalConsignmentDF, testOutput[i]["ConsignmentsHistory"])
-end
-
-
-
-
-insertcols!(FinalDF, :ConsumptionTotal => FinalDF.ConsumptionIn .+ FinalDF.ConsumptionOut .+ FinalDF.ConsumptionLightning)
-Chupcabara = @pipe groupby(FinalDF, [:Day, :Hour]) |>
-    combine(_, :ConsumptionTotal => mean => :Consumption,
-                :ConsumptionTotal => std => :ConsumptionSampleStd,
-                nrow => :Counts)
-Bebok = @pipe groupby(FinalConsignmentDF,  [:Day, :Hour]) |>
-    combine(_, :ConsignmentsIn => mean,
-                :ConsignmentsOut => mean)
-insertcols!(Chupcabara, :ConsumptionAvgStd => Chupcabara.ConsumptionSampleStd./sqrt.(Chupcabara.Counts))
-
-trombocyt = ExtractFinalStorageData(testOutput)
-
-
-FinalDF = vcat([FinalDF, testOutput[i]["Storage"].ElectricityConsumption for i in 2:length(testOutput)])
-first(FinalDF, 5)
-length(testOutput)
-#####
-# tests
-MyStorage = Storage(1,45,93,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
-InitFill = MyStorage.MaxCapacity * rand(DistInitFill)
-InitFill = MyStorage.MaxCapacity
-
-MyStorage2 = Storage(1,45,51,7, "||", 1.4, 1, 1.4, 0.33, 0.8, 1.1)
-MyStorage2.StorageMap[:, 42:48, 1]
-MyStorage2.MaxCapacity
-
-for ConsNum in 1:InitFill
-    CurrentCons = Consignment(
-        Dict("Day" => 0, "Hour" => 0, "ID" => ConsNum),
-        MyStorage, 1.2, 0.8, 1.2, min(rand(DistWeightCon), 1500)
-    )
-    LocateSlot!(CurrentCons, MyStorage; optimise = false)
-end
-
-
-#using JuliaInterpreter
-#push!(JuliaInterpreter.compiled_modules, Base)
-MyStorage = CreateNewStorage(1, 20, 45, 51, 7, "||",
-    1.4, 1, 1.4,
-    0.33, 0.8, 1.1,
-    1.2, 0.8, 1.2,
-    DistWeightCon, DistInitFill)
-sum(isnothing.(MyStorage.StorageMap))
-any(isnothing.(MyStorage.StorageMap))
-CurrentCons = Consignment(
-    Dict("Day" => 1, "Hour" => 1, "ID" => 2),
-    MyStorage, 1.2, 0.8, 1.2, 1500
-)
-
-MyStorage.ElectricityConsumption[(MyStorage.ElectricityConsumption.Hour .==5) .&
-    (MyStorage.ElectricityConsumption.Day .==7), "ConsumptionIn"] .+=5
-MyStorage.ElectricityConsumption[:,"ConsumptionIn"]
-
-a = DataFrame(a = [], b = [])
-push!(a, (1,2))
-a = vcat(a, DataFrame(a = collect(0:23), b = repeat([1],24)))
