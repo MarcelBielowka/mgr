@@ -39,7 +39,7 @@ function SimOneRun(RunID, SimWindow,
     # as per lightning norm PN-EN 12464-1:2004: 20 lx = 20 lm/m2
     StorageArea = SlotsLength * ConveyorSectionWidth * SlotsWidth * ConveyorSectionLength + 2 * SlotsLength * ConveyorSectionLength
     LightningLampLumen = LightningLampLumenPerW * LightningLampWork
-    NumberOfLamps = StorageArea * LightningMinimum / LightningLampLumen
+    NumberOfLamps = ceil(StorageArea * LightningMinimum / LightningLampLumen)
     LightningEnergyConsumption = NumberOfLamps * LightningLampWork
     println("In the new storage there will be $NumberOfLamps lamps using $LightningEnergyConsumption W of power")
 
