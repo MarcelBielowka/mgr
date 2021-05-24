@@ -129,7 +129,6 @@ end
 #dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
 #    FilterStart = "2012-01-01", FilterEnd = "2017-12-31")
 #dfIrradiationData = RemedyMissingIrradiationData(dfIrradiationData)["IrradiationDataNoMissing"]
-#dfIrradiationData = CalculateIndex(dfIrradiationData)
 
 function ReadWeatherData(cFileWind::String, cFileIrr::String; FilterStart = nothing, FilterEnd = nothing)
     println("Reading temperature and wind speed data")
