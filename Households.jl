@@ -4,6 +4,7 @@
 using CSV, DataFrames, Dates, Pipe, Statistics
 using Clustering, StatsPlots, Random
 using FreqTables, Impute, Distances
+using MultivariateStats
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
 
@@ -11,7 +12,7 @@ cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
 ###### The very households weightlifting ######
 ###############################################
 
-function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
+function GetHouseholdsData(cMasterDir, dHolidayCalendar; FixedSeed = 72945)
     dfHouseholdDataFull = ReadRawData(cMasterDir)
     println("Start processing data")
     # Filter only data for 2013
@@ -35,12 +36,17 @@ function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
     else
         println("None of the households has duplicated values. All is fine")
     end
+    println("Some further data validation and cleaning")
+    dfHouseholdDataShortComplete = CheckHouseholdDataQuality(dfHouseholdDataShortComplete, 10, 5)
+
+    println("Add some further data and holidays servicing")
+    dfHouseholdDataShortComplete = AddMonthDayOfWeek(dfHouseholdDataShortComplete, dHolidayCalendar)
 
     println("Splitting data by month and day of week")
     dfHouseholdDataToCluster = PrepareDataForClustering(dfHouseholdDataShortComplete)
 
     Random.seed!(FixedSeed)
-    SelectedDays = (rand(1:12, 3), rand(1:7, 3))
+    SelectedDays = (rand(1:12, 5), rand(1:7, 5))
     println("Days selected for test runs are $SelectedDays")
     TestClusteringData = RunTestClustering(dfHouseholdDataToCluster, SelectedDays)
 
@@ -51,6 +57,7 @@ function GetHouseholdsData(cMasterDir; FixedSeed = 72945)
     ClusteringOutput = Dict(
         "FinalClusteringOutput" => FinalClusteringOutput[1],
         "ClusteringCounts" => FinalClusteringOutput[2],
+        "PCAOutput" => FinalClusteringOutput[3],
         "ClusteredData" => dfHouseholdDataToCluster,
         "SillhouettesScoreAverage" => TestClusteringData[1],
         "FinalNumberOfClusters" => TestClusteringData[2]
@@ -107,6 +114,7 @@ function ProcessRawHouseholdData(cMainDir, cFileName)
     return dfFilteredData_hourly
 end
 
+
 ###############################################
 ####### Further cloeaning - see below #########
 ###############################################
@@ -119,6 +127,10 @@ function ClearAndModifyHouseholdData(dfHouseholdData)
     dfHouseholdDataByHousehold = @pipe groupby(dfHouseholdData, :LCLid)
     iCompleteHouseholds = findall([length(unique(dfHouseholdDataByHousehold[i].Date)) for i in 1:length(dfHouseholdDataByHousehold)] .==365)
     dfHouseholdDataCompleteHouseholds = dfHouseholdDataByHousehold[iCompleteHouseholds]
+    iHouseholdsMissingDataCheck = findall(
+        [nrow(dfHouseholdDataCompleteHouseholds[i]) for i in 1:length(dfHouseholdDataCompleteHouseholds)] .>= 8670
+    )
+    dfHouseholdDataCompleteHouseholds = dfHouseholdDataCompleteHouseholds[iHouseholdsMissingDataCheck]
     dfHouseholdDataShortCompleteDoubles = combine(dfHouseholdDataCompleteHouseholds,
         [:Date, :Hour, :Consumption])
 
@@ -134,12 +146,58 @@ function ClearAndModifyHouseholdData(dfHouseholdData)
         println("There are some households with missing data. Execution stopped")
         return nothing
     end
-    # Add month and day of week columns
-    dfHouseholdDataShortComplete.Month = Dates.month.(dfHouseholdDataShortComplete.Date)
-    dfHouseholdDataShortComplete.DayOfWeek = Dates.dayofweek.(dfHouseholdDataShortComplete.Date)
 
     # return the outcome
     return dfHouseholdDataShortComplete, iNonUniqueIndices
+end
+
+
+function CheckHouseholdDataQuality(dfHouseholdData, iMinDiffDataPoints, iMaxMissingDataPoints)
+    dfHouseholdDataByHousehold = groupby(dfHouseholdData, :LCLid)
+    iIndicesToStay = []
+    for i in 1:length(dfHouseholdDataByHousehold)
+        dfCurrentHouseholdData = unstack(dfHouseholdDataByHousehold[i],
+            :Hour, :Date, :Consumption)
+        StartEndDataError =
+            ismissing(
+                sum(dfCurrentHouseholdData[1,2:ncol(dfCurrentHouseholdData)])
+            ) || ismissing(
+                sum(dfCurrentHouseholdData[nrow(dfCurrentHouseholdData),2:ncol(dfCurrentHouseholdData)])
+            )
+        if StartEndDataError
+            println("Household $i failed the start/end data test and will be removed")
+        else
+            # VariableDataTest = all([length(unique(dfCurrentHouseholdData[:,i])) for i in 2:ncol(dfCurrentHouseholdData)].>=iMinDiffDataPoints)
+            MissingDataTest = all([sum(ismissing.(dfCurrentHouseholdData[:, i])) for i in 2:ncol(dfCurrentHouseholdData)] .< iMaxMissingDataPoints)
+            #if VariableDataTest && MissingDataTest
+            if MissingDataTest
+                println("Household $i is good to go")
+                append!(iIndicesToStay, i)
+            else
+                println("Household $i failed the  missing data test")
+                #println("Household $i failed the Variable or missing data test. Variable is $VariableDataTest and missing is $MissingDataTest")
+            end
+        end
+    end
+    dfHouseholdDataClean = dfHouseholdDataByHousehold[iIndicesToStay]
+    dfHouseholdDataToReturn = combine(dfHouseholdDataClean,
+        [:Date, :Hour, :Consumption])
+
+    return dfHouseholdDataToReturn
+end
+
+function AddMonthDayOfWeek(dfHouseholdData, dHolidayCalendar)
+    println("Adding Month and DayOfWeek variables")
+    dfHouseholdDataClean = deepcopy(dfHouseholdData)
+    insertcols!(dfHouseholdDataClean,
+                :Month => Dates.month.(dfHouseholdDataClean.Date),
+                :DayOfWeek => Dates.dayofweek.(dfHouseholdDataClean.Date))
+    #dfHouseholdData.DayOfWeek[dfHouseholdData.DayOfWeek .==7] .= "SundayHoliday"
+    for i in 1:length(dHolidayCalendar)
+        println("Moving day ", dHolidayCalendar[i], " to Sunday group")
+        dfHouseholdDataClean.DayOfWeek[dfHouseholdDataClean.Date .== dHolidayCalendar[i]] .= 7
+    end
+    return dfHouseholdDataClean
 end
 
 ###############################################
@@ -168,8 +226,8 @@ function PrepareDaysDataForClustering(dfHouseholdDataByMonth, CurrentMonth, Curr
         unstack(_, :IDAndDay, :Consumption)
     for column in eachcol(CurrentPeriod)
         Impute.impute!(column, Impute.Interpolate())
-        Impute.impute!(column, Impute.LOCF())
-        Impute.impute!(column, Impute.NOCB())
+        #Impute.impute!(column, Impute.LOCF())
+        #Impute.impute!(column, Impute.NOCB())
     end
     disallowmissing!(CurrentPeriod)
     return CurrentPeriod
@@ -224,10 +282,13 @@ end
 ###############################################
 function RunFinalClustering(dfHouseholdDataByMonth, OptimalNumberOfClusters)
     # the function runs just like above
+    # additionally, PCA is also run to show cluster separation quality
     HouseholdProfiles = Dict{}()
     HouseholdProfilesClusteringCounts = Dict{}()
+    PCAOutputs = Dict{}()
     for Month in 1:12, Day in 1:7
         println("Month ", Month, " , day ", Day)
+        # clustering
         CurrentPeriod = PrepareDaysDataForClustering(dfHouseholdDataByMonth,
             Month, Day)
         ClustersOnDay = Clustering.kmeans(
@@ -239,58 +300,57 @@ function RunFinalClustering(dfHouseholdDataByMonth, OptimalNumberOfClusters)
         )
         dfClusteringOutput.Hour = convert.(Int, dfClusteringOutput.Hour)
 
+        # PCA
+        PcaOnDay = fit(PCA, Matrix(CurrentPeriod[:,4:size(CurrentPeriod)[2]]), maxoutdim = OptimalNumberOfClusters)
+        dfPcaOutput = MultivariateStats.transform(
+            PcaOnDay, Matrix(CurrentPeriod[:,4:size(CurrentPeriod)[2]])
+        ) |> transpose |> DataFrame
+        rename!(dfPcaOutput, [:PC1, :PC2])
+
+        # Pushing to final dictionaries
         push!(HouseholdProfiles, (Month, Day) => dfClusteringOutput)
         push!(HouseholdProfilesClusteringCounts, (Month, Day) => ClustersOnDay.counts)
+        push!(PCAOutputs, (Month, Day) => dfPcaOutput)
     end
 
-    return HouseholdProfiles, HouseholdProfilesClusteringCounts
+    return HouseholdProfiles, HouseholdProfilesClusteringCounts, PCAOutputs
 end
 
 ###############################################
 #################### Plots ####################
 ###############################################
-function RunPlots(FinalHouseholdData)
-    plotSillhouettes = @df FinalHouseholdData["SillhouettesScoreAverage"] StatsPlots.groupedbar(:NumberOfClusters, :SillhouetteScore,
-        group = :TestDays,
-        color = [RGB(192/255, 0, 0) RGB(100/255, 0, 0) RGB(8/255, 0, 0)],
-        xlabel = "Number of clusters",
-        ylabel = "Average silhouette score",
-        legendtitle = "Test Day",
-        title = "Average sillhouette score")
+function RunPlots(FinalHouseholdData, month, day; silhouettes = true)
+    if silhouettes
+        PlotSillhouettes = @df FinalHouseholdData["SillhouettesScoreAverage"] StatsPlots.groupedbar(:NumberOfClusters, :SillhouetteScore,
+            group = :TestDays,
+            color = [RGB(192/255, 0, 0) RGB(146/255, 0, 0) RGB(100/255, 0, 0) RGB(54/255, 0, 0) RGB(8/255, 0, 0)],
+            xlabel = "Number of clusters",
+            ylabel = "Average silhouette score",
+            legendtitle = "Test Day",
+            title = "Average sillhouette score")
+    else
+        PlotSillhouettes = nothing
+    end
 
     #######
-    dfWideDataToPlotJanMon = PrepareDaysDataForClustering(FinalHouseholdData["ClusteredData"],1,1)
-    dfWideDataToPlotJulMon = PrepareDaysDataForClustering(FinalHouseholdData["ClusteredData"],7,1)
-    dfWideDataToPlotJanSun = PrepareDaysDataForClustering(FinalHouseholdData["ClusteredData"],1,7)
-
+    dfWideDataToPlot = PrepareDaysDataForClustering(FinalHouseholdData["ClusteredData"],month,day)
     #January Mondays plot
-    PlotOfClusterJanMon = @df dfWideDataToPlotJanMon StatsPlots.plot(:Hour,
+    PlotDataAndProfiles = @df dfWideDataToPlot StatsPlots.plot(:Hour,
         cols(4:3000),
         color = RGB(150/255,150/255,150/255), linealpha = 0.05,
         legend = :none,
         ylim = [0,5],
-        title = "January Monday")
-    @df FinalHouseholdData["FinalClusteringOutput"][(1,1)] StatsPlots.plot!(:Hour,
+        title = "Original data and profiles for month $month and day $day")
+    @df FinalHouseholdData["FinalClusteringOutput"][(month,day)] StatsPlots.plot!(:Hour,
         cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(1,1)])),
         color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
 
-    PlotOfClusterJanSun = @df dfWideDataToPlotJanSun StatsPlots.plot(:Hour,
-        cols(4:3000),
-        color = RGB(150/255,150/255,150/255), linealpha = 0.05,
-        legend = :none,
-        ylim = [0,5],
-        title = "January Sunday")
-    @df FinalHouseholdData["FinalClusteringOutput"][(1,7)] StatsPlots.plot!(:Hour,
-        cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(1,7)])),
-        color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
+    PlotPCA = @df FinalHouseholdData["PCAOutput"][(month,day)] StatsPlots.scatter(:PC1, :PC2,
+        color = RGB(192/255,0,0), title = "PCA analysis for month $month and day $day", legend = :none)
 
-    PlotOfClusterJulMon = @df dfWideDataToPlotJulMon StatsPlots.plot(:Hour,
-        cols(4:3000),
-        color = RGB(150/255,150/255,150/255), linealpha = 0.05,
-        legend = :none,
-        ylim = [0,5],
-        title = "July Monday")
-    @df FinalHouseholdData["FinalClusteringOutput"][(7,1)] StatsPlots.plot!(:Hour,
-        cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(7,1)])),
-        color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
+    return Dict(
+        "PlotSillhouettes" => PlotSillhouettes,
+        "PlotDataAndProfiles" => PlotDataAndProfiles,
+        "PlotPCA" => PlotPCA,
+    )
 end
