@@ -1,8 +1,6 @@
 using CSV, DataFrames, SplitApplyCombine
 using Plots, Dates, Distributions, Random, StatsPlots
-using HypothesisTests, RCall, PyCall
 using Pipe, Statistics, Missings
-using Impute
 include("SolarAngle.jl")
 
 #using JuliaInterpreter
@@ -61,7 +59,7 @@ end
 
 #dfWindTempData = ReadWindAndTempData("C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv")
 #dfWindTempData = ReadWindAndTempData("C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv",
-#    FilterStart = "2018-01-01")
+#    FilterStart = "2019-01-01")
 #dfWindTempData = ReadWindAndTempData("C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv",
 #    FilterEnd = "2017-12-31")
 #Redemption = RemedyMissingWindTempData(dfWindTempData)
@@ -111,9 +109,23 @@ function RemedyMissingIrradiationData(dfIrrData)
     )
 end
 
+function CorrectIrradiationDataForSolarAngle(dfIrrData)
+    dfIrradiationData = deepcopy(dfIrrData)
+    insertcols!(dfIrradiationData, :SolarAngle => SunPosition.(
+            dfIrradiationData.year, dfIrradiationData.month,
+            Dates.day.(dfIrradiationData.date), dfIrradiationData.hour
+        )
+    )
+    dfIrradiationData.Irradiation[dfIrradiationData.SolarAngle .< 10] .= 0
+    return dfIrradiationData
+
+end
+
 #dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv")
-#dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
-#    FilterStart = "2018-01-01")
+dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
+    FilterStart = "2019-01-01")
+
+dfIrradiationDataTest = CorrectIrradiationDataForSolarAngle(dfIrradiationData)
 #dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
 #    FilterEnd = "2018-12-31")
 #dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
