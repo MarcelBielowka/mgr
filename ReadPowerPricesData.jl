@@ -50,10 +50,10 @@ function ReadPrices(cFilePrices::String; DeliveryFilterStart = nothing, Delivery
     return dfPriceDataRaw
 end
 
-data = ReadPrices("C:/Users/Marcel/Desktop/mgr/data/POLPX_DA_20170101_20201014.csv")
-data = ReadPrices("C:/Users/Marcel/Desktop/mgr/data/POLPX_DA_20170101_20201014.csv",
-    DeliveryFilterStart = "2019-01-01")
-data = ReadPrices("C:/Users/Marcel/Desktop/mgr/data/POLPX_DA_20170101_20201014.csv",
-    DeliveryFilterEnd = "2018-12-31")
-data = ReadPrices("C:/Users/Marcel/Desktop/mgr/data/POLPX_DA_20170101_20201014.csv",
-    DeliveryFilterStart = "2019-01-01", DeliveryFilterEnd = "2019-12-31")
+#data = ReadPrices("C:/Users/Marcel/Desktop/mgr/data/POLPX_DA_20170101_20201014.csv")
+#data = ReadPrices("C:/Users/Marcel/Desktop/mgr/data/POLPX_DA_20170101_20201014.csv",
+#    DeliveryFilterStart = "2019-01-01")
+#data = ReadPrices("C:/Users/Marcel/Desktop/mgr/data/POLPX_DA_20170101_20201014.csv",
+#    DeliveryFilterEnd = "2018-12-31")
+#data = ReadPrices("C:/Users/Marcel/Desktop/mgr/data/POLPX_DA_20170101_20201014.csv",
+#    DeliveryFilterStart = "2019-01-01", DeliveryFilterEnd = "2019-12-31")
