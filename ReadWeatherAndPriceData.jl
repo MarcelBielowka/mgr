@@ -131,6 +131,28 @@ end
 #dfIrradiationData = RemedyMissingIrradiationData(dfIrradiationData)["IrradiationDataNoMissing"]
 #dfIrradiationData = CalculateIndex(dfIrradiationData)
 
+function ReadWeatherData(cFileWind::String, cFileIrr::String; FilterStart = nothing, FilterEnd = nothing)
+    dfRawWindTempData = ReadWindAndTempData(cFileWind, FilterStart = FilterStart, FilterEnd = FilterEnd)
+    ProcessedWindTempData = RemedyMissingWindTempData(dfRawWindTempData)
+    dfRawIrrData = ReadIrradiationData(cFileIrr, FilterStart = FilterStart, FilterEnd = FilterEnd)
+    ProcessedIrrData = RemedyMissingIrradiationData(dfRawIrrData)
+    dfFinalWeatherData = DataFrames.innerjoin(
+        ProcessedWindTempData["WindTempDataNoMissing"], ProcessedIrrData["IrradiationDataNoMissing"],
+        on = :date, makeunique = true
+    )
+    select!(dfFinalWeatherData, [:date, :Temperature, :WindSpeed, :Irradiation])
+
+    return Dict(
+        "dfFinalWeatherData" => dfFinalWeatherData,
+        "DetailsWindTempData" => ProcessedWindTempData,
+        "DetailsIrradiationData" => ProcessedIrrData
+    )
+end
+
+test = ReadWeatherData("C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv",
+                       "C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
+                       FilterStart = "2019-01-01")
+
 ##
 # wind production
 function WindProductionForecast(P_nam, V, V_nam, V_cutin, V_cutoff)
