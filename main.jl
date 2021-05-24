@@ -7,6 +7,7 @@ using HTTP, LightXML
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 include("Households.jl")
 include("NonRefrigeratedStorage.jl")
+include("ReadWeatherAndPriceData.jl")
 
 #########################################
 ######## Variables definition  ##########
@@ -31,7 +32,7 @@ HouseholdsData = GetHouseholdsData(cHouseholdsDir)
 #########################################
 ####### Extract warehouse data  #########
 #########################################
-@time WarehouseDataRaw = SimWrapper(iStorageNumberOfSimulations, iStorageSimWindow, 
+@time WarehouseDataRaw = SimWrapper(iStorageNumberOfSimulations, iStorageSimWindow,
         45, 51, 7, 1.4, 1.4, 0.8,
         1.4, 1.1, 1.2, 0.8, 1.2, 0.33, "||", 20, 60, 150,
         DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
