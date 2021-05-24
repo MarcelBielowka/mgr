@@ -8,12 +8,16 @@ cd("C:/Users/Marcel/Desktop/mgr/kody")
 include("Households.jl")
 include("NonRefrigeratedStorage.jl")
 include("ReadWeatherData.jl")
+include("ReadPowerPricesData.jl")
 
 #########################################
 ######## Variables definition  ##########
 #########################################
 Random.seed!(72945)
 cHouseholdsDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
+cPowerPricesDataDir = "C://Users//Marcel//Desktop//mgr//data//POLPX_DA_20170101_20201014.csv"
+cWindTempDataDir = "C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv"
+cIrrDataDir = "C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv"
 ArrivalsDict = zip(0:23,
     floor.([0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0])) |> collect |> Dict
 DeparturesDict = zip(0:23,
@@ -22,10 +26,12 @@ DistWeightCon = Distributions.Normal(1300, 200)
 DistInitFill = Distributions.Uniform(0.2, 0.5)
 iStorageNumberOfSimulations = 100
 iStorageSimWindow = 31
+cWeatherPricesDataWindowStart = "2019-01-01"
+cWeatherPricesDataWindowEnd = "2019-12-31"
 
 
 #########################################
-####### Extract households data  ########
+####### Extract households data #########
 #########################################
 HouseholdsData = GetHouseholdsData(cHouseholdsDir)
 
@@ -39,12 +45,18 @@ HouseholdsData = GetHouseholdsData(cHouseholdsDir)
 WarehouseDataAggregated = ExtractFinalStorageData(WarehouseDataRaw)
 
 #########################################
-###### Extract price and load data  #####
+########### Extract weather data ########
 #########################################
-cPriceDataDir = "C://Users//Marcel//Desktop//mgr//data//POLPX_DA_20170101_20201014.csv"
-dfPriceDataFull = ReadPrices(cPriceDataDir)
-FirstLastDay = extrema(dfPriceDataFull.delivery_date)
-string(year(FirstLastDay[2]))*"-01-01" |> Date
+WeatherDataDetails = ReadWeatherData(cWindTempDataDir, cIrrDataDir,
+    FilterStart = cWeatherPricesDataWindowStart,
+    FilterEnd = cWeatherPricesDataWindowEnd)
+
+#########################################
+######## Extract power prices data ######
+#########################################
+dfPowerPriceData = ReadPrices(cPowerPricesDataDir,
+    DeliveryFilterStart = cWeatherPricesDataWindowStart,
+    DeliveryFilterEnd = cWeatherPricesDataWindowEnd)
 
 #########################################
 ####### Select days for simulation ######
