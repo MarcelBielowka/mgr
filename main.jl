@@ -3,7 +3,6 @@ using CSV, DataFrames, Dates, DataStructures, Distributions
 using FreqTables, HypothesisTests
 using MultivariateStats, Random
 using StatsPlots, StatsBase
-using HTTP, LightXML
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 include("Households.jl")
 include("NonRefrigeratedStorage.jl")
@@ -50,6 +49,7 @@ WarehouseDataAggregated = ExtractFinalStorageData(WarehouseDataRaw)
 WeatherDataDetails = ReadWeatherData(cWindTempDataDir, cIrrDataDir,
     FilterStart = cWeatherPricesDataWindowStart,
     FilterEnd = cWeatherPricesDataWindowEnd)
+dfWeatherData = WeatherDataDetails["dfFinalWeatherData"]
 
 #########################################
 ######## Extract power prices data ######
