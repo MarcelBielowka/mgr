@@ -51,6 +51,15 @@ WeatherDataDetails = ReadWeatherData(cWindTempDataDir, cIrrDataDir,
     FilterStart = cWeatherPricesDataWindowStart,
     FilterEnd = cWeatherPricesDataWindowEnd)
 dfWeatherData = WeatherDataDetails["dfFinalWeatherData"]
+dfWindProduction = DataFrames.DataFrame(
+    date = dfWeatherData.date,
+    WindProduction = WindProductionForecast.(2000, dfWeatherData.WindSpeed, 11.5, 3, 20)
+)
+
+dfSolarProduction = DataFrames.DataFrame(
+    date = dfWeatherData.date,
+    SolarProduction = SolarProductionForecast.(0.45, dfWeatherData.Irradiation, dfWeatherData.Temperature,0.004, 45)
+)
 
 #########################################
 ######## Extract power prices data ######

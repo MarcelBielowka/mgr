@@ -183,8 +183,7 @@ function SolarCellTemp(TempAmb, Noct, Irradiation; TempConst = 20, IrrConst = 80
 end
 
 function SolarProductionForecast(P_STC, Irradiation, TempAmb, γ_temp, Noct; Irr_STC = 1000, T_STC = 25)
-    TempCell = SolarCellTemp(TempAmb = TempAmb, Noct = Noct,
-        Irradiation = Irradiation)
+    TempCell = SolarCellTemp.(TempAmb, Noct, Irradiation)
     P_output = P_STC * Irradiation / Irr_STC * (1 - γ_temp * (TempCell - T_STC))
     return P_output
 end
