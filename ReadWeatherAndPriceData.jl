@@ -4,15 +4,13 @@ using HypothesisTests, RCall, PyCall
 using Pipe, Statistics, Missings
 using Impute
 include("SolarAngle.jl")
-st = pyimport("scipy.stats")
-@rlibrary MASS
 
 #using JuliaInterpreter
 #push!(JuliaInterpreter.compiled_modules, Base)
 
 ## read and clean data
 
-function ReadWindAndTempData(cFileWind::String)
+function ReadWindAndTempData(cFileWind::String; FilterStart = nothing, FilterEnd = nothing)
     dfWindData = CSV.File(cFileWind) |>
         DataFrame
     select!(dfWindData, [:date, :temp_avg, :predkosc100m_avg])
@@ -31,6 +29,15 @@ function ReadWindAndTempData(cFileWind::String)
     dfWindData[!, "month"] = Dates.month.(dfWindData.date)
     dfWindData[!, "hour"] = Dates.hour.(dfWindData.date)
     dfWindData[!, "year"] = Dates.year.(dfWindData.date)
+
+    if !isnothing(FilterStart)
+        filter!(row -> row.date >= Dates.Date(FilterStart), dfWindData)
+    end
+
+    if !isnothing(FilterEnd)
+        StringEndDate = FilterEnd * "T23:59:00"
+        filter!(row -> row.date <= Dates.DateTime(StringEndDate), dfWindData)
+    end
 
     return dfWindData
 end
@@ -53,34 +60,41 @@ function RemedyMissingWindTempData(dfWindData)
 end
 
 #dfWindTempData = ReadWindAndTempData("C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv")
+#dfWindTempData = ReadWindAndTempData("C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv",
+#    FilterStart = "2018-01-01")
+#dfWindTempData = ReadWindAndTempData("C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv",
+#    FilterEnd = "2017-12-31")
 #Redemption = RemedyMissingWindTempData(dfWindTempData)
 #dfMissingDataWind = Redemption["GroupedMissingDataWind"]
 #dfMissingDataTemp = Redemption["GroupedMissingDataTemp"]
 #dfWindTempDataFinal = Redemption["WindTempDataNoMissing"]
 
-function ReadIrradiationData(cFileIrr::String, cFileTheoretical::String)
+function ReadIrradiationData(cFileIrr::String; FilterStart = nothing, FilterEnd = nothing)
     dfWeatherData = CSV.File(cFileIrr) |>
         DataFrame
     select!(dfWeatherData, [:date, :prom_avg])
     dfWeatherData.date = Dates.DateTime.(dfWeatherData.date, DateFormat("y-m-d H:M:S"))
 
-    dfWeatherDataTempTheoretical = CSV.File(cFileTheoretical,
-        delim = ";", header = 38) |>
-        DataFrame
-    dfWeatherDataTempTheoretical = CleanCAMSdata(dfWeatherDataTempTheoretical)
-
-    dfWeatherData = DataFrames.innerjoin(dfWeatherData, dfWeatherDataTempTheoretical, on = :date )
-    rename!(dfWeatherData, ["date", "Irradiation", "TOA", "GHI"])
+    rename!(dfWeatherData, ["date", "Irradiation"])
 
     dfWeatherData.Irradiation[dfWeatherData.Irradiation .== "NA"] .= "Inf"
     dfWeatherData.Irradiation = parse.(Float64, dfWeatherData.Irradiation)
     allowmissing!(dfWeatherData)
     dfWeatherData.Irradiation[dfWeatherData.Irradiation .== Inf] .= missing
 
-    dfWeatherData["date_nohour"] = Dates.Date.(dfWeatherData["date"])
-    dfWeatherData["month"] = Dates.month.(dfWeatherData["date"])
-    dfWeatherData["hour"] = Dates.hour.(dfWeatherData["date"])
-    dfWeatherData["year"] = Dates.year.(dfWeatherData["date"])
+    dfWeatherData[!, "date_nohour"] = Dates.Date.(dfWeatherData[!, "date"])
+    dfWeatherData[!, "month"] = Dates.month.(dfWeatherData[!, "date"])
+    dfWeatherData[!, "hour"] = Dates.hour.(dfWeatherData[!, "date"])
+    dfWeatherData[!, "year"] = Dates.year.(dfWeatherData[!, "date"])
+
+    if !isnothing(FilterStart)
+        filter!(row -> row.date >= Dates.Date(FilterStart), dfWeatherData)
+    end
+
+    if !isnothing(FilterEnd)
+        StringEndDate = FilterEnd * "T23:59:00"
+        filter!(row -> row.date <= Dates.DateTime(StringEndDate), dfWeatherData)
+    end
 
     return dfWeatherData
 end
@@ -97,8 +111,13 @@ function RemedyMissingIrradiationData(dfIrrData)
     )
 end
 
+#dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv")
 #dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
-#                        "C:/Users/Marcel/Desktop/mgr/data/clear_sky_irradiation_CAMS.csv")
+#    FilterStart = "2018-01-01")
+#dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
+#    FilterEnd = "2018-12-31")
+#dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
+#    FilterStart = "2012-01-01", FilterEnd = "2017-12-31")
 #dfIrradiationData = RemedyMissingIrradiationData(dfIrradiationData)["IrradiationDataNoMissing"]
 #dfIrradiationData = CalculateIndex(dfIrradiationData)
 
