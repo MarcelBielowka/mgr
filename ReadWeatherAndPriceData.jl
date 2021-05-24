@@ -97,18 +97,6 @@ function ReadIrradiationData(cFileIrr::String; FilterStart = nothing, FilterEnd 
     return dfWeatherData
 end
 
-function RemedyMissingIrradiationData(dfIrrData)
-    dfMissingIrradiationData = filter(row -> ismissing(row.Irradiation), dfIrrData)
-    GroupedMissingIrradiationData = @pipe groupby(dfMissingIrradiationData, [:year, :month]) |>
-            combine(_, nrow => :MissingCount)
-    dfOutputData = dropmissing(dfIrrData)
-    return Dict(
-        "MissingDataIrradiation" => dfMissingIrradiationData,
-        "GruopedMissingDataIrradiation" => GroupedMissingIrradiationData,
-        "IrradiationDataNoMissing" => dfOutputData
-    )
-end
-
 function CorrectIrradiationDataForSolarAngle(dfIrrData)
     dfIrradiationData = deepcopy(dfIrrData)
     insertcols!(dfIrradiationData, :SolarAngle => SunPosition.(
@@ -118,14 +106,24 @@ function CorrectIrradiationDataForSolarAngle(dfIrrData)
     )
     dfIrradiationData.Irradiation[dfIrradiationData.SolarAngle .< 10] .= 0
     return dfIrradiationData
+end
 
+function RemedyMissingIrradiationData(dfIrrData)
+    dfMissingIrradiationData = filter(row -> ismissing(row.Irradiation), dfIrrData)
+    GroupedMissingIrradiationData = @pipe groupby(dfMissingIrradiationData, [:year, :month]) |>
+            combine(_, nrow => :MissingCount)
+    dfOutputData = dropmissing(dfIrrData)
+    dfOutputData = CorrectIrradiationDataForSolarAngle(dfOutputData)
+    return Dict(
+        "MissingDataIrradiation" => dfMissingIrradiationData,
+        "GruopedMissingDataIrradiation" => GroupedMissingIrradiationData,
+        "IrradiationDataNoMissing" => dfOutputData
+    )
 end
 
 #dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv")
-dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
-    FilterStart = "2019-01-01")
-
-dfIrradiationDataTest = CorrectIrradiationDataForSolarAngle(dfIrradiationData)
+#dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
+#    FilterStart = "2019-01-01")
 #dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
 #    FilterEnd = "2018-12-31")
 #dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
