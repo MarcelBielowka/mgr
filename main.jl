@@ -15,8 +15,9 @@ include("ReadPowerPricesData.jl")
 Random.seed!(72945)
 cHouseholdsDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
 cPowerPricesDataDir = "C://Users//Marcel//Desktop//mgr//data//POLPX_DA_20170101_20201014.csv"
-cWindTempDataDir = "C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv"
-cIrrDataDir = "C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv"
+cWindTempDataDir = "C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv"
+cIrrDataDir = "C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv"
+
 ArrivalsDict = zip(0:23,
     floor.([0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0])) |> collect |> Dict
 DeparturesDict = zip(0:23,
@@ -46,7 +47,7 @@ WarehouseDataAggregated = ExtractFinalStorageData(WarehouseDataRaw)
 #########################################
 ########### Extract weather data ########
 #########################################
-WeatherDataDetails = ReadWeatherData(cWindTempDataDir, cIrrDataDir,
+WeatherDataDetails = Juno.@enter ReadWeatherData(cWindTempDataDir, cIrrDataDir,
     FilterStart = cWeatherPricesDataWindowStart,
     FilterEnd = cWeatherPricesDataWindowEnd)
 dfWeatherData = WeatherDataDetails["dfFinalWeatherData"]
