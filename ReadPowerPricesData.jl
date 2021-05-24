@@ -1,12 +1,10 @@
-using CSV, DataFrames, Dates, Distributions
-using HypothesisTests
-using Plots, StatsBase, Turing
+using CSV, DataFrames, Dates
+using StatsPlots, StatsBase
 using FreqTables, Random
-using HTTP, LightXML, Dates
 
-function ReadPrices(cCsvDir)
+function ReadPrices(cFilePrices::String; RemoveDSL = true)
     # reading the price data, selecting (and renaming) only needed columns
-    dfPriceDataRaw = CSV.File(cCsvDir) |> DataFrame
+    dfPriceDataRaw = CSV.File(cFilePrices) |> DataFrame
     dfPriceDataRaw = dfPriceDataRaw[:,
                 ["data obrotu", "data dostawy", "godzina dostawy", "kurs fixingu I (PLN/MWh)"]]
     rename!(dfPriceDataRaw, ["trade_date", "delivery_date", "delivery_hour", "price"])
@@ -15,7 +13,7 @@ function ReadPrices(cCsvDir)
     # the hour is added as an average of the neighbouring two
     filter!(row -> (row."delivery_hour" != "02a" ),  dfPriceDataRaw)
     dfPriceDataRaw["delivery_hour"] = parse.(Int64, dfPriceDataRaw["delivery_hour"])
-    if RemoveDSL == true
+    if RemoveDSL
         println("Adding additional hour for DSL switch")
         for i in 2:DataFrames.nrow(dfPriceDataRaw)
             if dfPriceDataRaw[i - 1,"delivery_hour"] == 1 && dfPriceDataRaw[i,"delivery_hour"] == 3
@@ -32,13 +30,6 @@ function ReadPrices(cCsvDir)
     else
         println("Adding additonal hour for DSL is skipped")
     end
-
-    # adding the daily variables
-    dfPriceDataRaw[:Saturday] = Dates.dayofweek.(dfPriceDataRaw[:delivery_date]) .== 6
-    dfPriceDataRaw[:Sunday] = Dates.dayofweek.(dfPriceDataRaw[:delivery_date]) .== 7
-    dfPriceDataRaw[:Monday] = Dates.dayofweek.(dfPriceDataRaw[:delivery_date]) .== 1
-    dfPriceDataRaw[:log_price] = log.(dfPriceDataRaw.price)
-    dfPriceDataRaw[:log_load_forecast] = log.(dfPriceDataRaw.load_forecast)
 
     # basic data validation - check if any data missing
     # and if all the days have all the hours
