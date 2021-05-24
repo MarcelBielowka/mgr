@@ -132,10 +132,15 @@ end
 #dfIrradiationData = CalculateIndex(dfIrradiationData)
 
 function ReadWeatherData(cFileWind::String, cFileIrr::String; FilterStart = nothing, FilterEnd = nothing)
+    println("Reading temperature and wind speed data")
     dfRawWindTempData = ReadWindAndTempData(cFileWind, FilterStart = FilterStart, FilterEnd = FilterEnd)
+    println("Processing them")
     ProcessedWindTempData = RemedyMissingWindTempData(dfRawWindTempData)
+    println("Reading irradiation data")
     dfRawIrrData = ReadIrradiationData(cFileIrr, FilterStart = FilterStart, FilterEnd = FilterEnd)
+    println("Processing them")
     ProcessedIrrData = RemedyMissingIrradiationData(dfRawIrrData)
+    println("Joining two datasets and returning the output")
     dfFinalWeatherData = DataFrames.innerjoin(
         ProcessedWindTempData["WindTempDataNoMissing"], ProcessedIrrData["IrradiationDataNoMissing"],
         on = :date, makeunique = true
@@ -149,9 +154,9 @@ function ReadWeatherData(cFileWind::String, cFileIrr::String; FilterStart = noth
     )
 end
 
-test = ReadWeatherData("C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv",
-                       "C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
-                       FilterStart = "2019-01-01")
+#test = ReadWeatherData("C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv",
+#                       "C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
+#                       FilterStart = "2019-01-01")
 
 ##
 # wind production
