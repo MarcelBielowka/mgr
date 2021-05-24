@@ -7,7 +7,7 @@ using HTTP, LightXML
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 include("Households.jl")
 include("NonRefrigeratedStorage.jl")
-include("ReadWeatherAndPriceData.jl")
+include("ReadWeatherData.jl")
 
 #########################################
 ######## Variables definition  ##########
