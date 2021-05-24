@@ -47,7 +47,7 @@ WarehouseDataAggregated = ExtractFinalStorageData(WarehouseDataRaw)
 #########################################
 ########### Extract weather data ########
 #########################################
-WeatherDataDetails = Juno.@enter ReadWeatherData(cWindTempDataDir, cIrrDataDir,
+WeatherDataDetails = ReadWeatherData(cWindTempDataDir, cIrrDataDir,
     FilterStart = cWeatherPricesDataWindowStart,
     FilterEnd = cWeatherPricesDataWindowEnd)
 dfWeatherData = WeatherDataDetails["dfFinalWeatherData"]
