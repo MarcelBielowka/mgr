@@ -43,8 +43,6 @@ HouseholdsData = GetHouseholdsData(cHouseholdsDir)
 #########################################
 @time WarehouseDataRaw = SimWrapper(iStorageNumberOfSimulations, iStorageSimWindow,
         DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-#@time WarehouseDataRaw = SimWrapper(1, 1,
-#                DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 WarehouseDataAggregated = ExtractFinalStorageData(WarehouseDataRaw)
 
 #########################################
