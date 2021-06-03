@@ -67,18 +67,20 @@ function GetInitialConsDataFrame(StorageID, SimLength, LightningEnergyConsumptio
 end
 
 mutable struct Conveyor
-    ConveyorSectionLength::Float16
-    ConveyorSectionWidth::Float16
-    ConveyorUnitMass::Float16
-    ConveyorEfficiency::Float16
-    FrictionCoefficient::Float16
-    StorageSlotHeight::Float16
+    ConveyorSectionLength::Float64
+    ConveyorSectionWidth::Float64
+    ConveyorUnitMass::Float64
+    ConveyorEfficiency::Float64
+    FrictionCoefficient::Float64
+    StorageSlotHeight::Float64
 end
 
-function Conveyor(ConveyorSectionLength::Float16, ConveyorSectionWidth::Float16,
-        ConveyorEfficiency::Float16, FrictionCoefficient::Float16,
-        ConveyorMassPerM2::Float16, StorageSlotHeight::Float16)
-    ConveyorUnitMass = ConveyorSectionWidth * ConveyorSectionLength * ConveyorMassPerM2 * 2
+function GetConveyor(ConveyorSectionLength::Float64, ConveyorSectionWidth::Float64,
+        ConveyorUnitMass::Float64, ConveyorEfficiency::Float64,
+        FrictionCoefficient::Float64, StorageSlotHeight::Float64)
+    println("$ConveyorSectionWidth, $ConveyorSectionLength, $ConveyorUnitMass")
+    #println("$ConveyorSectionWidth, $ConveyorSectionLength, $ConveyorMassPerM2")
+    #ConveyorUnitMass = ConveyorSectionWidth * ConveyorSectionLength * ConveyorMassPerM2 * 2
     Conveyor(
         ConveyorSectionLength,
         ConveyorSectionWidth,
@@ -112,10 +114,9 @@ function Storage(ID, SimLength, SlotsLength, SlotsWidth, SlotsHeight, HandlingRo
     DistanceMap = GetDistanceMap(StorageMap)
     WarehouseMaxCapacity = sum(isnothing.(StorageMap))
     ConveyorUnitMass = ConveyorSectionWidth * ConveyorSectionLength * ConveyorMassPerM2 * 2
-    ConveyorSection = Conveyor(
-            ConveyorSectionLength, ConveyorSectionWidth,
-            ConveyorEfficiency, FrictionCoefficient,
-            ConveyorMassPerM2, StorageSlotHeight
+    ConveyorSection = GetConveyor(
+            ConveyorSectionLength, ConveyorSectionWidth, ConveyorUnitMass,
+            ConveyorEfficiency, FrictionCoefficient, StorageSlotHeight
     )
     dfInitCons = GetInitialConsDataFrame(ID, SimLength, LightningEnergyConsumption)
     Storage(
