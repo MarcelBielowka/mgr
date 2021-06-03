@@ -78,9 +78,6 @@ end
 function GetConveyor(ConveyorSectionLength::Float64, ConveyorSectionWidth::Float64,
         ConveyorUnitMass::Float64, ConveyorEfficiency::Float64,
         FrictionCoefficient::Float64, StorageSlotHeight::Float64)
-    println("$ConveyorSectionWidth, $ConveyorSectionLength, $ConveyorUnitMass")
-    #println("$ConveyorSectionWidth, $ConveyorSectionLength, $ConveyorMassPerM2")
-    #ConveyorUnitMass = ConveyorSectionWidth * ConveyorSectionLength * ConveyorMassPerM2 * 2
     Conveyor(
         ConveyorSectionLength,
         ConveyorSectionWidth,
