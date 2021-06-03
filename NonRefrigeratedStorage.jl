@@ -1,6 +1,9 @@
 using Pipe: @pipe
 using DataStructures, Random, Distributions, StatsPlots, DataFrames
 
+# using JuliaInterpreter
+# push!(JuliaInterpreter.compiled_modules, Base)
+
 # Corridors are assigned each third column - surrounded by two stacks of racks
 function AssignCorridors(Map, HandlingRoadString)
     FinalMap = deepcopy(Map)
@@ -296,14 +299,13 @@ function CreateNewStorage(ID, SimLength,
 end
 
 function SimOneRun(RunID, SimWindow,
-    SlotsLength, SlotsWidth, SlotsHeight,
-    ConveyorSectionLength, ConveyorSectionWidth, ConveyorEfficiency,
-    StorageSlotHeight, ConveyorMassPerM2,
-    ConsignmentLength, ConsignmentWidth, ConsignmentHeight,
-    FrictionCoefficient,  HandlingRoadString,
-    LightningMinimum, LightningLampLumenPerW, LightningLampWork,
-    DistWeightCon, DistInitFill,
-    ArrivalsDict, DeparturesDict)
+    DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict;
+    SlotsLength = 45, SlotsWidth = 51, SlotsHeight = 7,
+    ConveyorSectionLength = 1.4, ConveyorSectionWidth = 1.4, ConveyorEfficiency = 0.8,
+    StorageSlotHeight = 1.4, ConveyorMassPerM2 = 1.1,
+    ConsignmentLength = 1.2, ConsignmentWidth = 0.8, ConsignmentHeight = 1.2,
+    FrictionCoefficient = 0.33,  HandlingRoadString = "||",
+    LightningMinimum = 20, LightningLampLumenPerW = 60, LightningLampWork = 150)
 
     # Additional consigns to send - any demand that was not met the previous hour
     AdditionalConsignsToSend = 0
@@ -424,26 +426,20 @@ function SimOneRun(RunID, SimWindow,
 end
 
 function SimWrapper(NumberOfRuns, SimWindow,
-    SlotsLength, SlotsWidth, SlotsHeight,
-    ConveyorSectionLength, ConveyorSectionWidth, ConveyorEfficiency,
-    StorageSlotHeight, ConveyorMassPerM2,
-    ConsignmentLength, ConsignmentWidth, ConsignmentHeight,
-    FrictionCoefficient,  HandlingRoadString,
-    LightningMinimum, LightningLampLumenPerW, LightningLampWork,
-    DistWeightCon, DistInitFill,
-    ArrivalsDict, DeparturesDict)
+    DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict;
+    SlotsLength = 45, SlotsWidth = 51, SlotsHeight = 7,
+    ConveyorSectionLength = 1.4, ConveyorSectionWidth = 1.4, ConveyorEfficiency = 0.8,
+    StorageSlotHeight = 1.4, ConveyorMassPerM2 = 1.1,
+    ConsignmentLength = 1.2, ConsignmentWidth = 0.8, ConsignmentHeight = 1.2,
+    FrictionCoefficient = 0.33,  HandlingRoadString = "||",
+    LightningMinimum = 20, LightningLampLumenPerW = 60, LightningLampWork = 150)
 
     println("Starting the simluation")
     FinalDictionary = Dict()
 
     for Run in 1:NumberOfRuns
         println("Starting run number $Run")
-        Output = SimOneRun(Run, SimWindow, SlotsLength, SlotsWidth, SlotsHeight,
-            ConveyorSectionLength, ConveyorSectionWidth, ConveyorEfficiency,
-            StorageSlotHeight, ConveyorMassPerM2,
-            ConsignmentLength, ConsignmentWidth, ConsignmentHeight,
-            FrictionCoefficient,  HandlingRoadString,
-            LightningMinimum, LightningLampLumenPerW, LightningLampWork,
+        Output = SimOneRun(Run, SimWindow,
             DistWeightCon, DistInitFill,
             ArrivalsDict, DeparturesDict)
         push!(FinalDictionary, Run => Output)
