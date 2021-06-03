@@ -1,3 +1,6 @@
+# add project and manifset?
+# project.toml - dependencies expressed directly
+# amnifest.toml - dependencies of dependencies
 using Pipe: @pipe
 using CSV, DataFrames, Dates, DataStructures, Distributions
 using FreqTables, HypothesisTests
@@ -53,13 +56,14 @@ WeatherDataDetails = ReadWeatherData(cWindTempDataDir, cIrrDataDir,
 dfWeatherData = WeatherDataDetails["dfFinalWeatherData"]
 dfWindProduction = DataFrames.DataFrame(
     date = dfWeatherData.date,
-    WindProduction = WindProductionForecast.(2000, dfWeatherData.WindSpeed, 11.5, 3, 20)
+    WindProduction = WindProductionForecast.(2, dfWeatherData.WindSpeed, 11.5, 3, 20)
 )
-
+# plot(dfWindProduction.date, dfWindProduction.WindProduction)
 dfSolarProduction = DataFrames.DataFrame(
     date = dfWeatherData.date,
     SolarProduction = SolarProductionForecast.(0.45, dfWeatherData.Irradiation, dfWeatherData.Temperature,0.004, 45)
 )
+# plot(dfSolarProduction.date, dfSolarProduction.SolarProduction)
 
 #########################################
 ######## Extract power prices data ######
