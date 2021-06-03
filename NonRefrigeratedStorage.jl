@@ -1,5 +1,6 @@
 using Pipe: @pipe
 using DataStructures, Random, Distributions, StatsPlots, DataFrames
+using Distributed
 
 # using JuliaInterpreter
 # push!(JuliaInterpreter.compiled_modules, Base)

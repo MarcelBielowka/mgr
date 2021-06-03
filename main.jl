@@ -6,11 +6,21 @@ using CSV, DataFrames, Dates, DataStructures, Distributions
 using FreqTables, HypothesisTests
 using MultivariateStats, Random
 using StatsPlots, StatsBase
+using Distributed
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 include("Households.jl")
 include("NonRefrigeratedStorage.jl")
 include("ReadWeatherData.jl")
 include("ReadPowerPricesData.jl")
+
+#########################################
+##### Setup for parallelisation  ########
+#########################################
+Distributed.nprocs()
+Distributed.addprocs(4)
+Distributed.nprocs()
+Distributed.nworkers()
+@everywhere include("NonRefrigeratedStorage.jl")
 
 #########################################
 ######## Variables definition  ##########
@@ -44,6 +54,18 @@ HouseholdsData = GetHouseholdsData(cHouseholdsDir)
 @time WarehouseDataRaw = SimWrapper(iStorageNumberOfSimulations, iStorageSimWindow,
         DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
 WarehouseDataAggregated = ExtractFinalStorageData(WarehouseDataRaw)
+
+
+a = fetch(@spawn SimOneRun(1,3, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict))
+b = fetch(@spawn SimOneRun(2,3, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict))
+
+@spawn test3 = SimOneRun(3,2, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
+@spawn test4 = SimOneRun(4,5, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
+fetch(test1)
+
+@distributed for i in 1:5
+    fetch(@spawn SimOneRun(i,3, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict))
+end
 
 #########################################
 ########### Extract weather data ########
