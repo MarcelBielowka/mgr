@@ -31,12 +31,12 @@ cPowerPricesDataDir = "C://Users//Marcel//Desktop//mgr//data//POLPX_DA_20170101_
 cWindTempDataDir = "C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv"
 cIrrDataDir = "C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv"
 
-ArrivalsDict = zip(0:23,
+@everywhere ArrivalsDict = zip(0:23,
     floor.([0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0])) |> collect |> Dict
-DeparturesDict = zip(0:23,
+@everywhere DeparturesDict = zip(0:23,
     floor.([0, 0, 0, 0, 0, 0, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 0, 0])) |> collect |> Dict
-DistWeightCon = Distributions.Normal(1300, 200)
-DistInitFill = Distributions.Uniform(0.2, 0.5)
+@everywhere DistWeightCon = Distributions.Normal(1300, 200)
+@everywhere DistInitFill = Distributions.Uniform(0.2, 0.5)
 iStorageNumberOfSimulations = 100
 iStorageSimWindow = 31
 cWeatherPricesDataWindowStart = "2019-01-01"
@@ -56,23 +56,33 @@ HouseholdsData = GetHouseholdsData(cHouseholdsDir)
 WarehouseDataAggregated = ExtractFinalStorageData(WarehouseDataRaw)
 test1 = SimOneRun(3,1, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, true)
 test2 = SimOneRun(3,1, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, false)
+test5 = SimOneRun(3,3, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, false)
 
 test3 = SimWrapper(1, 1,
         DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, true)
 test3 = SimWrapper(1, 1,
         DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, false)
 
+test4 = SimWrapper(1, 1,
+        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, false)
+
 
 a = fetch(@spawn SimOneRun(1,3, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict))
 b = fetch(@spawn SimOneRun(2,3, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict))
 
-@spawn test3 = SimOneRun(3,2, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-@spawn test4 = SimOneRun(4,5, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
-fetch(test1)
+a = fetch(@spawn test = SimOneRun(3,3, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, false))
+b = fetch(@spawn test2 = SimOneRun(3,3, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, false))
+@spawn test4 = SimOneRun(4,5, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, false)
+@time a = pmap(RunMe, Base.Iterators.product(1:100, 30, false))
 
 @distributed for i in 1:5
     fetch(@spawn SimOneRun(i,3, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict))
 end
+
+D = Base.Iterators.product(1:5, 3)
+pmap(SimOneRun
+pmap(SimOneRun, D)
+
 
 #########################################
 ########### Extract weather data ########

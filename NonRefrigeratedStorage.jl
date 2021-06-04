@@ -305,7 +305,6 @@ function CreateNewStorage(ID, SimLength, PrintLogs,
     end
 
     return NewStorage
-
 end
 
 function SimOneRun(RunID, SimWindow,
@@ -451,6 +450,12 @@ function SimOneRun(RunID, SimWindow,
     )
 end
 
+function RunMe(params)
+    RunID, SimWindow, PrintLogs = params
+    print
+    return SimOneRun(RunID, SimWindow, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, PrintLogs)
+end
+
 function SimWrapper(NumberOfRuns, SimWindow,
     DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, PrintLogs;
     SlotsLength = 45, SlotsWidth = 51, SlotsHeight = 7,
@@ -463,7 +468,7 @@ function SimWrapper(NumberOfRuns, SimWindow,
     println("Starting the simluation")
     FinalDictionary = Dict()
 
-    for Run in 1:NumberOfRuns
+    @sync @distributed for Run in 1:NumberOfRuns
         println("Starting run number $Run")
         Output = SimOneRun(Run, SimWindow,
             DistWeightCon, DistInitFill,
