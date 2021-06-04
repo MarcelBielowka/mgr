@@ -57,6 +57,11 @@ WarehouseDataAggregated = ExtractFinalStorageData(WarehouseDataRaw)
 test1 = SimOneRun(3,1, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, true)
 test2 = SimOneRun(3,1, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, false)
 
+test3 = SimWrapper(1, 1,
+        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, true)
+test3 = SimWrapper(1, 1,
+        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, false)
+
 
 a = fetch(@spawn SimOneRun(1,3, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict))
 b = fetch(@spawn SimOneRun(2,3, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict))

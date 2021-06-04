@@ -452,7 +452,7 @@ function SimOneRun(RunID, SimWindow,
 end
 
 function SimWrapper(NumberOfRuns, SimWindow,
-    DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict;
+    DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, PrintLogs;
     SlotsLength = 45, SlotsWidth = 51, SlotsHeight = 7,
     ConveyorSectionLength = 1.4, ConveyorSectionWidth = 1.4, ConveyorEfficiency = 0.8,
     StorageSlotHeight = 1.4, ConveyorMassPerM2 = 1.1,
@@ -467,7 +467,7 @@ function SimWrapper(NumberOfRuns, SimWindow,
         println("Starting run number $Run")
         Output = SimOneRun(Run, SimWindow,
             DistWeightCon, DistInitFill,
-            ArrivalsDict, DeparturesDict)
+            ArrivalsDict, DeparturesDict, PrintLogs)
         push!(FinalDictionary, Run => Output)
         println("Simulation $Run is over, results are saved")
     end
