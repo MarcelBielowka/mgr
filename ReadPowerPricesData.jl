@@ -19,33 +19,46 @@ function ReadPrices(cFilePrices::String; DeliveryFilterStart = nothing, Delivery
 
     # removing the additional hour from March and adding the missing hour for October
     # the hour is added as an average of the neighbouring two
-    filter!(row -> (row."delivery_hour" != "02a" ),  dfPriceDataRaw)
-    dfPriceDataRaw[!, "delivery_hour"] = parse.(Int64, dfPriceDataRaw[!, "delivery_hour"])
-    if RemoveDSL
-        println("Adding additional hour for DSL switch")
-        for i in 2:DataFrames.nrow(dfPriceDataRaw)
-            if dfPriceDataRaw[i - 1,"delivery_hour"] == 1 && dfPriceDataRaw[i,"delivery_hour"] == 3
-                println("DSL switch found for dates: ", dfPriceDataRaw[i,"delivery_date"])
-                TempAddRow = DataFrame(trade_date = dfPriceDataRaw[i, "trade_date"],
-                                       delivery_date = dfPriceDataRaw[i, "delivery_date"],
-                                       delivery_hour = 2,
-                                       price = (dfPriceDataRaw[i, "price"] + dfPriceDataRaw[i-1, "price"])/2)
-                append!(dfPriceDataRaw, TempAddRow)
-            end
-        end
-        sort!(dfPriceDataRaw, ["delivery_date", "delivery_hour"])
-    else
-        println("Adding additonal hour for DSL is skipped")
-    end
-
-    dfPriceDataRaw.delivery_hour .-= 1
+    println("Some additional shenanigans for DSL switch")
+    dfPriceDataRaw = ChangeHourToPlus1(dfPriceDataRaw)
+#    sort!(dfPriceDataRaw, ["delivery_date", "delivery_hour"])
 
     # basic data validation - check if any data missing
     # and if all the days have all the hours
-    println("Basic data validation")
-    DateVsHour = freqtable(dfPriceDataRaw, :delivery_date, :delivery_hour)
-    @assert all(DateVsHour .== 1)
-    @assert !any(ismissing.(dfPriceDataRaw.price))
+#    println("Basic data validation")
+#    DateVsHour = freqtable(dfPriceDataRaw, :delivery_date, :delivery_hour)
+#    @assert all(DateVsHour .== 1)
+#    @assert !any(ismissing.(dfPriceDataRaw.price))
+
+    return dfPriceDataRaw
+end
+
+function ChangeHourToPlus1(dfPriceDataRaw)
+    ForwardSwitchDate = Array{Date, 1}()
+    BackwardSwitchDate = dfPriceDataRaw.delivery_date[dfPriceDataRaw.delivery_hour.=="02a"]
+    for i in 1:(DataFrames.nrow(dfPriceDataRaw)-1)
+        if (dfPriceDataRaw.delivery_hour[i] == "1" && dfPriceDataRaw.delivery_hour[i+1] == "3")
+            push!(ForwardSwitchDate, dfPriceDataRaw.delivery_date[i])
+        end
+    end
+    println("Forward switch dates: ", ForwardSwitchDate)
+    println("Backward switch dates: ", BackwardSwitchDate)
+
+    dfPriceDataRaw.delivery_hour[dfPriceDataRaw.delivery_hour.=="02a"] .= "-99"
+    dfPriceDataRaw[!, "delivery_hour"] = parse.(Int64, dfPriceDataRaw[!, "delivery_hour"])
+    #dfPriceDataRaw.delivery_hour .-= 1
+
+    for i in 1:length(ForwardSwitchDate)
+        println("Performing the switch for dates ", ForwardSwitchDate[i], " and ", BackwardSwitchDate[i])
+        dfPriceDataRaw.delivery_hour[(dfPriceDataRaw.delivery_date .> ForwardSwitchDate[i]) .&
+            (dfPriceDataRaw.delivery_date .< BackwardSwitchDate[i])] .-=1
+        dfPriceDataRaw.delivery_hour[(dfPriceDataRaw.delivery_date .== ForwardSwitchDate[i]) .&
+            (dfPriceDataRaw.delivery_hour .>3)] .-=1
+        dfPriceDataRaw.delivery_hour[(dfPriceDataRaw.delivery_date .== BackwardSwitchDate[i]) .&
+            (dfPriceDataRaw.delivery_hour .<3)] .-=1
+    end
+
+    dfPriceDataRaw.delivery_hour[dfPriceDataRaw.delivery_hour.==-101] .= 2
 
     return dfPriceDataRaw
 end
