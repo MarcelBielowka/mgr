@@ -1,6 +1,9 @@
 # add project and manifset?
 # project.toml - dependencies expressed directly
 # amnifest.toml - dependencies of dependencies
+
+#using JuliaInterpreter
+#push!(JuliaInterpreter.compiled_modules, Base)
 using Pipe: @pipe
 using CSV, DataFrames, Dates, DataStructures, Distributions
 using FreqTables, HypothesisTests
@@ -69,6 +72,7 @@ dfSolarProduction = DataFrames.DataFrame(
 dfPowerPriceData = ReadPrices(cPowerPricesDataDir,
     DeliveryFilterStart = cWeatherPricesDataWindowStart,
     DeliveryFilterEnd = cWeatherPricesDataWindowEnd)
+
 
 #########################################
 ####### Select days for simulation ######

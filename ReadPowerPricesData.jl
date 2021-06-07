@@ -17,49 +17,67 @@ function ReadPrices(cFilePrices::String; DeliveryFilterStart = nothing, Delivery
         filter!(row -> row.delivery_date <= Dates.DateTime(StringEndDate), dfPriceDataRaw)
     end
 
-    # removing the additional hour from March and adding the missing hour for October
-    # the hour is added as an average of the neighbouring two
+    # Handling of the daylight saving time switch
+    # We mvoe all the data to UTC + 1 to facilitate handling of all the data
     println("Some additional shenanigans for DSL switch")
     dfPriceDataRaw = ChangeHourToPlus1(dfPriceDataRaw)
-#    sort!(dfPriceDataRaw, ["delivery_date", "delivery_hour"])
 
     # basic data validation - check if any data missing
     # and if all the days have all the hours
-#    println("Basic data validation")
-#    DateVsHour = freqtable(dfPriceDataRaw, :delivery_date, :delivery_hour)
-#    @assert all(DateVsHour .== 1)
-#    @assert !any(ismissing.(dfPriceDataRaw.price))
+    println("Basic data validation")
+    DateVsHour = freqtable(dfPriceDataRaw, :delivery_date, :delivery_hour)
+    @assert all(DateVsHour .== 1)
+    @assert !any(ismissing.(dfPriceDataRaw.price))
 
     return dfPriceDataRaw
 end
 
 function ChangeHourToPlus1(dfPriceDataRaw)
     ForwardSwitchDate = Array{Date, 1}()
-    BackwardSwitchDate = dfPriceDataRaw.delivery_date[dfPriceDataRaw.delivery_hour.=="02a"]
+    BackwardSwitchDate = Array{Date, 1}()
+    # recode the additional hour to 02:00
+    dfPriceDataRaw.delivery_hour[dfPriceDataRaw.delivery_hour.=="02a"] .= "2"
+    # find the change dates
     for i in 1:(DataFrames.nrow(dfPriceDataRaw)-1)
         if (dfPriceDataRaw.delivery_hour[i] == "1" && dfPriceDataRaw.delivery_hour[i+1] == "3")
             push!(ForwardSwitchDate, dfPriceDataRaw.delivery_date[i])
+        end
+
+        if (dfPriceDataRaw.delivery_hour[i] == "2" && dfPriceDataRaw.delivery_hour[i+1] == "2")
+            push!(BackwardSwitchDate, dfPriceDataRaw.delivery_date[i])
         end
     end
     println("Forward switch dates: ", ForwardSwitchDate)
     println("Backward switch dates: ", BackwardSwitchDate)
 
-    dfPriceDataRaw.delivery_hour[dfPriceDataRaw.delivery_hour.=="02a"] .= "-99"
+    # recode the hours to integers from strings and change the formatting 1:24 to 0:23
     dfPriceDataRaw[!, "delivery_hour"] = parse.(Int64, dfPriceDataRaw[!, "delivery_hour"])
-    #dfPriceDataRaw.delivery_hour .-= 1
+    dfPriceDataRaw.delivery_hour .-= 1
+    dfPriceDataRaw.DeliveryDateAndHour = @pipe string.(dfPriceDataRaw.delivery_date, "T", dfPriceDataRaw.delivery_hour) |>
+        Dates.DateTime.(_)
 
+    # change the dates
     for i in 1:length(ForwardSwitchDate)
         println("Performing the switch for dates ", ForwardSwitchDate[i], " and ", BackwardSwitchDate[i])
-        dfPriceDataRaw.delivery_hour[(dfPriceDataRaw.delivery_date .> ForwardSwitchDate[i]) .&
-            (dfPriceDataRaw.delivery_date .< BackwardSwitchDate[i])] .-=1
-        dfPriceDataRaw.delivery_hour[(dfPriceDataRaw.delivery_date .== ForwardSwitchDate[i]) .&
-            (dfPriceDataRaw.delivery_hour .>3)] .-=1
-        dfPriceDataRaw.delivery_hour[(dfPriceDataRaw.delivery_date .== BackwardSwitchDate[i]) .&
-            (dfPriceDataRaw.delivery_hour .<3)] .-=1
+        dfPriceDataRaw.DeliveryDateAndHour[(dfPriceDataRaw.delivery_date .> ForwardSwitchDate[i]) .&
+            (dfPriceDataRaw.delivery_date .< BackwardSwitchDate[i])] .-= Dates.Hour(1)
+        dfPriceDataRaw.DeliveryDateAndHour[(dfPriceDataRaw.delivery_date .== ForwardSwitchDate[i]) .&
+            (dfPriceDataRaw.delivery_hour .>1)] .-= Dates.Hour(1)
+        dfPriceDataRaw.DeliveryDateAndHour[(dfPriceDataRaw.delivery_date .== BackwardSwitchDate[i]) .&
+            (dfPriceDataRaw.delivery_hour .<1)] .-= Dates.Hour(1)
     end
 
-    dfPriceDataRaw.delivery_hour[dfPriceDataRaw.delivery_hour.==-101] .= 2
+    for i in 1:(DataFrames.nrow(dfPriceDataRaw)-1)
+        if (Dates.hour(dfPriceDataRaw.DeliveryDateAndHour[i]) == 23 && Dates.hour(dfPriceDataRaw.DeliveryDateAndHour[i+1]) == 1)
+            dfPriceDataRaw.DeliveryDateAndHour[i+1] -= Dates.Hour(1)
+        end
+    end
 
+    # Some additional formatting
+    dfPriceDataRaw.DeliveryDate = Dates.Date.(dfPriceDataRaw.DeliveryDateAndHour)
+    dfPriceDataRaw.DeliveryHour = Dates.hour.(dfPriceDataRaw.DeliveryDateAndHour)
+    select!(dfPriceDataRaw, [:DeliveryDate, :DeliveryHour, :price, :delivery_date, :delivery_hour])
+    rename!(dfPriceDataRaw, [:DeliveryDate, :DeliveryHour, :Price, :OriginalDeliveryDate, :OriginalDeliveryHour])
     return dfPriceDataRaw
 end
 
