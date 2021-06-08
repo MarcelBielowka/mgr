@@ -17,7 +17,7 @@ include("ReadPowerPricesData.jl")
 ##### Setup for parallelisation  ########
 #########################################
 Distributed.nprocs()
-Distributed.addprocs(8)
+Distributed.addprocs(4)
 Distributed.nprocs()
 Distributed.nworkers()
 @everywhere include("NonRefrigeratedStorage.jl")
