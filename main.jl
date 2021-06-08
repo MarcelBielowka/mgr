@@ -57,12 +57,13 @@ WeatherDataDetails = ReadWeatherData(cWindTempDataDir, cIrrDataDir,
 dfWeatherData = WeatherDataDetails["dfFinalWeatherData"]
 dfWindProduction = DataFrames.DataFrame(
     date = dfWeatherData.date,
-    WindProduction = WindProductionForecast.(2, dfWeatherData.WindSpeed, 11.5, 3, 20)
+    WindProduction = WindProductionForecast.(2000, dfWeatherData.WindSpeed, 11.5, 3, 20, 5)
 )
 # plot(dfWindProduction.date, dfWindProduction.WindProduction)
 dfSolarProduction = DataFrames.DataFrame(
     date = dfWeatherData.date,
-    SolarProduction = SolarProductionForecast.(0.45, dfWeatherData.Irradiation, dfWeatherData.Temperature,0.004, 45)
+    SolarProduction = SolarProductionForecast.(0.55, dfWeatherData.Irradiation,
+        dfWeatherData.Temperature, 0.0035, 45, 100)
 )
 # plot(dfSolarProduction.date, dfSolarProduction.SolarProduction)
 

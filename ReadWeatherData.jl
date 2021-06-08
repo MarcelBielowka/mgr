@@ -161,7 +161,7 @@ end
 
 ##
 # wind production
-function WindProductionForecast(P_nam, V, V_nam, V_cutin, V_cutoff)
+function WindProductionForecast(P_nam, V, V_nam, V_cutin, V_cutoff, NoTurbines)
     if V < V_cutin
         P_output = 0
     elseif V >= V_cutin && V < V_nam
@@ -171,7 +171,7 @@ function WindProductionForecast(P_nam, V, V_nam, V_cutin, V_cutoff)
     else
         P_output = 0
     end
-    return P_output
+    return (P_output * NoTurbines)
 end
 
 
@@ -184,10 +184,11 @@ function SolarCellTemp(TempAmb, Noct, Irradiation; TempConst = 20, IrrConst = 80
     return SolarTemp
 end
 
-function SolarProductionForecast(P_STC, Irradiation, TempAmb, γ_temp, Noct; Irr_STC = 1000, T_STC = 25)
+function SolarProductionForecast(P_STC, Irradiation, TempAmb, γ_temp, Noct, NoPanels;
+        Irr_STC = 1000, T_STC = 25)
     TempCell = SolarCellTemp.(TempAmb, Noct, Irradiation)
     P_output = P_STC * Irradiation / Irr_STC * (1 - γ_temp * (TempCell - T_STC))
-    return P_output
+    return (P_output * NoPanels)
 end
 
 ## plotting
