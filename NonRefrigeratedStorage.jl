@@ -314,7 +314,7 @@ function SimOneRun(RunID, SimWindow,
     StorageSlotHeight = 1.4, ConveyorMassPerM2 = 1.1,
     ConsignmentLength = 1.2, ConsignmentWidth = 0.8, ConsignmentHeight = 1.2,
     FrictionCoefficient = 0.33,  HandlingRoadString = "||",
-    LightningMinimum = 60, LightningLampLumenPerW = 60, LightningLampWork = 150,
+    LightningMinimum = 20, LightningLampLumenPerW = 60, LightningLampWork = 150,
     ITPowerConsumption = 2.153)
 
     # Additional consigns to send - any demand that was not met the previous hour
@@ -326,10 +326,10 @@ function SimOneRun(RunID, SimWindow,
     StorageArea = SlotsLength * ConveyorSectionWidth * SlotsWidth * ConveyorSectionLength + 2 * SlotsLength * ConveyorSectionLength
     LightningLampLumen = LightningLampLumenPerW * LightningLampWork
     NumberOfLamps = ceil(StorageArea * LightningMinimum / LightningLampLumen)
-#    ITPowerConsumptionHourly = ITPowerConsumption * StorageArea / 8760
-#    LightningEnergyConsumption = NumberOfLamps * LightningLampWork / 1000 + ITPowerConsumptionHourly
-    LightningEnergyConsumption = NumberOfLamps * LightningLampWork / 1000
-    println("In the new storage there will be $NumberOfLamps lamps using $LightningEnergyConsumption kW of power")
+    ITPowerConsumptionHourly = ITPowerConsumption * StorageArea / 8760
+    LightningEnergyConsumption = NumberOfLamps * LightningLampWork / 1000 + ITPowerConsumptionHourly
+    # LightningEnergyConsumption = NumberOfLamps * LightningLampWork / 1000
+    println("In the new storage there will be $NumberOfLamps lamps using $LightningEnergyConsumption kW of power (this also includes IT systems).")
 
     # History of consignments coming in and out
     dfConsignmentNumberHistory = DataFrame(
