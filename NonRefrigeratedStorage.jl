@@ -314,7 +314,8 @@ function SimOneRun(RunID, SimWindow,
     StorageSlotHeight = 1.4, ConveyorMassPerM2 = 1.1,
     ConsignmentLength = 1.2, ConsignmentWidth = 0.8, ConsignmentHeight = 1.2,
     FrictionCoefficient = 0.33,  HandlingRoadString = "||",
-    LightningMinimum = 20, LightningLampLumenPerW = 60, LightningLampWork = 150)
+    LightningMinimum = 60, LightningLampLumenPerW = 60, LightningLampWork = 150,
+    ITPowerConsumption = 2.153)
 
     # Additional consigns to send - any demand that was not met the previous hour
     AdditionalConsignsToSend = 0
@@ -325,6 +326,8 @@ function SimOneRun(RunID, SimWindow,
     StorageArea = SlotsLength * ConveyorSectionWidth * SlotsWidth * ConveyorSectionLength + 2 * SlotsLength * ConveyorSectionLength
     LightningLampLumen = LightningLampLumenPerW * LightningLampWork
     NumberOfLamps = ceil(StorageArea * LightningMinimum / LightningLampLumen)
+#    ITPowerConsumptionHourly = ITPowerConsumption * StorageArea / 8760
+#    LightningEnergyConsumption = NumberOfLamps * LightningLampWork / 1000 + ITPowerConsumptionHourly
     LightningEnergyConsumption = NumberOfLamps * LightningLampWork / 1000
     println("In the new storage there will be $NumberOfLamps lamps using $LightningEnergyConsumption kW of power")
 
@@ -450,70 +453,7 @@ function SimOneRun(RunID, SimWindow,
     )
 end
 
-function RunMe(params)
+function SimWrapper(params)
     RunID, SimWindow, PrintLogs = params
-    print
     return SimOneRun(RunID, SimWindow, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, PrintLogs)
-end
-
-function SimWrapper(NumberOfRuns, SimWindow,
-    DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, PrintLogs;
-    SlotsLength = 45, SlotsWidth = 51, SlotsHeight = 7,
-    ConveyorSectionLength = 1.4, ConveyorSectionWidth = 1.4, ConveyorEfficiency = 0.8,
-    StorageSlotHeight = 1.4, ConveyorMassPerM2 = 1.1,
-    ConsignmentLength = 1.2, ConsignmentWidth = 0.8, ConsignmentHeight = 1.2,
-    FrictionCoefficient = 0.33,  HandlingRoadString = "||",
-    LightningMinimum = 20, LightningLampLumenPerW = 60, LightningLampWork = 150)
-
-    println("Starting the simluation")
-    FinalDictionary = Dict()
-
-    @sync @distributed for Run in 1:NumberOfRuns
-        println("Starting run number $Run")
-        Output = SimOneRun(Run, SimWindow,
-            DistWeightCon, DistInitFill,
-            ArrivalsDict, DeparturesDict, PrintLogs)
-        push!(FinalDictionary, Run => Output)
-        println("Simulation $Run is over, results are saved")
-    end
-    println("The entire simulation is finished, returning the results")
-    return FinalDictionary
-end
-
-function ExtractFinalStorageData(OutputDictionary)
-    dfOutputDataSample = OutputDictionary[1]["Storage"].ElectricityConsumption
-    dfConsignmentsHistorySample = OutputDictionary[1]["ConsignmentsHistory"]
-    for i in 2:length(OutputDictionary)
-        dfOutputDataSample = vcat(dfOutputDataSample, OutputDictionary[i]["Storage"].ElectricityConsumption)
-        dfConsignmentsHistorySample = vcat(dfConsignmentsHistorySample, OutputDictionary[i]["ConsignmentsHistory"])
-    end
-
-    insertcols!(dfOutputDataSample, :ConsumptionTotal =>
-        dfOutputDataSample.ConsumptionIn .+ dfOutputDataSample.ConsumptionOut .+ dfOutputDataSample.ConsumptionLightning)
-    dfOutputData = @pipe groupby(dfOutputDataSample, [:Day, :Hour]) |>
-        combine(_, :ConsumptionTotal => mean => :Consumption,
-                    :ConsumptionTotal => std => :ConsumptionSampleStd,
-                    nrow => :Counts)
-    insertcols!(dfOutputData, :ConsumptionStd => dfOutputData.ConsumptionSampleStd./sqrt.(dfOutputData.Counts))
-    select!(dfOutputData, [:Day, :Hour, :Consumption, :ConsumptionStd])
-
-    dfConsignmentsHistory = @pipe groupby(dfConsignmentsHistorySample, [:Day, :Hour]) |>
-        combine(_, :ConsignmentsIn => mean => :ConsignmentIn,
-                   :ConsignmentsIn => std => :ConsignmentInStdSample,
-                   :ConsignmentsOut => mean => :ConsignmentOut,
-                   :ConsignmentsOut => std => :ConsignmentOutStdSample,
-                   nrow => :Counts
-            )
-    insertcols!(dfConsignmentsHistory,
-        :ConsignmentInStd => dfConsignmentsHistory.ConsignmentInStdSample ./ sqrt.(dfConsignmentsHistory.Counts),
-        :ConsignmentOutStd => dfConsignmentsHistory.ConsignmentOutStdSample ./ sqrt.(dfConsignmentsHistory.Counts)
-    )
-    select!(dfConsignmentsHistory, [:Day, :Hour, :ConsignmentIn, :ConsignmentOut, :ConsignmentInStd, :ConsignmentOutStd])
-
-    return Dict(
-        "dfWarehouseEnergyConsumption" => dfOutputData,
-        "dfConsignmenstHistory" => dfConsignmentsHistory,
-        "ExampleStorage" => OutputDictionary[1]["Storage"]
-    )
-
 end

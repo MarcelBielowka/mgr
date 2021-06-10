@@ -51,35 +51,9 @@ HouseholdsData = GetHouseholdsData(cHouseholdsDir)
 #########################################
 ####### Extract warehouse data  #########
 #########################################
-#@time WarehouseDataRaw = SimWrapper(iStorageNumberOfSimulations, iStorageSimWindow,
-#        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, false)
-#WarehouseDataAggregated = ExtractFinalStorageData(WarehouseDataRaw)
-
-#test1 = SimOneRun(3,1, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, true)
-#test2 = SimOneRun(3,1, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, false)
-#test5 = SimOneRun(3,3, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, false)
-
-#test3 = SimWrapper(1, 1,
-#        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, true)
-#test3 = SimWrapper(1, 1,
-#        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, false)
-
-#test4 = SimWrapper(1, 1,
-#        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, false)
-
-
-#a = fetch(@spawn SimOneRun(1,3, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict))
-#b = fetch(@spawn SimOneRun(2,3, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict))
-
-#a = fetch(@spawn test = SimOneRun(3,3, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, false))
-#b = fetch(@spawn test2 = SimOneRun(3,3, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, false))
-#@spawn test4 = SimOneRun(4,5, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, false)
-@time a = pmap(RunMe,
+@time WarehouseDataRaw = pmap(SimWrapper,
     Base.Iterators.product(1:iStorageNumberOfSimulations, iStorageSimWindow, false))
-
-#@distributed for i in 1:5
-#    fetch(@spawn SimOneRun(i,3, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict))
-#end
+WarehouseDataAggregated = ExtractFinalStorageData(WarehouseDataRaw)
 
 
 #########################################
