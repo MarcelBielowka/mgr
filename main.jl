@@ -68,7 +68,7 @@ WeatherDataDetails = ReadWeatherData(cWindTempDataDir, cIrrDataDir,
 dfWeatherData = WeatherDataDetails["dfFinalWeatherData"]
 dfWindProduction = DataFrames.DataFrame(
     date = dfWeatherData.date,
-    WindProduction = WindProductionForecast.(2000, dfWeatherData.WindSpeed, 11.5, 3, 20, 7)
+    WindProduction = WindProductionForecast.(2000, dfWeatherData.WindSpeed, 11.5, 3, 20)
 )
 # Calculating the number of solar panels
 # width - 51 slots in the warehouse * 1.4m width of the slot / 2.274m width of the panel
@@ -77,7 +77,7 @@ dfWindProduction = DataFrames.DataFrame(
 dfSolarProduction = DataFrames.DataFrame(
     date = dfWeatherData.date,
     SolarProduction = SolarProductionForecast.(0.55, dfWeatherData.Irradiation,
-        dfWeatherData.Temperature, 0.0035, 45, 550)
+        dfWeatherData.Temperature, 0.0035, 45)
 )
 # plot(dfSolarProduction.date, dfSolarProduction.SolarProduction)
 
