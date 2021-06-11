@@ -50,7 +50,7 @@ cWeatherPricesDataWindowEnd = "2019-12-31"
 #########################################
 ####### Extract households data #########
 #########################################
-HouseholdsData = GetHouseholdsData(cHouseholdsDir)
+HouseholdsData = GetHouseholdsData(cHouseholdsDir, dUKHolidayCalendar)
 
 #########################################
 ####### Extract warehouse data  #########
