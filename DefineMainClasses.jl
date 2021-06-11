@@ -1,27 +1,36 @@
 using DataFrames, Random
 
+#########################################
+#### Energy storage definition class ####
+#########################################
 mutable struct EnergyStorage
-    MaxCapacity::Float64
-    Charge::Float64
-    Discharge::Float64
+    iMaxCapacity::Float64
+    iChargeRate::Float64
+    iDischargeRate::Float64
+    iNumberOfCells::Int
 end
 
-function GetEnergyStorage(MaxCapacity::Float64, Charge::Float64, Discharge::Float64, NumberOfCells::Int)
-    EnergyStorage(MaxCapacity*NumberOfCells, Charge*NumberOfCells, Discharge*NumberOfCells)
+function GetEnergyStorage(iMaxCapacity::Float64, iChargeRate::Float64, iDischargeRate::Float64, iNumberOfCells::Int)
+    EnergyStorage(iMaxCapacity*iNumberOfCells, iChargeRate*iNumberOfCells, iDischargeRate*iNumberOfCells, iNumberOfCells)
 end
-GetEnergyStorage(10.5, 15.0, 9.50, 10)
+testStorage = GetEnergyStorage(10.5, 15.0, 9.50, 10)
 
-
-
+#########################################
+####### Wind park class definition ######
+#########################################
 mutable struct WindPark
-    WindProduction::DataFrame
+    dfWindParkProductionData::DataFrame
+    iNumberOfTurbines::Int
 end
 
-function WindPark(dfWindProductionData)
-    return WindPark(
-        dfWindProductionData
+function GetWindPark(dfWindProductionData, iNumberOfTurbines)
+    dfWindParkProductionData = deepcopy(dfWindProductionData)
+    dfWindParkProductionData.WindProduction .*= iNumberOfTurbines
+    return WindPark(dfWindParkProductionData,
+        iNumberOfTurbines
     )
 end
+testWindPark = GetWindPark(dfWindProduction, 5)
 
 mutable struct Warehouse
     EnergyConsumption::DataFrame
