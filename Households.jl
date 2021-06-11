@@ -55,7 +55,7 @@ function GetHouseholdsData(cMasterDir, dHolidayCalendar; FixedSeed = 72945)
 
     println("Returning the figures")
     ClusteringOutput = Dict(
-        "FinalClusteringOutput" => FinalClusteringOutput[1],
+        "HouseholdProfiles" => FinalClusteringOutput[1],
         "ClusteringCounts" => FinalClusteringOutput[2],
         "PCAOutput" => FinalClusteringOutput[3],
         "ClusteredData" => dfHouseholdDataToCluster,

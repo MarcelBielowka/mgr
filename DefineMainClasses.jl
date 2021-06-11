@@ -50,7 +50,7 @@ end
 function Get_⌂(HouseholdData, iNumberOfHouseholds, iNumberOfStorageCells,
     iStorageMaxCapacity, iStorageChargeRate, iStorageDischargeRate)
     return ⌂(
-        HouseholdsData["HouseholdProfiles"],
+        HouseholdsData["ClusteredData"],
         iNumberOfHouseholds,
         GetEnergyStorage(iStorageMaxCapacity,
                          iStorageChargeRate,
@@ -58,3 +58,5 @@ function Get_⌂(HouseholdData, iNumberOfHouseholds, iNumberOfStorageCells,
                          iNumberOfStorageCells)
     )
 end
+
+My_⌂ = Get_⌂(HouseholdsData, 100, 10, 11.7, 7.0, 5.0)
