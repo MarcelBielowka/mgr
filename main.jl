@@ -9,11 +9,21 @@ using CSV, DataFrames, Dates, DataStructures, Distributions
 using FreqTables, HypothesisTests
 using MultivariateStats, Random
 using StatsPlots, StatsBase
+using Distributed
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 include("Households.jl")
 include("NonRefrigeratedStorage.jl")
 include("ReadWeatherData.jl")
 include("ReadPowerPricesData.jl")
+
+#########################################
+##### Setup for parallelisation  ########
+#########################################
+Distributed.nprocs()
+Distributed.addprocs(4)
+Distributed.nprocs()
+Distributed.nworkers()
+@everywhere include("NonRefrigeratedStorage.jl")
 
 #########################################
 ######## Variables definition  ##########
@@ -24,12 +34,12 @@ cPowerPricesDataDir = "C://Users//Marcel//Desktop//mgr//data//POLPX_DA_20170101_
 cWindTempDataDir = "C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv"
 cIrrDataDir = "C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv"
 
-ArrivalsDict = zip(0:23,
+@everywhere ArrivalsDict = zip(0:23,
     floor.([0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0])) |> collect |> Dict
-DeparturesDict = zip(0:23,
+@everywhere DeparturesDict = zip(0:23,
     floor.([0, 0, 0, 0, 0, 0, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 0, 0])) |> collect |> Dict
-DistWeightCon = Distributions.Normal(1300, 200)
-DistInitFill = Distributions.Uniform(0.2, 0.5)
+@everywhere DistWeightCon = Distributions.Normal(1300, 200)
+@everywhere DistInitFill = Distributions.Uniform(0.2, 0.5)
 iStorageNumberOfSimulations = 100
 iStorageSimWindow = 31
 cWeatherPricesDataWindowStart = "2019-01-01"
@@ -44,9 +54,10 @@ HouseholdsData = GetHouseholdsData(cHouseholdsDir)
 #########################################
 ####### Extract warehouse data  #########
 #########################################
-@time WarehouseDataRaw = SimWrapper(iStorageNumberOfSimulations, iStorageSimWindow,
-        DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict)
+@time WarehouseDataRaw = pmap(SimWrapper,
+    Base.Iterators.product(1:iStorageNumberOfSimulations, iStorageSimWindow, false))
 WarehouseDataAggregated = ExtractFinalStorageData(WarehouseDataRaw)
+
 
 #########################################
 ########### Extract weather data ########

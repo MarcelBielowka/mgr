@@ -1,5 +1,6 @@
 using Pipe: @pipe
 using DataStructures, Random, Distributions, StatsPlots, DataFrames
+using Distributed
 
 # using JuliaInterpreter
 # push!(JuliaInterpreter.compiled_modules, Base)
@@ -220,22 +221,29 @@ end
 # all neatly wrapped using λ function and findfirst
 # then calculate the energy use on the way inside the warehouse and outside of it
 # and finally enqueue the consignment into the waiting line
-function LocateSlot!(Consignment::Consignment, Storage::Storage; optimise = true)
+function LocateSlot!(Consignment::Consignment, Storage::Storage, PrintLogs::Bool;
+    optimise = true)
     # logs
     IDtoprint = (Consignment.DataIn["Day"], Consignment.DataIn["Hour"], Consignment.DataIn["ID"])
     if any(isnothing.(Storage.StorageMap))
         if optimise
-            println("Looking for a place for Consignment $IDtoprint")
+            if PrintLogs
+                println("Looking for a place for Consignment $IDtoprint")
+            end
             DecisionMap = GetDecisionMap(Storage, Consignment)
             location = findfirst(
                 isequal(
                     minimum(DecisionMap[isnothing.(Storage.StorageMap)])
                 ), DecisionMap
             )
-            println(Tuple(location), " slot allocated. The value of decision matrix is ", DecisionMap[location])
+            if PrintLogs
+                println(Tuple(location), " slot allocated. The value of decision matrix is ", DecisionMap[location])
+            end
         else
             location = rand(findall(isnothing.(Storage.StorageMap)))
-            println(Tuple(location), " slot allocated to Consign ", IDtoprint, ". Energy use is not being optimised")
+            if PrintLogs
+                println(Tuple(location), " slot allocated to Consign ", IDtoprint, ". Energy use is not being optimised")
+            end
         end
         # calculate energy consumption and locate the consignment
         Consignment.Location = Tuple(location)
@@ -248,7 +256,9 @@ function LocateSlot!(Consignment::Consignment, Storage::Storage; optimise = true
             println("Readding the already waiting cons into queue. Execution stopped")
             return nothing
         end
-        println("There are no more free spaces, consignment $IDtoprint added to waiting line")
+        if PrintLogs
+            println("There are no more free spaces, consignment $IDtoprint added to waiting line")
+        end
         Consignment.EverWaited = true
         enqueue!(Storage.WaitingQueue, Consignment)
     end
@@ -256,9 +266,11 @@ end
 
 # Send the consignment away
 function ExpediateConsignment!(Storage::Storage,
-            Day::Int, Hour::Int)
+            Day::Int, Hour::Int, PrintLogs::Bool)
     CurrentCons = dequeue!(Storage.DepartureOrder)
-    println(CurrentCons.DataIn, " is leaving the warehouse")
+    if PrintLogs
+        println(CurrentCons.DataIn, " is leaving the warehouse")
+    end
     push!(CurrentCons.DataOut, "Day" => Day)
     push!(CurrentCons.DataOut, "Hour" => Hour)
     push!(Storage.DispatchedConsignments, CurrentCons)
@@ -267,7 +279,7 @@ function ExpediateConsignment!(Storage::Storage,
 end
 
 # initiate a new storage
-function CreateNewStorage(ID, SimLength,
+function CreateNewStorage(ID, SimLength, PrintLogs,
     SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
     ConveyorSectionLength, ConveyorSectionWidth, StorageSlotHeight,
     FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2,
@@ -289,21 +301,21 @@ function CreateNewStorage(ID, SimLength,
             NewStorage,
             ConsignmentLength, ConveyorSectionWidth, 1.2, min(rand(DistWeightCon), 1500)
         )
-        LocateSlot!(CurrentCons, NewStorage; optimise = false)
+        LocateSlot!(CurrentCons, NewStorage, PrintLogs; optimise = false)
     end
 
     return NewStorage
-
 end
 
 function SimOneRun(RunID, SimWindow,
-    DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict;
+    DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, PrintLogs;
     SlotsLength = 45, SlotsWidth = 51, SlotsHeight = 7,
     ConveyorSectionLength = 1.4, ConveyorSectionWidth = 1.4, ConveyorEfficiency = 0.8,
     StorageSlotHeight = 1.4, ConveyorMassPerM2 = 1.1,
     ConsignmentLength = 1.2, ConsignmentWidth = 0.8, ConsignmentHeight = 1.2,
     FrictionCoefficient = 0.33,  HandlingRoadString = "||",
-    LightningMinimum = 20, LightningLampLumenPerW = 60, LightningLampWork = 150)
+    LightningMinimum = 20, LightningLampLumenPerW = 60, LightningLampWork = 150,
+    ITPowerConsumption = 2.153)
 
     # Additional consigns to send - any demand that was not met the previous hour
     AdditionalConsignsToSend = 0
@@ -314,8 +326,10 @@ function SimOneRun(RunID, SimWindow,
     StorageArea = SlotsLength * ConveyorSectionWidth * SlotsWidth * ConveyorSectionLength + 2 * SlotsLength * ConveyorSectionLength
     LightningLampLumen = LightningLampLumenPerW * LightningLampWork
     NumberOfLamps = ceil(StorageArea * LightningMinimum / LightningLampLumen)
-    LightningEnergyConsumption = NumberOfLamps * LightningLampWork / 1000
-    println("In the new storage there will be $NumberOfLamps lamps using $LightningEnergyConsumption kW of power")
+    ITPowerConsumptionHourly = ITPowerConsumption * StorageArea / 8760
+    LightningEnergyConsumption = NumberOfLamps * LightningLampWork / 1000 + ITPowerConsumptionHourly
+    # LightningEnergyConsumption = NumberOfLamps * LightningLampWork / 1000
+    println("In the new storage there will be $NumberOfLamps lamps using $LightningEnergyConsumption kW of power (this also includes IT systems).")
 
     # History of consignments coming in and out
     dfConsignmentNumberHistory = DataFrame(
@@ -326,7 +340,7 @@ function SimOneRun(RunID, SimWindow,
     )
 
     # Initiate a new storage
-    NewStorage = CreateNewStorage(RunID, SimWindow,
+    NewStorage = CreateNewStorage(RunID, SimWindow, PrintLogs,
         SlotsLength, SlotsWidth, SlotsHeight, HandlingRoadString,
         ConveyorSectionLength, ConveyorSectionWidth, StorageSlotHeight,
         FrictionCoefficient, ConveyorEfficiency, ConveyorMassPerM2,
@@ -341,32 +355,42 @@ function SimOneRun(RunID, SimWindow,
         if !(Day % 7 == 6 || Day % 7 == 0)
             println("Workday. Consignments will be coming")
             for Hour in 0:1:23
-                println("Hour $Hour")
+                if PrintLogs
+                    println("Hour $Hour")
+                end
                 # Get the number of the incoming and departing consignments
                 DistNumConsIn = Distributions.Poisson(ArrivalsDict[Hour])
                 DistNumConsOut = Distributions.Poisson(DeparturesDict[Hour])
                 NumConsIn = rand(DistNumConsIn)
                 NumConsOut = rand(DistNumConsOut) + AdditionalConsignsToSend
                 AdditionalConsignsToSend = 0
-                println("There are $NumConsIn new consignments coming in and $NumConsOut going out")
+                if PrintLogs
+                    println("There are $NumConsIn new consignments coming in and $NumConsOut going out")
+                end
                 push!(dfConsignmentNumberHistory, (Day, Hour, NumConsIn, NumConsOut))
 
                 # Departure section
                 if NumConsOut == 0
                     # if there are no consignments to be sent, nothing happens
-                    println("No consignments are sent out")
+                    if PrintLogs
+                        println("No consignments are sent out")
+                    end
                 else
                     # otherwise, we check if there are any consignments in the warehouse
                     for ConsOutID in 1:NumConsOut
                         if any(isa.(NewStorage.StorageMap, Consignment))
                             # if there are, send them
-                            println("Consignment $ConsOutID")
-                            ExpediatedConsign = ExpediateConsignment!(NewStorage, Day, Hour)
+                            if PrintLogs
+                                println("Consignment $ConsOutID")
+                            end
+                            ExpediatedConsign = ExpediateConsignment!(NewStorage, Day, Hour, PrintLogs)
                             NewStorage.ElectricityConsumption[(NewStorage.ElectricityConsumption.Day .==Day) .&
                                 (NewStorage.ElectricityConsumption.Hour .==Hour), "ConsumptionOut"] .+= ExpediatedConsign.EnergyConsumption["Out"]
                         else
                             # if not, add the unmet demand to the next hour
-                            println("There are no more consignments in the warehouse")
+                            if PrintLogs
+                                println("There are no more consignments in the warehouse")
+                            end
                             AdditionalConsignsToSend += 1
                         end
                     end
@@ -377,11 +401,15 @@ function SimOneRun(RunID, SimWindow,
                 # check, if they can fit in now
                 if length(NewStorage.WaitingQueue) > 0
                     LoopEnd = min(length(NewStorage.WaitingQueue), sum(isnothing.(NewStorage.StorageMap)))
-                    println("$LoopEnd consignments are coming from the queue")
+                    if PrintLogs
+                        println("$LoopEnd consignments are coming from the queue")
+                    end
                     for ConsWait in 1:LoopEnd
-                        println(ConsWait)
+                        if PrintLogs
+                            println(ConsWait)
+                        end
                         ConsignFromQueue = dequeue!(NewStorage.WaitingQueue)
-                        LocateSlot!(ConsignFromQueue, NewStorage)
+                        LocateSlot!(ConsignFromQueue, NewStorage, PrintLogs)
                         NewStorage.ElectricityConsumption[(NewStorage.ElectricityConsumption.Day .==Day) .&
                             (NewStorage.ElectricityConsumption.Hour .==Hour), "ConsumptionIn"] .+= ConsignFromQueue.EnergyConsumption["In"]
                     end
@@ -390,7 +418,9 @@ function SimOneRun(RunID, SimWindow,
                 # New consignments
                 if NumConsIn == 0
                     # if there are no new consignments, nothing happens
-                    println("No consignments are admitted")
+                    if PrintLogs
+                        println("No consignments are admitted")
+                    end
                 else
                     # OTherwise, create them and add to the warehouse
                     for ConsInID in 1:NumConsIn
@@ -398,7 +428,7 @@ function SimOneRun(RunID, SimWindow,
                             Dict("Day" => Day, "Hour" => Hour, "ID" => ConsInID),
                             NewStorage, 1.2, 0.8, 1.2, min(rand(DistWeightCon), 1500)
                         )
-                        LocateSlot!(CurrentCons, NewStorage)
+                        LocateSlot!(CurrentCons, NewStorage, PrintLogs)
                         NewStorage.ElectricityConsumption[(NewStorage.ElectricityConsumption.Day .==Day) .&
                             (NewStorage.ElectricityConsumption.Hour .==Hour), "ConsumptionIn"] .+= CurrentCons.EnergyConsumption["In"]
                     end
@@ -423,29 +453,11 @@ function SimOneRun(RunID, SimWindow,
     )
 end
 
-function SimWrapper(NumberOfRuns, SimWindow,
-    DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict;
-    SlotsLength = 45, SlotsWidth = 51, SlotsHeight = 7,
-    ConveyorSectionLength = 1.4, ConveyorSectionWidth = 1.4, ConveyorEfficiency = 0.8,
-    StorageSlotHeight = 1.4, ConveyorMassPerM2 = 1.1,
-    ConsignmentLength = 1.2, ConsignmentWidth = 0.8, ConsignmentHeight = 1.2,
-    FrictionCoefficient = 0.33,  HandlingRoadString = "||",
-    LightningMinimum = 20, LightningLampLumenPerW = 60, LightningLampWork = 150)
-
-    println("Starting the simluation")
-    FinalDictionary = Dict()
-
-    for Run in 1:NumberOfRuns
-        println("Starting run number $Run")
-        Output = SimOneRun(Run, SimWindow,
-            DistWeightCon, DistInitFill,
-            ArrivalsDict, DeparturesDict)
-        push!(FinalDictionary, Run => Output)
-        println("Simulation $Run is over, results are saved")
-    end
-    println("The entire simulation is finished, returning the results")
-    return FinalDictionary
+function SimWrapper(params)
+    RunID, SimWindow, PrintLogs = params
+    return SimOneRun(RunID, SimWindow, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, PrintLogs)
 end
+
 
 function ExtractFinalStorageData(OutputDictionary)
     dfOutputDataSample = OutputDictionary[1]["Storage"].ElectricityConsumption
