@@ -323,7 +323,7 @@ function SimOneRun(RunID, SimWindow,
     # Area of the storage
     # Needed for lightning calculation - to be added to the consumption across all days at the end of the run
     # as per lightning norm PN-EN 12464-1:2004: 20 lx = 20 lm/m2
-    StorageArea = SlotsLength * ConveyorSectionWidth * SlotsWidth * ConveyorSectionLength + 2 * SlotsLength * ConveyorSectionLength
+    StorageArea = SlotsLength * ConveyorSectionWidth * SlotsWidth * ConveyorSectionLength + 2 * SlotsWidth * ConveyorSectionLength
     LightningLampLumen = LightningLampLumenPerW * LightningLampWork
     NumberOfLamps = ceil(StorageArea * LightningMinimum / LightningLampLumen)
     ITPowerConsumptionHourly = ITPowerConsumption * StorageArea / 8760
