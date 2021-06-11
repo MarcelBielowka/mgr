@@ -41,7 +41,8 @@ function Warehouse()
 end
 
 mutable struct ⌂
-    EnergyConsumption::DataFrame
+    EnergyConsumption::Dict
+    GroupCounts::Dict
     iNumberOfHouseholds::Int
     EnergyStorage::EnergyStorage
 end
@@ -50,7 +51,8 @@ end
 function Get_⌂(HouseholdData, iNumberOfHouseholds, iNumberOfStorageCells,
     iStorageMaxCapacity, iStorageChargeRate, iStorageDischargeRate)
     return ⌂(
-        HouseholdsData["ClusteredData"],
+        HouseholdsData["HouseholdProfiles"],
+        HouseholdsData["ClusteringCounts"],
         iNumberOfHouseholds,
         GetEnergyStorage(iStorageMaxCapacity,
                          iStorageChargeRate,
