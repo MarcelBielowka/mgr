@@ -457,3 +457,42 @@ function SimWrapper(params)
     RunID, SimWindow, PrintLogs = params
     return SimOneRun(RunID, SimWindow, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, PrintLogs)
 end
+
+
+function ExtractFinalStorageData(OutputDictionary)
+    dfOutputDataSample = OutputDictionary[1]["Storage"].ElectricityConsumption
+    dfConsignmentsHistorySample = OutputDictionary[1]["ConsignmentsHistory"]
+    for i in 2:length(OutputDictionary)
+        dfOutputDataSample = vcat(dfOutputDataSample, OutputDictionary[i]["Storage"].ElectricityConsumption)
+        dfConsignmentsHistorySample = vcat(dfConsignmentsHistorySample, OutputDictionary[i]["ConsignmentsHistory"])
+    end
+
+    insertcols!(dfOutputDataSample, :ConsumptionTotal =>
+        dfOutputDataSample.ConsumptionIn .+ dfOutputDataSample.ConsumptionOut .+ dfOutputDataSample.ConsumptionLightning)
+    dfOutputData = @pipe groupby(dfOutputDataSample, [:Day, :Hour]) |>
+        combine(_, :ConsumptionTotal => mean => :Consumption,
+                    :ConsumptionTotal => std => :ConsumptionSampleStd,
+                    nrow => :Counts)
+    insertcols!(dfOutputData, :ConsumptionStd => dfOutputData.ConsumptionSampleStd./sqrt.(dfOutputData.Counts))
+    select!(dfOutputData, [:Day, :Hour, :Consumption, :ConsumptionStd])
+
+    dfConsignmentsHistory = @pipe groupby(dfConsignmentsHistorySample, [:Day, :Hour]) |>
+        combine(_, :ConsignmentsIn => mean => :ConsignmentIn,
+                   :ConsignmentsIn => std => :ConsignmentInStdSample,
+                   :ConsignmentsOut => mean => :ConsignmentOut,
+                   :ConsignmentsOut => std => :ConsignmentOutStdSample,
+                   nrow => :Counts
+            )
+    insertcols!(dfConsignmentsHistory,
+        :ConsignmentInStd => dfConsignmentsHistory.ConsignmentInStdSample ./ sqrt.(dfConsignmentsHistory.Counts),
+        :ConsignmentOutStd => dfConsignmentsHistory.ConsignmentOutStdSample ./ sqrt.(dfConsignmentsHistory.Counts)
+    )
+    select!(dfConsignmentsHistory, [:Day, :Hour, :ConsignmentIn, :ConsignmentOut, :ConsignmentInStd, :ConsignmentOutStd])
+
+    return Dict(
+        "dfWarehouseEnergyConsumption" => dfOutputData,
+        "dfConsignmenstHistory" => dfConsignmentsHistory,
+        "ExampleStorage" => OutputDictionary[1]["Storage"]
+    )
+
+end
