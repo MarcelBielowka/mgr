@@ -36,7 +36,7 @@ mutable struct WindPark
     iNumberOfTurbines::Int
 end
 
-function GetWindPark(dfWindProductionData, iNumberOfTurbines)
+function GetWindPark(dfWindProductionData::DataFrame, iNumberOfTurbines::Int)
     return WindPark(dfWindProductionData, iNumberOfTurbines)
 end
 testWindPark = GetWindPark(dfWindProduction, 5)
@@ -51,10 +51,23 @@ mutable struct Warehouse
     EnergyStorage::EnergyStorage
 end
 
-function Warehouse()
-
-
+function GetWarehouse(dfEnergyConsumption::DataFrame, dfSolarProduction::DataFrame,
+    iNumberOfPanels::Int, iStorageMaxCapacity::Float64, iStorageChargeRate::Float64,
+    iStorageDischargeRate::Float64, iNumberOfStorageCells::Int)
+    return Warehouse(
+        dfEnergyConsumption,
+        dfSolarProduction,
+        iNumberOfPanels,
+        GetEnergyStorage(iStorageMaxCapacity,
+                         iStorageChargeRate,
+                         iStorageDischargeRate,
+                         iNumberOfStorageCells)
+    )
 end
+
+TestWarehouse = GetWarehouse(WarehouseDataAggregated["dfWarehouseEnergyConsumption"], dfSolarProduction,
+    600, 11.7, 1.5*11.75, 0.5*11.7, 10)
+
 #########################################
 ###### Households class definition ######
 #########################################
@@ -66,8 +79,9 @@ mutable struct ⌂
 end
 
 
-function Get_⌂(HouseholdData, iNumberOfHouseholds, iNumberOfStorageCells,
-    iStorageMaxCapacity, iStorageChargeRate, iStorageDischargeRate)
+function Get_⌂(HouseholdData::Dict, iNumberOfHouseholds::Int,
+    iStorageMaxCapacity::Float64, iStorageChargeRate::Float64,
+    iStorageDischargeRate::Float64, iNumberOfStorageCells::Int)
     return ⌂(
         HouseholdsData["HouseholdProfiles"],
         HouseholdsData["ClusteringCounts"],
@@ -79,4 +93,4 @@ function Get_⌂(HouseholdData, iNumberOfHouseholds, iNumberOfStorageCells,
     )
 end
 
-My_⌂ = Get_⌂(HouseholdsData, 100, 10, 11.7, 7.0, 5.0)
+#My_⌂ = Juno.@enter Get_⌂(HouseholdsData, 100, 11.7, 7.0, 5.0, 10)
