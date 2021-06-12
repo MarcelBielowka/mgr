@@ -25,9 +25,9 @@ function ReadPrices(cFilePrices::String; DeliveryFilterStart = nothing, Delivery
     # basic data validation - check if any data missing
     # and if all the days have all the hours
     println("Basic data validation")
-    DateVsHour = freqtable(dfPriceDataRaw, :delivery_date, :delivery_hour)
+    DateVsHour = freqtable(dfPriceDataRaw, :DeliveryDate, :DeliveryHour)
     @assert all(DateVsHour .== 1)
-    @assert !any(ismissing.(dfPriceDataRaw.price))
+    @assert !any(ismissing.(dfPriceDataRaw.Price))
 
     return dfPriceDataRaw
 end

@@ -11,9 +11,22 @@ mutable struct EnergyStorage
 end
 
 function GetEnergyStorage(iMaxCapacity::Float64, iChargeRate::Float64, iDischargeRate::Float64, iNumberOfCells::Int)
-    EnergyStorage(iMaxCapacity*iNumberOfCells, iChargeRate*iNumberOfCells, iDischargeRate*iNumberOfCells, iNumberOfCells)
+    EnergyStorage(iMaxCapacity, iChargeRate, iDischargeRate, iNumberOfCells)
 end
 testStorage = GetEnergyStorage(10.5, 15.0, 9.50, 10)
+
+#########################################
+######## DayAhead class definition ######
+#########################################
+mutable struct DayAheadPrices
+    dfDayAheadPrices::DataFrame
+end
+
+function GetDayAheadPrices(dfDayAheadPrices::DataFrame)
+    return DayAheadPrices(dfDayAheadPrices)
+end
+
+testDA = GetDayAheadPrices(dfPowerPriceData)
 
 #########################################
 ####### Wind park class definition ######
@@ -28,6 +41,9 @@ function GetWindPark(dfWindProductionData, iNumberOfTurbines)
 end
 testWindPark = GetWindPark(dfWindProduction, 5)
 
+#########################################
+####### Warehouse class definition ######
+#########################################
 mutable struct Warehouse
     dfEnergyConsumption::DataFrame
     dfSolarProduction::DataFrame
@@ -39,7 +55,9 @@ function Warehouse()
 
 
 end
-
+#########################################
+###### Households class definition ######
+#########################################
 mutable struct ⌂
     EnergyConsumption::Dict
     GroupCounts::Dict
