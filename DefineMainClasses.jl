@@ -93,4 +93,4 @@ function Get_⌂(HouseholdData::Dict, iNumberOfHouseholds::Int,
     )
 end
 
-#My_⌂ = Juno.@enter Get_⌂(HouseholdsData, 100, 11.7, 7.0, 5.0, 10)
+My_⌂ = Get_⌂(HouseholdsData, 100, 11.7, 7.0, 5.0, 10)
