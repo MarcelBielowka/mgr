@@ -15,6 +15,7 @@ include("Households.jl")
 include("NonRefrigeratedStorage.jl")
 include("ReadWeatherData.jl")
 include("ReadPowerPricesData.jl")
+include("DefineMainClasses.jl")
 
 #########################################
 ##### Setup for parallelisation  ########
@@ -26,7 +27,7 @@ Distributed.nworkers()
 @everywhere include("NonRefrigeratedStorage.jl")
 
 #########################################
-######## Variables definition  ##########
+##### Static variables definition  ######
 #########################################
 Random.seed!(72945)
 cHouseholdsDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
@@ -46,6 +47,37 @@ iWarehouseSimWindow = 31
 cWeatherPricesDataWindowStart = "2019-01-01"
 cWeatherPricesDataWindowEnd = "2019-12-31"
 
+#########################################
+## Classes definition, data extraction ##
+#########################################
+
+####
+# Power prices data
+####
+DayAheadPowerPrices = GetDayAheadPricesHandler(cPowerPricesDataDir, cWeatherPricesDataWindowStart,
+    cWeatherPricesDataWindowEnd)
+
+####
+# Weather data
+####
+Weather = GetWeatherDataHandler(cWindTempDataDir, cIrrDataDir,
+    cWeatherPricesDataWindowStart, cWeatherPricesDataWindowEnd)
+
+####
+# Initiate the wind park
+####
+WindPark = GetWindPark(2000.0, 11.5, 3.0, 20.0, Weather, 1)
+
+####
+# Initiate the households
+####
+Households = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, 100, 11.7, 7.0, 5.0, 10)
+
+####
+# Initiate the warehouse
+####
+Warehouse = GetWarehouse(iWarehouseNumberOfSimulations, iWarehouseSimWindow,
+    0.55, 0.0035, 45, 600, TestWeather, 11.7, 1.5*11.75, 0.5*11.7, 10)
 
 
 
@@ -57,16 +89,10 @@ cWeatherPricesDataWindowEnd = "2019-12-31"
 
 
 
-
-
-
-
-
-
-
-
-
-
+############################################################################################################################
+#############################################################
+## Old codes, decision what to do with them yet to be made ##
+#############################################################
 
 #########################################
 ####### Extract households data #########

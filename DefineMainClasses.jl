@@ -17,7 +17,9 @@ function GetEnergyStorage(iMaxCapacity::Float64, iChargeRate::Float64, iDischarg
                   iChargeRate * iNumberOfCells,
                   iDischargeRate * iNumberOfCells)
 end
-testStorage = GetEnergyStorage(10.5, 15.0, 9.50, 10)
+#testStorage = GetEnergyStorage(10.5, 15.0, 9.50, 10)
+
+
 
 #########################################
 ### DayAhead handler class definition ###
@@ -37,8 +39,8 @@ function GetDayAheadPricesHandler(cPowerPricesDataDir::String,
     return DayAheadPricesHandler(dfDayAheadPrices)
 end
 
-testDA = GetDayAheadPricesHandler(cPowerPricesDataDir, cWeatherPricesDataWindowStart,
-    cWeatherPricesDataWindowEnd)
+#testDA = GetDayAheadPricesHandler(cPowerPricesDataDir, cWeatherPricesDataWindowStart,
+#    cWeatherPricesDataWindowEnd)
 
 
 #########################################
@@ -59,11 +61,10 @@ function GetWeatherDataHandler(cWindTempDataDir::String, cIrrDataDir::String,
     return WeatherDataHandler(
         dictWeatherDataDetails["dfFinalWeatherData"]
     )
-
 end
 
-TestWeather = GetWeatherDataHandler(cWindTempDataDir, cIrrDataDir,
-    cWeatherPricesDataWindowStart, cWeatherPricesDataWindowEnd)
+#TestWeather = GetWeatherDataHandler(cWindTempDataDir, cIrrDataDir,
+#    cWeatherPricesDataWindowStart, cWeatherPricesDataWindowEnd)
 
 
 #########################################
@@ -95,8 +96,8 @@ function GetWindPark(iTurbineMaxCapacity::Float64, iTurbineRatedSpeed::Float64,
         dfWindProductionData)
 end
 
-testWindPark = GetWindPark(2000.0, 11.5, 3.0, 20.0, TestWeather, 1)
-testWindPark2 = GetWindPark(2000.0, 11.5, 3.0, 20.0, TestWeather, 10)
+#testWindPark = GetWindPark(2000.0, 11.5, 3.0, 20.0, TestWeather, 1)
+#testWindPark2 = GetWindPark(2000.0, 11.5, 3.0, 20.0, TestWeather, 10)
 
 #########################################
 ####### Warehouse class definition ######
@@ -140,8 +141,8 @@ function GetWarehouse(
     )
 end
 
-TestWarehouse = GetWarehouse(iWarehouseNumberOfSimulations, iWarehouseSimWindow,
-    0.55, 0.0035, 45, 600, TestWeather, 11.7, 1.5*11.75, 0.5*11.7, 10)
+#TestWarehouse = GetWarehouse(iWarehouseNumberOfSimulations, iWarehouseSimWindow,
+#    0.55, 0.0035, 45, 600, TestWeather, 11.7, 1.5*11.75, 0.5*11.7, 10)
 
 #########################################
 ###### Households class definition ######
@@ -173,5 +174,4 @@ function Get_⌂(cHouseholdsDir::String, dHolidayCalendar,
     )
 end
 
-#My_⌂ = Get_⌂(HouseholdsData, 100, 11.7, 7.0, 5.0, 10)
-Test_⌂ = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, 100, 11.7, 7.0, 5.0, 10)
+#Test_⌂ = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, 100, 11.7, 7.0, 5.0, 10)
