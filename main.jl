@@ -35,12 +35,12 @@ cWindTempDataDir = "C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv"
 cIrrDataDir = "C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv"
 dUKHolidayCalendar = Dates.Date.(["2013-01-01", "2013-03-29", "2013-04-01", "2013-05-06", "2013-05-27", "2013-08-26", "2013-12-25", "2013-12-26"])
 
-ArrivalsDict = zip(0:23,
+@everywhere ArrivalsDict = zip(0:23,
     floor.([0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0])) |> collect |> Dict
-DeparturesDict = zip(0:23,
+@everywhere DeparturesDict = zip(0:23,
     floor.([0, 0, 0, 0, 0, 0, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 0, 0])) |> collect |> Dict
-DistWeightCon = Distributions.Normal(1300, 200)
-DistInitFill = Distributions.Uniform(0.2, 0.5)
+@everywhere DistWeightCon = Distributions.Normal(1300, 200)
+@everywhere DistInitFill = Distributions.Uniform(0.2, 0.5)
 iWarehouseNumberOfSimulations = 100
 iWarehouseSimWindow = 31
 cWeatherPricesDataWindowStart = "2019-01-01"
@@ -89,11 +89,8 @@ HouseholdsData["ClusteringCounts"][(11,2)]
 #########################################
 ####### Extract warehouse data  #########
 #########################################
-iWarehouseNumberOfSimulations = 5
-iWarehouseSimWindow = 3
 @time WarehouseDataRaw = pmap(SimWrapper,
-    Base.Iterators.product(1:iWarehouseNumberOfSimulations, iWarehouseSimWindow,
-    ArrivalsDict, DeparturesDict, DistWeightCon, DistInitFill, false))
+    Base.Iterators.product(1:iWarehouseNumberOfSimulations, iWarehouseSimWindow, false))
 WarehouseDataAggregated = ExtractFinalStorageData(WarehouseDataRaw)
 
 
