@@ -113,10 +113,10 @@ function GetWarehouse(
         dfSolarProduction = SolarProductionForecast.(iPVMaxCapacity, WeatherData.dfWeatherData.Irradiation,
             WeatherData.dfWeatherData.Temperature, iPVγ_temp, iNoct) .* iNumberOfPanels
     )
-
-    dfEnergyConsumption = DataFrame()
-
-
+    
+    @time WarehouseDataRaw = pmap(SimWrapper,
+        Base.Iterators.product(1:iWarehouseNumberOfSimulations, iWarehouseSimWindow, false))
+    dfEnergyConsumption = ExtractFinalStorageData(WarehouseDataRaw)["dfWarehouseEnergyConsumption"]
 
     return Warehouse(
         dfEnergyConsumption,
