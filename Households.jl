@@ -56,8 +56,9 @@ function GetHouseholdsData(cMasterDir, dHolidayCalendar; FixedSeed = 72945)
     println("Returning the figures")
     ClusteringOutput = Dict(
         "HouseholdProfiles" => FinalClusteringOutput[1],
-        "ClusteringCounts" => FinalClusteringOutput[2],
-        "PCAOutput" => FinalClusteringOutput[3],
+        "HouseholdProfilesWeighted" => FinalClusteringOutput[2],
+        "ClusteringCounts" => FinalClusteringOutput[3],
+        "PCAOutput" => FinalClusteringOutput[4],
         "ClusteredData" => dfHouseholdDataToCluster,
         "SillhouettesScoreAverage" => TestClusteringData[1],
         "FinalNumberOfClusters" => TestClusteringData[2]
@@ -284,6 +285,7 @@ function RunFinalClustering(dfHouseholdDataByMonth, OptimalNumberOfClusters)
     # the function runs just like above
     # additionally, PCA is also run to show cluster separation quality
     HouseholdProfiles = Dict{}()
+    HouseholdProfilesWeighted = Dict{}()
     HouseholdProfilesClusteringCounts = Dict{}()
     PCAOutputs = Dict{}()
     for Month in 1:12, Day in 1:7
@@ -299,6 +301,12 @@ function RunFinalClustering(dfHouseholdDataByMonth, OptimalNumberOfClusters)
             vcat("Hour", [string("Profile", i) for i in 1:OptimalNumberOfClusters])
         )
         dfClusteringOutput.Hour = convert.(Int, dfClusteringOutput.Hour)
+        iProfileWeighted = @pipe mean(ClustersOnDay.centers, weights(ClustersOnDay.counts), dims = 2) |>
+            _[:,1]
+        dfClusteringOutputWeighted = DataFrames.DataFrame(
+            Hour = dfClusteringOutput.Hour,
+            ProfileWeighted = iProfileWeighted
+        )
 
         # PCA
         PcaOnDay = fit(PCA, Matrix(CurrentPeriod[:,4:size(CurrentPeriod)[2]]), maxoutdim = OptimalNumberOfClusters)
@@ -309,11 +317,12 @@ function RunFinalClustering(dfHouseholdDataByMonth, OptimalNumberOfClusters)
 
         # Pushing to final dictionaries
         push!(HouseholdProfiles, (Month, Day) => dfClusteringOutput)
+        push!(HouseholdProfilesWeighted, (Month, Day) => dfClusteringOutputWeighted)
         push!(HouseholdProfilesClusteringCounts, (Month, Day) => ClustersOnDay.counts)
         push!(PCAOutputs, (Month, Day) => dfPcaOutput)
     end
 
-    return HouseholdProfiles, HouseholdProfilesClusteringCounts, PCAOutputs
+    return HouseholdProfiles, HouseholdProfilesWeighted, HouseholdProfilesClusteringCounts, PCAOutputs
 end
 
 ###############################################

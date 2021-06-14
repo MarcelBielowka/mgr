@@ -41,8 +41,8 @@ dUKHolidayCalendar = Dates.Date.(["2013-01-01", "2013-03-29", "2013-04-01", "201
     floor.([0, 0, 0, 0, 0, 0, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 0, 0])) |> collect |> Dict
 @everywhere DistWeightCon = Distributions.Normal(1300, 200)
 @everywhere DistInitFill = Distributions.Uniform(0.2, 0.5)
-iStorageNumberOfSimulations = 100
-iStorageSimWindow = 31
+iWarehouseNumberOfSimulations = 100
+iWarehouseSimWindow = 31
 cWeatherPricesDataWindowStart = "2019-01-01"
 cWeatherPricesDataWindowEnd = "2019-12-31"
 
@@ -72,12 +72,25 @@ cWeatherPricesDataWindowEnd = "2019-12-31"
 ####### Extract households data #########
 #########################################
 HouseholdsData = GetHouseholdsData(cHouseholdsDir, dUKHolidayCalendar)
+HouseholdsData["HouseholdProfiles"][(11,2)]
+DataFrame(Hour = HouseholdsData["HouseholdProfiles"][(2,6)][:,1],
+    AverageProfile = @pipe HouseholdsData["HouseholdProfiles"][(2,6)][:,2:3] |>
+    Matrix(_) |>
+    mean(_, weights(HouseholdsData["ClusteringCounts"][(2,6)]), dims = 2) |> _[:,1]
+)
+HouseholdsData["HouseholdProfilesWeighted"][(5,3)]
+test = deepcopy(HouseholdsData["HouseholdProfilesWeighted"])
 
+[test[(i,j)].ProfileWeighted .*=100 for i in 1:12, j in 1:7]
+test[(5,3)]
+
+HouseholdsData["HouseholdProfiles"][(11,2)][:,2:3]
+HouseholdsData["ClusteringCounts"][(11,2)]
 #########################################
 ####### Extract warehouse data  #########
 #########################################
 @time WarehouseDataRaw = pmap(SimWrapper,
-    Base.Iterators.product(1:iStorageNumberOfSimulations, iStorageSimWindow, false))
+    Base.Iterators.product(1:iWarehouseNumberOfSimulations, iWarehouseSimWindow, false))
 WarehouseDataAggregated = ExtractFinalStorageData(WarehouseDataRaw)
 
 
@@ -101,6 +114,7 @@ dfSolarProduction = DataFrames.DataFrame(
     SolarProduction = SolarProductionForecast.(0.55, dfWeatherData.Irradiation,
         dfWeatherData.Temperature, 0.0035, 45)
 )
+test = deepcopy(dfSolarProduction)
 # plot(dfSolarProduction.date, dfSolarProduction.SolarProduction)
 
 #########################################

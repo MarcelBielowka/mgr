@@ -67,35 +67,60 @@ TestWeather = GetWeatherDataHandler(cWindTempDataDir, cIrrDataDir,
 ####### Wind park class definition ######
 #########################################
 mutable struct WindPark
+    iTurbineMaxCapacity::Float64
+    iTurbineRatedSpeed::Float64
+    iTurbineCutinSpeed::Float64
+    iTurbineCutoffSpeed::Float64
     dfWindParkProductionData::DataFrame
 end
 
-function GetWindPark(WeatherData::WeatherDataHandler, iNumberOfTurbines::Int)
+function GetWindPark(iTurbineMaxCapacity::Float64, iTurbineRatedSpeed::Float64,
+    iTurbineCutinSpeed::Float64, iTurbineCutoffSpeed::Float64,
+    WeatherData::WeatherDataHandler, iNumberOfTurbines::Int)
     dfWindProductionData = DataFrames.DataFrame(
         date = WeatherData.dfWeatherData.date,
-        WindProduction = WindProductionForecast.(2000, WeatherData.dfWeatherData.WindSpeed, 11.5, 3, 20) .* iNumberOfTurbines
+        WindProduction = WindProductionForecast.(
+            iTurbineMaxCapacity, WeatherData.dfWeatherData.WindSpeed,
+            iTurbineRatedSpeed, iTurbineCutinSpeed, iTurbineCutoffSpeed
+        ) .* iNumberOfTurbines
     )
-    return WindPark(dfWindProductionData)
+    return WindPark(iTurbineMaxCapacity, iTurbineRatedSpeed,
+        iTurbineCutinSpeed, iTurbineCutoffSpeed,
+        dfWindProductionData)
 end
-testWindPark = GetWindPark(TestWeather, 1)
-testWindPark2 = GetWindPark(TestWeather, 5)
+testWindPark = GetWindPark(2000.0, 11.5, 3.0, 20.0, TestWeather, 1)
+testWindPark2 = GetWindPark(2000.0, 11.5, 3.0, 20.0, TestWeather, 10)
 
 #########################################
 ####### Warehouse class definition ######
 #########################################
 mutable struct Warehouse
     dfEnergyConsumption::DataFrame
-    dfSolarProduction::DataFrame
+    dfSolarProductionData::DataFrame
     iNumberOfPanels::Int
     EnergyStorage::EnergyStorage
 end
 
-function GetWarehouse(dfEnergyConsumption::DataFrame, dfSolarProduction::DataFrame,
-    iNumberOfPanels::Int, iStorageMaxCapacity::Float64, iStorageChargeRate::Float64,
+function GetWarehouse(
+    iWarehouseNumberOfSimulations::Int, iWarehouseSimWindow::Int,
+    iPVMaxCapacity::Float64, iPVγ_temp::Float64,
+    iNoct::Int, iNumberOfPanels::Int, WeatherData::WeatherDataHandler,
+    iStorageMaxCapacity::Float64, iStorageChargeRate::Float64,
     iStorageDischargeRate::Float64, iNumberOfStorageCells::Int)
+
+    dfSolarProductionData = DataFrames.DataFrame(
+        date = WeatherData.dfWeatherData.date,
+        dfSolarProduction = SolarProductionForecast.(iPVMaxCapacity, WeatherData.dfWeatherData.Irradiation,
+            WeatherData.dfWeatherData.Temperature, iPVγ_temp, iNoct) .* iNumberOfPanels
+    )
+
+    dfEnergyConsumption = DataFrame()
+
+
+
     return Warehouse(
         dfEnergyConsumption,
-        dfSolarProduction,
+        dfSolarProductionData,
         iNumberOfPanels,
         GetEnergyStorage(iStorageMaxCapacity,
                          iStorageChargeRate,
@@ -104,32 +129,32 @@ function GetWarehouse(dfEnergyConsumption::DataFrame, dfSolarProduction::DataFra
     )
 end
 
-#TestWarehouse = GetWarehouse(WarehouseDataAggregated["dfWarehouseEnergyConsumption"], dfSolarProduction,
-#    600, 11.7, 1.5*11.75, 0.5*11.7, 10)
+TestWarehouse = GetWarehouse(iWarehouseNumberOfSimulations, iWarehouseSimWindow,
+    0.55, 0.0035, 45, 600, TestWeather, 11.7, 1.5*11.75, 0.5*11.7, 10)
 
 #########################################
 ###### Households class definition ######
 #########################################
 mutable struct ⌂
     EnergyConsumption::Dict
-    GroupCounts::Dict
     iNumberOfHouseholds::Int
     EnergyStorage::EnergyStorage
 end
-
 
 function Get_⌂(cHouseholdsDir::String, dHolidayCalendar,
     iNumberOfHouseholds::Int,
     iStorageMaxCapacity::Float64, iStorageChargeRate::Float64,
     iStorageDischargeRate::Float64, iNumberOfStorageCells::Int)
     dictHouseholdsData = GetHouseholdsData(cHouseholdsDir, dUKHolidayCalendar)
+    dictProfileWeighted = dictHouseholdsData["HouseholdProfilesWeighted"]
+    [dictProfileWeighted[(i,j)].ProfileWeighted .*= 100 for i in 1:12, j in 1:7]
     return ⌂(
-        dictHouseholdsData["HouseholdProfiles"],
-        dictHouseholdsData["ClusteringCounts"],
+        dictProfileWeighted,
         iNumberOfHouseholds,
         GetEnergyStorage(iStorageMaxCapacity,
                          iStorageChargeRate,
-                         iStorageDischargeRate)
+                         iStorageDischargeRate,
+                         iNumberOfStorageCells)
     )
 end
 
