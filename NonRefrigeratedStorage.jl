@@ -454,7 +454,7 @@ function SimOneRun(RunID, SimWindow,
 end
 
 function SimWrapper(params)
-    RunID, SimWindow, PrintLogs = params
+    RunID, SimWindow, ArrivalsDict, DeparturesDict, DistWeightCon, DistInitFill, PrintLogs = params
     return SimOneRun(RunID, SimWindow, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, PrintLogs)
 end
 
