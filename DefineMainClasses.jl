@@ -11,6 +11,7 @@ mutable struct EnergyStorage
 end
 
 function GetEnergyStorage(iMaxCapacity::Float64, iChargeRate::Float64, iDischargeRate::Float64, iNumberOfCells::Int)
+    println("Constructor - creating the energy storage")
     EnergyStorage(iMaxCapacity * iNumberOfCells,
                   0,
                   iChargeRate * iNumberOfCells,
@@ -28,6 +29,7 @@ end
 function GetDayAheadPricesHandler(cPowerPricesDataDir::String,
     DeliveryFilterStart::String,
     DeliveryFilterEnd::String)
+    println("Constructor - creating the DA prices handler")
     dfDayAheadPrices = ReadPrices(cPowerPricesDataDir,
         DeliveryFilterStart = DeliveryFilterStart,
         DeliveryFilterEnd = DeliveryFilterEnd)
@@ -50,6 +52,7 @@ function GetWeatherDataHandler(cWindTempDataDir::String, cIrrDataDir::String,
     FilterStart::String,
     FilterEnd::String)
 
+    println("Constructor - creating the weather data handler")
     dictWeatherDataDetails = ReadWeatherData(cWindTempDataDir, cIrrDataDir,
         FilterStart = FilterStart,
         FilterEnd = FilterEnd)
@@ -77,6 +80,9 @@ end
 function GetWindPark(iTurbineMaxCapacity::Float64, iTurbineRatedSpeed::Float64,
     iTurbineCutinSpeed::Float64, iTurbineCutoffSpeed::Float64,
     WeatherData::WeatherDataHandler, iNumberOfTurbines::Int)
+
+    println("Constructor - creating the wind park. There will be $iNumberOfTurbines turbines")
+
     dfWindProductionData = DataFrames.DataFrame(
         date = WeatherData.dfWeatherData.date,
         WindProduction = WindProductionForecast.(
@@ -88,6 +94,7 @@ function GetWindPark(iTurbineMaxCapacity::Float64, iTurbineRatedSpeed::Float64,
         iTurbineCutinSpeed, iTurbineCutoffSpeed,
         dfWindProductionData)
 end
+
 testWindPark = GetWindPark(2000.0, 11.5, 3.0, 20.0, TestWeather, 1)
 testWindPark2 = GetWindPark(2000.0, 11.5, 3.0, 20.0, TestWeather, 10)
 
@@ -96,6 +103,7 @@ testWindPark2 = GetWindPark(2000.0, 11.5, 3.0, 20.0, TestWeather, 10)
 #########################################
 mutable struct Warehouse
     dfEnergyConsumption::DataFrame
+    dfConsignmentHistory::DataFrame
     dfSolarProductionData::DataFrame
     iNumberOfPanels::Int
     EnergyStorage::EnergyStorage
@@ -108,18 +116,21 @@ function GetWarehouse(
     iStorageMaxCapacity::Float64, iStorageChargeRate::Float64,
     iStorageDischargeRate::Float64, iNumberOfStorageCells::Int)
 
+    println("Constructor - creating the warehouse")
+
     dfSolarProductionData = DataFrames.DataFrame(
         date = WeatherData.dfWeatherData.date,
         dfSolarProduction = SolarProductionForecast.(iPVMaxCapacity, WeatherData.dfWeatherData.Irradiation,
             WeatherData.dfWeatherData.Temperature, iPVγ_temp, iNoct) .* iNumberOfPanels
     )
-    
+
     @time WarehouseDataRaw = pmap(SimWrapper,
         Base.Iterators.product(1:iWarehouseNumberOfSimulations, iWarehouseSimWindow, false))
-    dfEnergyConsumption = ExtractFinalStorageData(WarehouseDataRaw)["dfWarehouseEnergyConsumption"]
+    dictFinalData = ExtractFinalStorageData(WarehouseDataRaw)
 
     return Warehouse(
-        dfEnergyConsumption,
+        dictFinalData["dfWarehouseEnergyConsumption"],
+        dictFinalData["dfConsignmenstHistory"],
         dfSolarProductionData,
         iNumberOfPanels,
         GetEnergyStorage(iStorageMaxCapacity,
@@ -145,9 +156,13 @@ function Get_⌂(cHouseholdsDir::String, dHolidayCalendar,
     iNumberOfHouseholds::Int,
     iStorageMaxCapacity::Float64, iStorageChargeRate::Float64,
     iStorageDischargeRate::Float64, iNumberOfStorageCells::Int)
+
+    println("Constructor - creating the households")
+
     dictHouseholdsData = GetHouseholdsData(cHouseholdsDir, dUKHolidayCalendar)
     dictProfileWeighted = dictHouseholdsData["HouseholdProfilesWeighted"]
     [dictProfileWeighted[(i,j)].ProfileWeighted .*= 100 for i in 1:12, j in 1:7]
+
     return ⌂(
         dictProfileWeighted,
         iNumberOfHouseholds,
