@@ -5,15 +5,18 @@ using DataFrames, Random
 #########################################
 mutable struct EnergyStorage
     iMaxCapacity::Float64
+    iCurrentCharge::Float64
     iChargeRate::Float64
     iDischargeRate::Float64
-    iNumberOfCells::Int
 end
 
 function GetEnergyStorage(iMaxCapacity::Float64, iChargeRate::Float64, iDischargeRate::Float64, iNumberOfCells::Int)
-    EnergyStorage(iMaxCapacity, iChargeRate, iDischargeRate, iNumberOfCells)
+    EnergyStorage(iMaxCapacity * iNumberOfCells,
+                  0,
+                  iChargeRate * iNumberOfCells,
+                  iDischargeRate * iNumberOfCells)
 end
-#testStorage = GetEnergyStorage(10.5, 15.0, 9.50, 10)
+testStorage = GetEnergyStorage(10.5, 15.0, 9.50, 10)
 
 #########################################
 ### DayAhead handler class definition ###
@@ -32,7 +35,6 @@ function GetDayAheadPricesHandler(cPowerPricesDataDir::String,
     return DayAheadPricesHandler(dfDayAheadPrices)
 end
 
-# testDA = GetDayAheadPrices(dfPowerPriceData)
 testDA = GetDayAheadPricesHandler(cPowerPricesDataDir, cWeatherPricesDataWindowStart,
     cWeatherPricesDataWindowEnd)
 
@@ -66,17 +68,17 @@ TestWeather = GetWeatherDataHandler(cWindTempDataDir, cIrrDataDir,
 #########################################
 mutable struct WindPark
     dfWindParkProductionData::DataFrame
-    iNumberOfTurbines::Int
 end
 
 function GetWindPark(WeatherData::WeatherDataHandler, iNumberOfTurbines::Int)
     dfWindProductionData = DataFrames.DataFrame(
         date = WeatherData.dfWeatherData.date,
-        WindProduction = WindProductionForecast.(2000, WeatherData.dfWeatherData.WindSpeed, 11.5, 3, 20)
+        WindProduction = WindProductionForecast.(2000, WeatherData.dfWeatherData.WindSpeed, 11.5, 3, 20) .* iNumberOfTurbines
     )
-    return WindPark(dfWindProductionData, iNumberOfTurbines)
+    return WindPark(dfWindProductionData)
 end
-testWindPark = GetWindPark(TestWeather, 5)
+testWindPark = GetWindPark(TestWeather, 1)
+testWindPark2 = GetWindPark(TestWeather, 5)
 
 #########################################
 ####### Warehouse class definition ######
@@ -116,18 +118,20 @@ mutable struct ⌂
 end
 
 
-function Get_⌂(HouseholdData::Dict, iNumberOfHouseholds::Int,
+function Get_⌂(cHouseholdsDir::String, dHolidayCalendar,
+    iNumberOfHouseholds::Int,
     iStorageMaxCapacity::Float64, iStorageChargeRate::Float64,
     iStorageDischargeRate::Float64, iNumberOfStorageCells::Int)
+    dictHouseholdsData = GetHouseholdsData(cHouseholdsDir, dUKHolidayCalendar)
     return ⌂(
-        HouseholdsData["HouseholdProfiles"],
-        HouseholdsData["ClusteringCounts"],
+        dictHouseholdsData["HouseholdProfiles"],
+        dictHouseholdsData["ClusteringCounts"],
         iNumberOfHouseholds,
         GetEnergyStorage(iStorageMaxCapacity,
                          iStorageChargeRate,
-                         iStorageDischargeRate,
-                         iNumberOfStorageCells)
+                         iStorageDischargeRate)
     )
 end
 
 #My_⌂ = Get_⌂(HouseholdsData, 100, 11.7, 7.0, 5.0, 10)
+Test_⌂ = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, 100, 11.7, 7.0, 5.0, 10)
