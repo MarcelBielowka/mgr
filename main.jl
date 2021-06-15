@@ -18,15 +18,6 @@ include("ReadPowerPricesData.jl")
 include("DefineMainClasses.jl")
 
 #########################################
-##### Setup for parallelisation  ########
-#########################################
-Distributed.nprocs()
-Distributed.addprocs(4)
-Distributed.nprocs()
-Distributed.nworkers()
-@everywhere include("NonRefrigeratedStorage.jl")
-
-#########################################
 ##### Static variables definition  ######
 #########################################
 Random.seed!(72945)
@@ -35,26 +26,34 @@ cPowerPricesDataDir = "C://Users//Marcel//Desktop//mgr//data//POLPX_DA_20170101_
 cWindTempDataDir = "C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv"
 cIrrDataDir = "C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv"
 dUKHolidayCalendar = Dates.Date.(["2013-01-01", "2013-03-29", "2013-04-01", "2013-05-06", "2013-05-27", "2013-08-26", "2013-12-25", "2013-12-26"])
-
-@everywhere ArrivalsDict = zip(0:23,
-    floor.([0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0])) |> collect |> Dict
-@everywhere DeparturesDict = zip(0:23,
-    floor.([0, 0, 0, 0, 0, 0, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 0, 0])) |> collect |> Dict
-@everywhere DistWeightCon = Distributions.Normal(1300, 200)
-@everywhere DistInitFill = Distributions.Uniform(0.2, 0.5)
 iWarehouseNumberOfSimulations = 100
 iWarehouseSimWindow = 31
 cWeatherPricesDataWindowStart = "2019-01-01"
 cWeatherPricesDataWindowEnd = "2019-12-31"
 
 #########################################
+##### Setup for parallelisation  ########
+#########################################
+Distributed.nprocs()
+Distributed.addprocs(4)
+Distributed.nprocs()
+Distributed.nworkers()
+@everywhere include("NonRefrigeratedStorage.jl")
+@everywhere ArrivalsDict = zip(0:23,
+    floor.([0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0])) |> collect |> Dict
+@everywhere DeparturesDict = zip(0:23,
+    floor.([0, 0, 0, 0, 0, 0, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 0, 0])) |> collect |> Dict
+@everywhere DistWeightCon = Distributions.Normal(1300, 200)
+@everywhere DistInitFill = Distributions.Uniform(0.2, 0.5)
+
+#########################################
 ## Classes definition, data extraction ##
 #########################################
-
 ####
 # Power prices data
 ####
-DayAheadPowerPrices = GetDayAheadPricesHandler(cPowerPricesDataDir, cWeatherPricesDataWindowStart,
+DayAheadPowerPrices = GetDayAheadPricesHandler(cPowerPricesDataDir,
+    cWeatherPricesDataWindowStart,
     cWeatherPricesDataWindowEnd)
 
 ####
@@ -66,7 +65,7 @@ Weather = GetWeatherDataHandler(cWindTempDataDir, cIrrDataDir,
 ####
 # Initiate the wind park
 ####
-WindPark = GetWindPark(2000.0, 11.5, 3.0, 20.0, Weather, 1)
+MyWindPark = GetWindPark(2000.0, 11.5, 3.0, 20.0, Weather, 1)
 
 ####
 # Initiate the households
@@ -77,7 +76,7 @@ Households = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, 100, 11.7, 7.0, 5.0, 10
 # Initiate the warehouse
 ####
 Warehouse = GetWarehouse(iWarehouseNumberOfSimulations, iWarehouseSimWindow,
-    0.55, 0.0035, 45, 600, TestWeather, 11.7, 1.5*11.75, 0.5*11.7, 10)
+    0.55, 0.0035, 45, 600, Weather, 11.7, 1.5*11.75, 0.5*11.7, 10)
 
 
 

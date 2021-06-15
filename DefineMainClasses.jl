@@ -100,13 +100,38 @@ end
 #testWindPark2 = GetWindPark(2000.0, 11.5, 3.0, 20.0, TestWeather, 10)
 
 #########################################
+##### Solar panels class definition #####
+#########################################
+mutable struct SolarPanels
+    iPVMaxCapacity::Float64
+    iPVγ_temp::Float64
+    iNoct::Int
+    dfSolarProductionData::DataFrame
+end
+
+function GetSolarPanels(iPVMaxCapacity::Float64, iPVγ_temp::Float64,
+    iNoct::Int, WeatherData::WeatherDataHandler, iNumberOfPanels::Int)
+
+    dfSolarProductionData = DataFrames.DataFrame(
+        date = WeatherData.dfWeatherData.date,
+        dfSolarProduction = SolarProductionForecast.(iPVMaxCapacity, WeatherData.dfWeatherData.Irradiation,
+            WeatherData.dfWeatherData.Temperature, iPVγ_temp, iNoct) .* iNumberOfPanels
+    )
+    return SolarPanels(
+        iPVMaxCapacity, iPVγ_temp, iNoct, dfSolarProductionData
+    )
+end
+
+# testPanel = GetSolarPanels(0.55, 0.0035, 45, Weather, 600)
+
+
+#########################################
 ####### Warehouse class definition ######
 #########################################
 mutable struct Warehouse
     dfEnergyConsumption::DataFrame
     dfConsignmentHistory::DataFrame
-    dfSolarProductionData::DataFrame
-    iNumberOfPanels::Int
+    SolarPanels::SolarPanels
     EnergyStorage::EnergyStorage
 end
 
@@ -119,10 +144,8 @@ function GetWarehouse(
 
     println("Constructor - creating the warehouse")
 
-    dfSolarProductionData = DataFrames.DataFrame(
-        date = WeatherData.dfWeatherData.date,
-        dfSolarProduction = SolarProductionForecast.(iPVMaxCapacity, WeatherData.dfWeatherData.Irradiation,
-            WeatherData.dfWeatherData.Temperature, iPVγ_temp, iNoct) .* iNumberOfPanels
+    WarehouseSolarPanels = GetSolarPanels(
+        iPVMaxCapacity, iPVγ_temp, iNoct, WeatherData, iNumberOfPanels
     )
 
     @time WarehouseDataRaw = pmap(SimWrapper,
@@ -132,8 +155,7 @@ function GetWarehouse(
     return Warehouse(
         dictFinalData["dfWarehouseEnergyConsumption"],
         dictFinalData["dfConsignmenstHistory"],
-        dfSolarProductionData,
-        iNumberOfPanels,
+        WarehouseSolarPanels,
         GetEnergyStorage(iStorageMaxCapacity,
                          iStorageChargeRate,
                          iStorageDischargeRate,
@@ -142,7 +164,7 @@ function GetWarehouse(
 end
 
 #TestWarehouse = GetWarehouse(iWarehouseNumberOfSimulations, iWarehouseSimWindow,
-#    0.55, 0.0035, 45, 600, TestWeather, 11.7, 1.5*11.75, 0.5*11.7, 10)
+#    0.55, 0.0035, 45, 600, Weather, 11.7, 1.5*11.75, 0.5*11.7, 10)
 
 #########################################
 ###### Households class definition ######
