@@ -75,14 +75,18 @@ Households = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, 100, 11.7, 7.0, 5.0, 10
 ####
 # Initiate the warehouse
 ####
-Warehouse = GetWarehouse(iWarehouseNumberOfSimulations, iWarehouseSimWindow,
+MyWarehouse = GetWarehouse(iWarehouseNumberOfSimulations, iWarehouseSimWindow,
     0.55, 0.0035, 45, 600, Weather, 11.7, 1.5*11.75, 0.5*11.7, 10)
 
+    
 
+#########################################
+########## Learning process #############
+#########################################
 
-
-
-
+#########################################
+########### Running process #############
+#########################################
 
 
 
