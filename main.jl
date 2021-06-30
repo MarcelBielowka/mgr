@@ -29,6 +29,7 @@ dUKHolidayCalendar = Dates.Date.(["2013-01-01", "2013-03-29", "2013-04-01", "201
 dPLHolidayCalendar = Dates.Date.(["2019-01-01", "2019-04-22", "2019-05-01", "2019-05-03", "2019-06-20", "2019-08-15", "2019-11-01", "2019-11-11", "2013-12-25", "2013-12-26"])
 iWarehouseNumberOfSimulations = 100
 iWarehouseSimWindow = 31
+iMicrogridPrice = 200.0
 cWeatherPricesDataWindowStart = "2019-01-01"
 cWeatherPricesDataWindowEnd = "2019-12-31"
 
@@ -81,7 +82,7 @@ Households = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, 100, 11.7, 7.0, 5.0, 10
 
 dfRawEnergyConsumption = CSV.File("C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv") |> DataFrame
 dfRawConsHistory = CSV.File("C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.csv") |> DataFrame
-MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory, 
+MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory,
     0.55, 0.0035, 45, 600, Weather, 11.7, 1.5*11.75, 0.5*11.7, 10)
 
 #CSV.write("C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv", MyWarehouse.dfEnergyConsumption)

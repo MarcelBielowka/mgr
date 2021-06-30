@@ -167,8 +167,32 @@ end
 #    0.55, 0.0035, 45, 600, Weather, 11.7, 1.5*11.75, 0.5*11.7, 10)
 
 #########################################
-##### Test warehouse class definition ###
+####### Test warehouse constructor ######
 #########################################
+function GetTestWarehouse(
+    dfWarehouseEnergyConsumption::DataFrame, dfConsignmentHistory::DataFrame,
+    iPVMaxCapacity::Float64, iPVγ_temp::Float64,
+    iNoct::Int, iNumberOfPanels::Int, WeatherData::WeatherDataHandler,
+    iStorageMaxCapacity::Float64, iStorageChargeRate::Float64,
+    iStorageDischargeRate::Float64, iNumberOfStorageCells::Int)
+
+    println("Constructor - creating the warehouse")
+
+    WarehouseSolarPanels = GetSolarPanels(
+        iPVMaxCapacity, iPVγ_temp, iNoct, WeatherData, iNumberOfPanels
+    )
+
+    return Warehouse(
+        dfWarehouseEnergyConsumption,
+        dfConsignmentHistory,
+        WarehouseSolarPanels,
+        GetEnergyStorage(iStorageMaxCapacity,
+                         iStorageChargeRate,
+                         iStorageDischargeRate,
+                         iNumberOfStorageCells)
+    )
+end
+
 
 #########################################
 ###### Households class definition ######
