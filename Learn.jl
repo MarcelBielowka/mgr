@@ -20,9 +20,24 @@ function WindParkSellEnergy(dDateHour::DateTime,
     return SellProceeds
 end
 
-Juno.@enter WindParkSellEnergy(Dates.DateTime("2019-04-05T12:00"), MyWindPark, 0.5, iMicrogridPrice, DayAheadPowerPrices)
-WindParkSellEnergy(Dates.DateTime("2019-04-05T12:00"), MyWindPark, 0.5, iMicrogridPrice, DayAheadPowerPrices)
+#Juno.@enter WindParkSellEnergy(Dates.DateTime("2019-11-04T07:00"), MyWindPark, 0.5, iMicrogridPrice, DayAheadPowerPrices)
+#WindParkSellEnergy(Dates.DateTime("2019-11-04T07:00"), MyWindPark, 0.5, iMicrogridPrice, DayAheadPowerPrices)
+#filter(row -> row.date == Dates.DateTime("2019-11-04T07:00"), MyWindPark.dfWindParkProductionData)
+#filter(row -> (
+#        row.DeliveryDate == Dates.Date("2019-11-04") && row.DeliveryHour== 07
+#    ), DayAheadPowerPrices.dfDayAheadPrices)
 
-abc = Dates.DateTime("2021-05-04T03:00")
-hour(abc)
-Date(abc)
+#abc = Dates.DateTime("2021-04-05T03:00:00")
+#Dates.dayofweek(abc)
+#Dates.month(abc)
+
+function HouseholdsBuyEnergy(dDateHour::DateTime,
+    Households::Households,
+    iPercentage::Float64,
+    iMicrogridPrice::Float64,
+    DayAheadPrice::DayAheadPricesHandler)
+
+
+
+
+end
