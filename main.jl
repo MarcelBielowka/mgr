@@ -26,6 +26,7 @@ cPowerPricesDataDir = "C://Users//Marcel//Desktop//mgr//data//POLPX_DA_20170101_
 cWindTempDataDir = "C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv"
 cIrrDataDir = "C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv"
 dUKHolidayCalendar = Dates.Date.(["2013-01-01", "2013-03-29", "2013-04-01", "2013-05-06", "2013-05-27", "2013-08-26", "2013-12-25", "2013-12-26"])
+dPLHolidayCalendar = Dates.Date.(["2019-01-01", "2019-04-22", "2019-05-01", "2019-05-03", "2019-06-20", "2019-08-15", "2019-11-01", "2019-11-11", "2013-12-25", "2013-12-26"])
 iWarehouseNumberOfSimulations = 100
 iWarehouseSimWindow = 31
 cWeatherPricesDataWindowStart = "2019-01-01"
@@ -75,10 +76,16 @@ Households = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, 100, 11.7, 7.0, 5.0, 10
 ####
 # Initiate the warehouse
 ####
-MyWarehouse = GetWarehouse(iWarehouseNumberOfSimulations, iWarehouseSimWindow,
+#MyWarehouse = GetWarehouse(iWarehouseNumberOfSimulations, iWarehouseSimWindow,
+#    0.55, 0.0035, 45, 600, Weather, 11.7, 1.5*11.75, 0.5*11.7, 10)
+
+dfRawEnergyConsumption = CSV.File("C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv") |> DataFrame
+dfRawConsHistory = CSV.File("C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.csv") |> DataFrame
+MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory, 
     0.55, 0.0035, 45, 600, Weather, 11.7, 1.5*11.75, 0.5*11.7, 10)
 
-    
+#CSV.write("C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv", MyWarehouse.dfEnergyConsumption)
+#CSV.write("C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.csv", MyWarehouse.dfConsignmentHistory)
 
 #########################################
 ########## Learning process #############
