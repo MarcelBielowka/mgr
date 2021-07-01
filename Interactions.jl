@@ -68,22 +68,3 @@ filter(row -> row.date == Dates.DateTime("2019-11-04T10:00"), MyWarehouse.SolarP
 filter(row -> (
         row.DeliveryDate == Dates.Date("2019-11-04") && row.DeliveryHour== 10
     ), DayAheadPowerPrices.dfDayAheadPrices)
-
-
-
-
-function HouseholdsBuyEnergy(dDateHour::DateTime,
-    Households::⌂,
-    iPowerFromWF::Float64
-    iPercentage::Float64,
-    iMicrogridPrice::Float64,
-    DayAheadPrice::DayAheadPricesHandler)
-
-    dfHouseholdConsumptionDaily = Households.EnergyConsumption[
-        Dates.month(dDateHour), Dates.dayofweek(dDateHour)
-    ]
-
-    dfHouseholdConsumptionHourly
-
-
-end
