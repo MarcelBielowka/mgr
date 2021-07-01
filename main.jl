@@ -73,6 +73,7 @@ MyWindPark = GetWindPark(2000.0, 11.5, 3.0, 20.0, Weather, 1)
 # Initiate the households
 ####
 Households = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, 100, 11.7, 7.0, 5.0, 10)
+#Households.EnergyConsumption[(12,6)]
 
 ####
 # Initiate the warehouse

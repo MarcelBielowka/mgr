@@ -225,3 +225,19 @@ function Get_⌂(cHouseholdsDir::String, dHolidayCalendar,
 end
 
 #Test_⌂ = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, 100, 11.7, 7.0, 5.0, 10)
+
+#########################################
+###### Aggregator class definition ######
+#########################################
+mutable struct MicrogridAggregator
+    PowerSoldWindPark::Float64
+    PowerSoldWarehouse::Float64
+    PowerBoughtHouseholds::Float64
+    PowerBoughtWarehouse::Float64
+end
+
+function GetMicrogridAggregator()
+
+
+
+end
