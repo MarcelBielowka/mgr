@@ -19,8 +19,6 @@ function GetEnergyStorage(iMaxCapacity::Float64, iChargeRate::Float64, iDischarg
 end
 #testStorage = GetEnergyStorage(10.5, 15.0, 9.50, 10)
 
-
-
 #########################################
 ### DayAhead handler class definition ###
 #########################################
@@ -230,14 +228,12 @@ end
 ###### Aggregator class definition ######
 #########################################
 mutable struct MicrogridAggregator
-    PowerSoldWindPark::Float64
-    PowerSoldWarehouse::Float64
-    PowerBoughtHouseholds::Float64
-    PowerBoughtWarehouse::Float64
+    PowerToSellWindPark::Float64
+    PowerToSellWarehouse::Float64
 end
 
 function GetMicrogridAggregator()
-
+    
 
 
 end
