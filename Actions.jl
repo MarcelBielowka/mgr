@@ -53,18 +53,18 @@ function SellEnergy(dDateHour::DateTime,
 end
 
 #Juno.@enter WindParkSellEnergy(Dates.DateTime("2019-11-04T07:00"), MyWindPark, 0.5, iMicrogridPrice, DayAheadPowerPrices)
-SellEnergy(Dates.DateTime("2019-11-04T07:00"), MyWindPark, 0.7, iMicrogridPrice, DayAheadPowerPrices)
-filter(row -> row.date == Dates.DateTime("2019-11-04T07:00"), MyWindPark.dfWindParkProductionData)
-filter(row -> (
-        row.DeliveryDate == Dates.Date("2019-11-04") && row.DeliveryHour== 07
-    ), DayAheadPowerPrices.dfDayAheadPrices)
+#SellEnergy(Dates.DateTime("2019-11-04T07:00"), MyWindPark, 0.7, iMicrogridPrice, DayAheadPowerPrices)
+#filter(row -> row.date == Dates.DateTime("2019-11-04T07:00"), MyWindPark.dfWindParkProductionData)
+#filter(row -> (
+#        row.DeliveryDate == Dates.Date("2019-11-04") && row.DeliveryHour== 07
+#    ), DayAheadPowerPrices.dfDayAheadPrices)
 
 #abc = Dates.DateTime("2021-04-05T03:00:00")
 #Dates.dayofweek(abc)
 #Dates.month(abc)
 
-SellEnergy(Dates.DateTime("2019-11-04T10:00"), MyWarehouse, 0.7, iMicrogridPrice, DayAheadPowerPrices)
-filter(row -> row.date == Dates.DateTime("2019-11-04T10:00"), MyWarehouse.SolarPanels.dfSolarProductionData)
-filter(row -> (
-        row.DeliveryDate == Dates.Date("2019-11-04") && row.DeliveryHour== 10
-    ), DayAheadPowerPrices.dfDayAheadPrices)
+#SellEnergy(Dates.DateTime("2019-11-04T10:00"), MyWarehouse, 0.7, iMicrogridPrice, DayAheadPowerPrices)
+#filter(row -> row.date == Dates.DateTime("2019-11-04T10:00"), MyWarehouse.SolarPanels.dfSolarProductionData)
+#filter(row -> (
+#        row.DeliveryDate == Dates.Date("2019-11-04") && row.DeliveryHour== 10
+#    ), DayAheadPowerPrices.dfDayAheadPrices)
