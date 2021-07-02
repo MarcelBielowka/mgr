@@ -21,12 +21,22 @@ end
 
 dfWarehouseFinalConsumptionData = AggregateWarehouseConsumptionDataForMonth(1, 2019, MyWarehouse)
 
-for month in 2:12
-    dfMonthlyData = AggregateWarehouseConsumptionDataForMonth(month, 2019, MyWarehouse)
-    dfWarehouseFinalConsumptionData = vcat(dfWarehouseFinalConsumptionData, dfMonthlyData)
+function AggregateWarehouseConsumptionData(iYear::Int, Warehouse::Warehouse)
+    dfFinalConsumption = AggregateWarehouseConsumptionDataForMonth(1, iYear, Warehouse)
+    for month in 2:12
+        dfMonthlyData = AggregateWarehouseConsumptionDataForMonth(month, iYear, Warehouse)
+        dfFinalConsumption = vcat(dfFinalConsumption, dfMonthlyData)
+    end
+    return dfFinalConsumption
 end
-dfWarehouseFinalConsumptionData
-dfWarehouseFinalConsumptionData.Day .% 7
+
+
+dfWarehouseFinalConsumptionData = AggregateWarehouseConsumptionData(2019, MyWarehouse)
+
+
+
+
+
 
 function AggregateHouseholdsConsumptionDataForMonth(iMonth::Int, iYear::Int,
     cAnalysisStartDate::String,
@@ -40,11 +50,19 @@ function AggregateHouseholdsConsumptionDataForMonth(iMonth::Int, iYear::Int,
     dfHouseholdConsumption = DataFrame(
         date = Dates.DateTime.(string.(dDates, "T", dHours))
     )
+    insertcols!(dfHouseholdConsumption,
+        :month => Dates.month.(dfHouseholdConsumption.date),
+        :DayOfWeek => Dates.dayofweek.(dfHouseholdConsumption.date),
+        :Holiday => 0,
+        :WeightedProfile => 0)
     return dfHouseholdConsumption
 end
 
-test = Juno.@enter AggregateHouseholdsConsumptionDataForMonth(1,2019,"2019-01-01",
+test = AggregateHouseholdsConsumptionDataForMonth(1,2019,"2019-01-01",
     dPLHolidayCalendar, Households)
+filter
+
+
 
 a = repeat([Dates.Date("2019-01-01")], 24)
 b = @pipe collect(0:1:23) |> repeat(_, 365)
