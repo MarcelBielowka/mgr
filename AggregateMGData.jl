@@ -1,8 +1,9 @@
-function AggregateWarehouseConsumptionDataForMonth(Month::Int, Year::Int,
-    dHolidaysCalendar::Array,
+using Pipe, DataFrames, Dates
+
+function AggregateWarehouseConsumptionDataForMonth(iMonth::Int, iYear::Int,
     Warehouse::Warehouse)
 
-    dFirstDayOfMonth = Dates.Date(string(Year, "-", Month, "-01"))
+    dFirstDayOfMonth = Dates.Date(string(iYear, "-", iMonth, "-01"))
     iDayOfWeekOfFDOM = Dates.dayofweek(dFirstDayOfMonth)
     iDaysInMonth = Dates.daysinmonth(dFirstDayOfMonth)
 
@@ -10,20 +11,56 @@ function AggregateWarehouseConsumptionDataForMonth(Month::Int, Year::Int,
         row -> (row.Day >= iDayOfWeekOfFDOM && row.Day < iDayOfWeekOfFDOM + iDaysInMonth),
         MyWarehouse.dfEnergyConsumption
     )
+    insertcols!(dfWarehouseConsumptionMonthly,
+        :month => repeat([iMonth], nrow(dfWarehouseConsumptionMonthly)),
+        :DayOfWeek => dfWarehouseConsumptionMonthly.Day .% 7)
 
     #filter!(row -> row.Day <= Dates.daysinmonth(dFirstDayOfMonth), dfUnorderedWarehouseData)
     return dfWarehouseConsumptionMonthly
 end
 
-a = 6
-b = 2019
-t = dayofweek(Dates.Date(string(b, "-", a, "-01")))
-t + daysinmonth(Dates.Date(string(b, "-", a, "-01")))
+dfWarehouseFinalConsumptionData = AggregateWarehouseConsumptionDataForMonth(1, 2019, MyWarehouse)
 
-test = filter(row -> (row.Day >= t && row.Day < t + daysinmonth(Dates.Date(string(b, "-", a, "-01"))))
-    , MyWarehouse.dfEnergyConsumption)
-test.DayOfWeek = test.Day .% 7
+for month in 2:12
+    dfMonthlyData = AggregateWarehouseConsumptionDataForMonth(month, 2019, MyWarehouse)
+    dfWarehouseFinalConsumptionData = vcat(dfWarehouseFinalConsumptionData, dfMonthlyData)
+end
+dfWarehouseFinalConsumptionData
+dfWarehouseFinalConsumptionData.Day .% 7
 
+function AggregateHouseholdsConsumptionDataForMonth(iMonth::Int, iYear::Int,
+    cAnalysisStartDate::String,
+    dPLHolidayCalendar::Array, Households::⌂)
+
+    dDates = repeat([Dates.Date(cAnalysisStartDate)], 24)
+    for i in 1:364
+        dDates = vcat(dDates, repeat([Dates.Date(cAnalysisStartDate) + Dates.Day(i)], 24))
+    end
+    dHours = @pipe collect(0:1:23) |> repeat(_, 365)
+    dfHouseholdConsumption = DataFrame(
+        date = Dates.DateTime.(string.(dDates, "T", dHours))
+    )
+    return dfHouseholdConsumption
+end
+
+test = Juno.@enter AggregateHouseholdsConsumptionDataForMonth(1,2019,"2019-01-01",
+    dPLHolidayCalendar, Households)
+
+a = repeat([Dates.Date("2019-01-01")], 24)
+b = @pipe collect(0:1:23) |> repeat(_, 365)
+a
+unique(a)
+@pipe
+
+Dates.DateTime.(string.(a, "T", b))
+
+for i in 1:364
+    a = vcat(a, repeat([Dates.Date("2019-01-01") + Dates.Day(i)], 24))
+end
+
+[repeat([Dates.Date("2019-01-01") + Dates.Day(i)], 24) for i in 0:364]
+
+Dates.Day(1)
 u = dayofweek(Dates.Date(string(b, "-", a + 1, "-01")))
 u + daysinmonth(Dates.Date(string(b, "-", a + 1, "-01")))
 
