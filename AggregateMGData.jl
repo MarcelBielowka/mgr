@@ -38,30 +38,43 @@ dfWarehouseFinalConsumptionData = AggregateWarehouseConsumptionData(2019, MyWare
 
 
 
-function AggregateHouseholdsConsumptionDataForMonth(iMonth::Int, iYear::Int,
-    cAnalysisStartDate::String,
-    dPLHolidayCalendar::Array, Households::⌂)
-
-    dDates = repeat([Dates.Date(cAnalysisStartDate)], 24)
-    for i in 1:364
-        dDates = vcat(dDates, repeat([Dates.Date(cAnalysisStartDate) + Dates.Day(i)], 24))
+function AggregateHouseholdsConsumptionDataForMonth(cStartDate::String, cEndDate::String,
+    dHolidayCalendar::Array, Households::⌂)
+    dfAggregatedHouseholdConsumption = DataFrame()
+    for day in collect(Date(cStartDate):Day(1):Date(cEndDate))
+        if any(dHolidayCalendar .== day)
+            DayOfWeek = 7
+        else
+            DayOfWeek = Dates.dayofweek(day)
+        end
+        println(day, ", day of week is ", DayOfWeek)
+        Month = Dates.month(day)
+        Profile = Households.EnergyConsumption[(Month, DayOfWeek)]
+        dfConsDay = hcat(repeat([day],24), Profile)
+        dfAggregatedHouseholdConsumption = vcat(dfAggregatedHouseholdConsumption, dfConsDay)
     end
-    dHours = @pipe collect(0:1:23) |> repeat(_, 365)
-    dfHouseholdConsumption = DataFrame(
-        date = Dates.DateTime.(string.(dDates, "T", dHours))
-    )
-    insertcols!(dfHouseholdConsumption,
-        :month => Dates.month.(dfHouseholdConsumption.date),
-        :DayOfWeek => Dates.dayofweek.(dfHouseholdConsumption.date),
-        :Holiday => 0,
-        :WeightedProfile => 0)
-    return dfHouseholdConsumption
+    return dfAggregatedHouseholdConsumption
 end
 
-test = AggregateHouseholdsConsumptionDataForMonth(1,2019,"2019-01-01",
+test = AggregateHouseholdsConsumptionDataForMonth("2019-01-01", "2019-12-31",
     dPLHolidayCalendar, Households)
-filter
 
+Households.EnergyConsumption[(5,3)]
+
+abc = collect(Date("2019-01-01"):Day(1):Date("2019-01-08"))
+tesDF = DataFrame()
+for day in collect(Date("2019-01-01"):Day(1):Date("2019-01-08"))
+    println(day)
+    if any(dPLHolidayCalendar .== day)
+        DayOfWeek = 7
+    else
+        DayOfWeek = Dates.dayofweek(day)
+    end
+    Month = Dates.month(day)
+    Profile = Households.EnergyConsumption[(Month, DayOfWeek)]
+    dfFinal = hcat(repeat([day],24), Profile)
+    tesDF = vcat(tesDF, dfFinal)
+end
 
 
 a = repeat([Dates.Date("2019-01-01")], 24)
