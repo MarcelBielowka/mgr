@@ -19,8 +19,6 @@ function AggregateWarehouseConsumptionDataForMonth(iMonth::Int, iYear::Int,
     return dfWarehouseConsumptionMonthly
 end
 
-dfWarehouseFinalConsumptionData = AggregateWarehouseConsumptionDataForMonth(1, 2019, MyWarehouse)
-
 function AggregateWarehouseConsumptionData(iYear::Int, Warehouse::Warehouse)
     dfFinalConsumption = AggregateWarehouseConsumptionDataForMonth(1, iYear, Warehouse)
     for month in 2:12
@@ -30,12 +28,7 @@ function AggregateWarehouseConsumptionData(iYear::Int, Warehouse::Warehouse)
     return dfFinalConsumption
 end
 
-
 dfWarehouseFinalConsumptionData = AggregateWarehouseConsumptionData(2019, MyWarehouse)
-
-
-
-
 
 
 function AggregateHouseholdsConsumptionDataForMonth(cStartDate::String, cEndDate::String,
@@ -59,50 +52,4 @@ end
 test = AggregateHouseholdsConsumptionDataForMonth("2019-01-01", "2019-12-31",
     dPLHolidayCalendar, Households)
 
-Households.EnergyConsumption[(5,3)]
-
-abc = collect(Date("2019-01-01"):Day(1):Date("2019-01-08"))
-tesDF = DataFrame()
-for day in collect(Date("2019-01-01"):Day(1):Date("2019-01-08"))
-    println(day)
-    if any(dPLHolidayCalendar .== day)
-        DayOfWeek = 7
-    else
-        DayOfWeek = Dates.dayofweek(day)
-    end
-    Month = Dates.month(day)
-    Profile = Households.EnergyConsumption[(Month, DayOfWeek)]
-    dfFinal = hcat(repeat([day],24), Profile)
-    tesDF = vcat(tesDF, dfFinal)
-end
-
-
-a = repeat([Dates.Date("2019-01-01")], 24)
-b = @pipe collect(0:1:23) |> repeat(_, 365)
-a
-unique(a)
-@pipe
-
-Dates.DateTime.(string.(a, "T", b))
-
-for i in 1:364
-    a = vcat(a, repeat([Dates.Date("2019-01-01") + Dates.Day(i)], 24))
-end
-
-[repeat([Dates.Date("2019-01-01") + Dates.Day(i)], 24) for i in 0:364]
-
-Dates.Day(1)
-u = dayofweek(Dates.Date(string(b, "-", a + 1, "-01")))
-u + daysinmonth(Dates.Date(string(b, "-", a + 1, "-01")))
-
-abc = deepcopy(MyWarehouse.dfEnergyConsumption)
-abc.Day = abc.Day .- (t-1)
-
-FirstPart = filter(row -> row.Day >= t, MyWarehouse.dfEnergyConsumption)
-SecondPart = filter(row -> row.Day < t, MyWarehouse.dfEnergyConsumption)
-Reordered = vcat(FirstPart, SecondPart)
-
-ReorderAgain = vcat(filter(row -> row.Day >= t, MyWarehouse.dfEnergyConsumption),
-                    filter(row -> row.Day < t, MyWarehouse.dfEnergyConsumption))
-
-test = AggregateWarehouseConsumptionDataForMonth(2, 2019, dPLHolidayCalendar, MyWarehouse)
+Households.EnergyConsumption[(8,5)]
