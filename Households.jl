@@ -351,6 +351,7 @@ function ConvertHouseholdsConsumptionToDataFrame(cStartDate::String, cEndDate::S
         dfConsDay = hcat(repeat([day],24), Profile)
         dfAggregatedHouseholdConsumption = vcat(dfAggregatedHouseholdConsumption, dfConsDay)
     end
+    rename!(dfAggregatedHouseholdConsumption, [:date, :Hour, :ProfileWeighted])
     return dfAggregatedHouseholdConsumption
 end
 
