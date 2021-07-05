@@ -506,7 +506,7 @@ end
 ##################################
 ###### Final data extractor ######
 ##################################
-function ExtractFinalStorageData(OutputDictionary::Dict, iYear::Int)
+function ExtractFinalStorageData(OutputDictionary, iYear::Int)
     dfOutputDataSample = OutputDictionary[1]["Storage"].ElectricityConsumption
     dfConsignmentsHistorySample = OutputDictionary[1]["ConsignmentsHistory"]
     for i in 2:length(OutputDictionary)
