@@ -87,7 +87,7 @@ Households = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, dPLHolidayCalendar,
 
 dfRawEnergyConsumption = CSV.File("C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv") |> DataFrame
 dfRawConsHistory = CSV.File("C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.csv") |> DataFrame
-MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory,
+MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory, 2019,
     0.55, 0.0035, 45, 600, Weather, 11.7, 1.5*11.75, 0.5*11.7, 10)
 
 #########################################
