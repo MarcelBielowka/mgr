@@ -12,7 +12,9 @@ using MultivariateStats
 ###### The very households weightlifting ######
 ###############################################
 
-function GetHouseholdsData(cMasterDir, dHolidayCalendar; FixedSeed = 72945)
+function GetHouseholdsData(cMasterDir::String,
+    dOriginalHolidayCalendar::Array, dDestinationHolidayCalendar::Array,
+    cStartDate::String, cEndDate::String; FixedSeed = 72945)
     dfHouseholdDataFull = ReadRawData(cMasterDir)
     println("Start processing data")
     # Filter only data for 2013
@@ -40,7 +42,7 @@ function GetHouseholdsData(cMasterDir, dHolidayCalendar; FixedSeed = 72945)
     dfHouseholdDataShortComplete = CheckHouseholdDataQuality(dfHouseholdDataShortComplete, 10, 5)
 
     println("Add some further data and holidays servicing")
-    dfHouseholdDataShortComplete = AddMonthDayOfWeek(dfHouseholdDataShortComplete, dHolidayCalendar)
+    dfHouseholdDataShortComplete = AddMonthDayOfWeek(dfHouseholdDataShortComplete, dOriginalHolidayCalendar)
 
     println("Splitting data by month and day of week")
     dfHouseholdDataToCluster = PrepareDataForClustering(dfHouseholdDataShortComplete)
@@ -53,10 +55,16 @@ function GetHouseholdsData(cMasterDir, dHolidayCalendar; FixedSeed = 72945)
     println("Running final clustering")
     FinalClusteringOutput = RunFinalClustering(dfHouseholdDataToCluster, TestClusteringData[2])
 
+    println("Creating destination data frame with household power consumption for dates: ", cStartDate, " to ", cEndDate,
+        " and holiday calendar ", dDestinationHolidayCalendar)
+    dfWeightedProfile = ConvertHouseholdsConsumptionToDataFrame(cStartDate, cEndDate,
+        dDestinationHolidayCalendar, FinalClusteringOutput[2])
+
     println("Returning the figures")
     ClusteringOutput = Dict(
         "HouseholdProfiles" => FinalClusteringOutput[1],
         "HouseholdProfilesWeighted" => FinalClusteringOutput[2],
+        "dfHouseholdsProfilesWeighted" => dfWeightedProfile,
         "ClusteringCounts" => FinalClusteringOutput[3],
         "PCAOutput" => FinalClusteringOutput[4],
         "ClusteredData" => dfHouseholdDataToCluster,
@@ -323,6 +331,27 @@ function RunFinalClustering(dfHouseholdDataByMonth, OptimalNumberOfClusters)
     end
 
     return HouseholdProfiles, HouseholdProfilesWeighted, HouseholdProfilesClusteringCounts, PCAOutputs
+end
+
+###############################################
+### Households' consumption from dict to df ###
+###############################################
+function ConvertHouseholdsConsumptionToDataFrame(cStartDate::String, cEndDate::String,
+    dHolidayCalendar::Array, dictHouseholdsConsumption::Dict)
+    dfAggregatedHouseholdConsumption = DataFrame()
+    for day in collect(Date(cStartDate):Day(1):Date(cEndDate))
+        if any(dHolidayCalendar .== day)
+            DayOfWeek = 7
+        else
+            DayOfWeek = Dates.dayofweek(day)
+        end
+        println(day, ", day of week is ", DayOfWeek)
+        Month = Dates.month(day)
+        Profile = dictHouseholdsConsumption[(Month, DayOfWeek)]
+        dfConsDay = hcat(repeat([day],24), Profile)
+        dfAggregatedHouseholdConsumption = vcat(dfAggregatedHouseholdConsumption, dfConsDay)
+    end
+    return dfAggregatedHouseholdConsumption
 end
 
 ###############################################
