@@ -536,11 +536,11 @@ function ExtractFinalStorageData(OutputDictionary::Dict, Year::Int)
     )
     select!(dfConsignmentsHistory, [:Day, :Hour, :ConsignmentIn, :ConsignmentOut, :ConsignmentInStd, :ConsignmentOutStd])
 
-    dfWarehouseEnergyConsumptionByMonth = AggregateWarehouseConsumptionData(dfOutputData, iYear)
+    dfWarehouseEnergyConsumptionYearly = AggregateWarehouseConsumptionData(dfOutputData, iYear)
 
     return Dict(
         "dfWarehouseEnergyConsumption" => dfOutputData,
-        "dfWarehouseEnergyConsumptionByMonth" => dfWarehouseEnergyConsumptionByMonth,
+        "dfWarehouseEnergyConsumptionYearly" => dfWarehouseEnergyConsumptionYearly,
         "dfConsignmenstHistory" => dfConsignmentsHistory,
         "ExampleStorage" => OutputDictionary[1]["Storage"]
     )

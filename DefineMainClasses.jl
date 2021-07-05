@@ -128,6 +128,7 @@ end
 #########################################
 mutable struct Warehouse
     dfEnergyConsumption::DataFrame
+    dfWarehouseEnergyConsumptionYearly::DataFrame
     dfConsignmentHistory::DataFrame
     SolarPanels::SolarPanels
     EnergyStorage::EnergyStorage
@@ -152,6 +153,7 @@ function GetWarehouse(
 
     return Warehouse(
         dictFinalData["dfWarehouseEnergyConsumption"],
+        dictFinalData["dfWarehouseEnergyConsumptionYearly"],
         dictFinalData["dfConsignmenstHistory"],
         WarehouseSolarPanels,
         GetEnergyStorage(iStorageMaxCapacity,
@@ -180,8 +182,11 @@ function GetTestWarehouse(
         iPVMaxCapacity, iPVγ_temp, iNoct, WeatherData, iNumberOfPanels
     )
 
+    dfWarehouseEnergyConsumptionYearly = AggregateWarehouseConsumptionData(dfWarehouseEnergyConsumption)
+
     return Warehouse(
         dfWarehouseEnergyConsumption,
+        dfWarehouseEnergyConsumptionYearly,
         dfConsignmentHistory,
         WarehouseSolarPanels,
         GetEnergyStorage(iStorageMaxCapacity,
