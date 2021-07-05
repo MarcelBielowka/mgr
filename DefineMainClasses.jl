@@ -214,7 +214,7 @@ function Get_⌂(cHouseholdsDir::String,
     dictHouseholdsData = GetHouseholdsData(cHouseholdsDir, dOriginalHolidayCalendar,
         dDestinationHolidayCalendar, cStartDate, cEndDate)
     dictProfileWeighted = dictHouseholdsData["HouseholdProfilesWeighted"]
-    dfProfileWeighted = dictHouseholdsData["dfHouseholdsProfilesWeighted"]
+    dfProfileWeighted = dictHouseholdsData["dfHouseholdProfilesWeighted"]
     dfProfileWeighted.ProfileWeighted .= dfProfileWeighted.ProfileWeighted .*100
 
     return ⌂(

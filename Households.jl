@@ -64,7 +64,7 @@ function GetHouseholdsData(cMasterDir::String,
     ClusteringOutput = Dict(
         "HouseholdProfiles" => FinalClusteringOutput[1],
         "HouseholdProfilesWeighted" => FinalClusteringOutput[2],
-        "dfHouseholdsProfilesWeighted" => dfWeightedProfile,
+        "dfHouseholdProfilesWeighted" => dfWeightedProfile,
         "ClusteringCounts" => FinalClusteringOutput[3],
         "PCAOutput" => FinalClusteringOutput[4],
         "ClusteredData" => dfHouseholdDataToCluster,
