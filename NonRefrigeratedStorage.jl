@@ -67,6 +67,10 @@ function GetInitialConsDataFrame(StorageID, SimLength, LightningEnergyConsumptio
     return InitialDataFrame
 end
 
+
+##################################
+###### Conveyor constructor ######
+##################################
 mutable struct Conveyor
     ConveyorSectionLength::Float64
     ConveyorSectionWidth::Float64
@@ -89,7 +93,9 @@ function GetConveyor(ConveyorSectionLength::Float64, ConveyorSectionWidth::Float
     )
 end
 
-# Storage class definition
+##################################
+####### Storage constructor ######
+##################################
 mutable struct Storage
     ID::Int
     StorageMap::Array
@@ -131,7 +137,9 @@ function Storage(ID, SimLength, SlotsLength, SlotsWidth, SlotsHeight, HandlingRo
     )
 end
 
-# Consignment class defintion
+##################################
+##### Consignment constructor ####
+##################################
 mutable struct Consignment
     DataIn::Dict
     DataOut::Dict
@@ -307,6 +315,9 @@ function CreateNewStorage(ID, SimLength, PrintLogs,
     return NewStorage
 end
 
+##################################
+##### Runner of a single sim #####
+##################################
 function SimOneRun(RunID, SimWindow,
     DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, PrintLogs;
     SlotsLength = 45, SlotsWidth = 51, SlotsHeight = 7,
@@ -453,13 +464,49 @@ function SimOneRun(RunID, SimWindow,
     )
 end
 
+##################################
+###### Parallel sim wrapper ######
+##################################
 function SimWrapper(params)
     RunID, SimWindow, PrintLogs = params
     return SimOneRun(RunID, SimWindow, DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, PrintLogs)
 end
 
+##################################
+##### Helpers data extractor #####
+##################################
+function AggregateWarehouseConsumptionDataForMonth(iMonth::Int, iYear::Int,
+    dfOutput::DataFrame)
 
-function ExtractFinalStorageData(OutputDictionary)
+    dFirstDayOfMonth = Dates.Date(string(iYear, "-", iMonth, "-01"))
+    iDayOfWeekOfFDOM = Dates.dayofweek(dFirstDayOfMonth)
+    iDaysInMonth = Dates.daysinmonth(dFirstDayOfMonth)
+
+    dfWarehouseConsumptionMonthly = filter(
+        row -> (row.Day >= iDayOfWeekOfFDOM && row.Day < iDayOfWeekOfFDOM + iDaysInMonth),
+        dfOutput.dfEnergyConsumption
+    )
+    insertcols!(dfWarehouseConsumptionMonthly,
+        :month => repeat([iMonth], nrow(dfWarehouseConsumptionMonthly)),
+        :DayOfWeek => dfWarehouseConsumptionMonthly.Day .% 7)
+
+    #filter!(row -> row.Day <= Dates.daysinmonth(dFirstDayOfMonth), dfUnorderedWarehouseData)
+    return dfWarehouseConsumptionMonthly
+end
+
+function AggregateWarehouseConsumptionData(iYear::Int, dfOutput::DataFrame)
+    dfFinalConsumption = AggregateWarehouseConsumptionDataForMonth(1, iYear, Warehouse)
+    for month in 2:12
+        dfMonthlyData = AggregateWarehouseConsumptionDataForMonth(month, iYear, dfOutput)
+        dfFinalConsumption = vcat(dfFinalConsumption, dfMonthlyData)
+    end
+    return dfFinalConsumption
+end
+
+##################################
+###### Final data extractor ######
+##################################
+function ExtractFinalStorageData(OutputDictionary::Dict, Year::Int)
     dfOutputDataSample = OutputDictionary[1]["Storage"].ElectricityConsumption
     dfConsignmentsHistorySample = OutputDictionary[1]["ConsignmentsHistory"]
     for i in 2:length(OutputDictionary)
@@ -489,8 +536,11 @@ function ExtractFinalStorageData(OutputDictionary)
     )
     select!(dfConsignmentsHistory, [:Day, :Hour, :ConsignmentIn, :ConsignmentOut, :ConsignmentInStd, :ConsignmentOutStd])
 
+    dfWarehouseEnergyConsumptionByMonth = AggregateWarehouseConsumptionData(dfOutputData, iYear)
+
     return Dict(
         "dfWarehouseEnergyConsumption" => dfOutputData,
+        "dfWarehouseEnergyConsumptionByMonth" => dfWarehouseEnergyConsumptionByMonth,
         "dfConsignmenstHistory" => dfConsignmentsHistory,
         "ExampleStorage" => OutputDictionary[1]["Storage"]
     )
