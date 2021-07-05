@@ -248,3 +248,46 @@ function GetMicrogridAggregator()
 
 
 end
+
+
+#########################################
+####### Microgrid class definition ######
+#########################################
+mutable struct Microgrid
+    DayAheadPricesHandler::DayAheadPricesHandler
+    WeatherDataHandler::WeatherDataHandler
+    MyWindPark::WindPark
+    MyWarehouse::Warehouse
+    MyHouseholds::⌂
+    dfTotalProduction::DataFrame
+    dfTotalConsumption::DataFrame
+    EnergyStorage::EnergyStorage
+end
+
+function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
+    WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
+    MyWarehouse::Warehouse, MyHouseholds::⌂)
+
+    dfTotalProduction = DataFrames.innerjoin(MyWindPark.dfWindParkProductionData,
+        MyWarehouse.SolarPanels.dfSolarProductionData, on = :date)
+    insertcols!(dfTotalProduction,
+        :TotalProduction => dfTotalProduction.WindProduction .+ dfTotalProduction.dfSolarProduction)
+    dfTotalConsumption = DataFrames.DataFrame(
+        date = MyHouseholds.dfEnergyConsumption.date,
+        HouseholdConsumption = MyHouseholds.dfEnergyConsumption.ProfileWeighted,
+        WarehouseConsumption = MyWarehouse.dfWarehouseEnergyConsumptionYearly.Consumption
+    )
+    insertcols!(dfTotalConsumption,
+        :TotalConsumption => dfTotalConsumption.HouseholdConsumption .+ dfTotalConsumption.WarehouseConsumption)
+
+    return Microgrid(
+        DayAheadPricesHandler, WeatherDataHandler,
+        MyWindPark, MyWarehouse, MyHouseholds,
+        dfTotalProduction, dfTotalConsumption,
+        GetEnergyStorage(MyHouseholds.EnergyStorage.iMaxCapacity + MyWarehouse.EnergyStorage.iMaxCapacity,
+                         MyHouseholds.EnergyStorage.iChargeRate + MyWarehouse.EnergyStorage.iChargeRate,
+                         MyHouseholds.EnergyStorage.iDischargeRate + MyWarehouse.EnergyStorage.iDischargeRate,
+                         1)
+    )
+
+end

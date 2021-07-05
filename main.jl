@@ -92,6 +92,9 @@ MyWarehouse = Juno.@enter GetWarehouse(iWarehouseNumberOfSimulations, iWarehouse
 #MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory, 2019,
 #    0.55, 0.0035, 45, 600, Weather, 11.7, 1.5*11.75, 0.5*11.7, 10)
 
+FullMicrogrid = GetMicrogrid(DayAheadPowerPrices, Weather,
+    MyWindPark, MyWarehouse, Households)
+
 #########################################
 ########## Learning process #############
 #########################################
