@@ -196,24 +196,27 @@ end
 ###### Households class definition ######
 #########################################
 mutable struct ⌂
-    EnergyConsumption::Dict
+    EnergyConsumption::DataFrame
     iNumberOfHouseholds::Int
     EnergyStorage::EnergyStorage
 end
 
-function Get_⌂(cHouseholdsDir::String, dHolidayCalendar,
+function Get_⌂(cHouseholdsDir::String,
+    dOriginalHolidayCalendar::Array, dDestinationHolidayCalendar::Array,
+    cStartDate::String, cEndDate::String,
     iNumberOfHouseholds::Int,
     iStorageMaxCapacity::Float64, iStorageChargeRate::Float64,
     iStorageDischargeRate::Float64, iNumberOfStorageCells::Int)
 
     println("Constructor - creating the households")
 
-    dictHouseholdsData = GetHouseholdsData(cHouseholdsDir, dUKHolidayCalendar)
-    dictProfileWeighted = dictHouseholdsData["HouseholdProfilesWeighted"]
-    [dictProfileWeighted[(i,j)].ProfileWeighted .*= 100 for i in 1:12, j in 1:7]
+    dictHouseholdsData = GetHouseholdsData(cHouseholdsDir, dOriginalHolidayCalendar,
+        dDestinationHolidayCalendar, cStartDate, cEndDate)
+    dfProfileWeighted = dictHouseholdsData["dfHouseholdsProfilesWeighted"]
+    dfProfileWeighted.ProfileWeighted .= dfProfileWeighted.ProfileWeighted .*100
 
     return ⌂(
-        dictProfileWeighted,
+        dfProfileWeighted,
         iNumberOfHouseholds,
         GetEnergyStorage(iStorageMaxCapacity,
                          iStorageChargeRate,
@@ -233,7 +236,7 @@ mutable struct MicrogridAggregator
 end
 
 function GetMicrogridAggregator()
-    
+
 
 
 end
