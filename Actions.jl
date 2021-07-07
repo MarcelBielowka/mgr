@@ -52,19 +52,23 @@ function SellEnergy(dDateHour::DateTime,
     )
 end
 
-#Juno.@enter WindParkSellEnergy(Dates.DateTime("2019-11-04T07:00"), MyWindPark, 0.5, iMicrogridPrice, DayAheadPowerPrices)
-#SellEnergy(Dates.DateTime("2019-11-04T07:00"), MyWindPark, 0.7, iMicrogridPrice, DayAheadPowerPrices)
-#filter(row -> row.date == Dates.DateTime("2019-11-04T07:00"), MyWindPark.dfWindParkProductionData)
-#filter(row -> (
-#        row.DeliveryDate == Dates.Date("2019-11-04") && row.DeliveryHour== 07
-#    ), DayAheadPowerPrices.dfDayAheadPrices)
+function Output(Microgrid::Microgrid, dCurrentStep::DateTime, Action::Float64)
+    dfCurrentProduction = filter(row-> row.date==dCurrentStep,
+        Microgrid.dfTotalProduction)
+    dfCurrentConsumption = filter(row-> row.date==dCurrentStep,
+        Microgrid.dfTotalProduction)
+    iCurrentMismatch = dfCurrentProduction.TotalProduction - dfCurrentConsumption.TotalConsumption
+    if (Action > 1 && Microgrid.EnergyStorage.iCurrentCharge < Microgrid.EnergyStorage.iMaxCapacity)
+        iMaxPossibleCharge = min(Microgrid.EnergyStorage.iChargeRate,
+            Microgrid.EnergyStorage.iMaxCapacity - Microgrid.EnergyStorage.iCurrentCharge)
+        iCharge = min(iMaxPossibleCharge, (Action-1) * Microgrid.dfTotalConsumption)
+        Microgrid.EnergyStorage.iCurrentCharge += iCharge
 
-#abc = Dates.DateTime("2021-04-05T03:00:00")
-#Dates.dayofweek(abc)
-#Dates.month(abc)
+    else if (Action < 1 && Microgrid.EnergyStorage.iCurrentCharge > 0)
+        iMaxPossibleDischarge = min(Microgrid.EnergyStorage.iDischargeRate,
+            Microgrid.EnergyStorage.iMaxCapacity)
+        iDischarge =
 
-#SellEnergy(Dates.DateTime("2019-11-04T10:00"), MyWarehouse, 0.7, iMicrogridPrice, DayAheadPowerPrices)
-#filter(row -> row.date == Dates.DateTime("2019-11-04T10:00"), MyWarehouse.SolarPanels.dfSolarProductionData)
-#filter(row -> (
-#        row.DeliveryDate == Dates.Date("2019-11-04") && row.DeliveryHour== 10
-#    ), DayAheadPowerPrices.dfDayAheadPrices)
+    end
+
+end
