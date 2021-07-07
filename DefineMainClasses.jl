@@ -284,7 +284,7 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
             "Windpark" => MyWindPark,
             "Warehouse" => MyWarehouse,
             "Households" => MyHouseholds
-        )
+        ),
         dfTotalProduction, dfTotalConsumption,
         GetEnergyStorage(MyHouseholds.EnergyStorage.iMaxCapacity + MyWarehouse.EnergyStorage.iMaxCapacity,
                          MyHouseholds.EnergyStorage.iChargeRate + MyWarehouse.EnergyStorage.iChargeRate,
