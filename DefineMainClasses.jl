@@ -256,9 +256,7 @@ end
 mutable struct Microgrid
     DayAheadPricesHandler::DayAheadPricesHandler
     WeatherDataHandler::WeatherDataHandler
-    MyWindPark::WindPark
-    MyWarehouse::Warehouse
-    MyHouseholds::⌂
+    Constituents::Dict
     dfTotalProduction::DataFrame
     dfTotalConsumption::DataFrame
     EnergyStorage::EnergyStorage
@@ -282,7 +280,11 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
 
     return Microgrid(
         DayAheadPricesHandler, WeatherDataHandler,
-        MyWindPark, MyWarehouse, MyHouseholds,
+        Dict(
+            "Windpark" => MyWindPark,
+            "Warehouse" => MyWarehouse,
+            "Households" => MyHouseholds
+        )
         dfTotalProduction, dfTotalConsumption,
         GetEnergyStorage(MyHouseholds.EnergyStorage.iMaxCapacity + MyWarehouse.EnergyStorage.iMaxCapacity,
                          MyHouseholds.EnergyStorage.iChargeRate + MyWarehouse.EnergyStorage.iChargeRate,
