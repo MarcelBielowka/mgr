@@ -1,8 +1,8 @@
-using Distributions
+using Distributions, DataFrames
 using Flux
 
 
-Policy = Distributions.Normal(1.0, .1)
+Policy = Distributions.Normal(0.5, .1)
 Action = rand(Policy)
 pdf(Actions, Action)
 pdf(Policy, 0.05)
@@ -10,8 +10,10 @@ pdf(Policy, 0.05)
 
 mutable struct State
     dictProductionAndConsumption::Dict
-    iPrices::Dict
+    iBuyPrice::Float64
+    iSellPrice::Float64
     iCurrentCharge::Float64
+    iHour::BitArray
 end
 
 function GetState(Microgrid::Microgrid, iTimeStep::Int64)
@@ -24,19 +26,26 @@ function GetState(Microgrid::Microgrid, iTimeStep::Int64)
         Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices).iThirdQuartile[1]
     iPriceSell = filter(row -> row.DeliveryHour == iHour,
         Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices).iFirstQuartile[1]
+    iHours = @pipe Flux.onehot(iHour, collect(0:23)) |> collect(_) |> Int.(_)
 
-    return State(
-        Dict(
-            "iTotalProduction" => iTotalProduction,
-            "iTotalConsumption" => iTotalConsumption,
-            "iProductionConsumptionMismatch" => iProductionConsumptionMismatch
-        ),
-        Dict(
-            "iPriceBuy" => iPriceBuy,
-            "iPriceSell" => iPriceSell
-        ),
+    return vcat([
+        iTotalProduction
+        iTotalConsumption
+        iProductionConsumptionMismatch
+        iPriceBuy
+        iPriceSell
         Microgrid.EnergyStorage.iCurrentCharge
-    )
+    ], @pipe Flux.onehot(iHour, collect(0:23)) |> collect(_) |> Int.(_))
+    #return State(
+    #    Dict(
+    #        "iTotalProduction" => iTotalProduction,
+    #        "iTotalConsumption" => iTotalConsumption,
+    #        "iProductionConsumptionMismatch" => iProductionConsumptionMismatch
+    #    ),
+    #    iPriceBuy,
+    #    iPriceSell,
+    #    Microgrid.EnergyStorage.iCurrentCharge
+    #)
 end
 
 function GetAction(Microgrid::Microgrid, Policy::Distribution)
@@ -44,19 +53,56 @@ function GetAction(Microgrid::Microgrid, Policy::Distribution)
     return action
 end
 
-function Act!(Microgrid::Microgrid, action::Float64, iTimeStep::Int64)
+function ChargeOrDischargeBattery!(Microgrid::Microgrid,
+    Charge::Bool,
+    Action::Float64,
+    iConsumptionMismatch::Float64)
+    if Charge
+        iMaxPossibleCharge = min(Microgrid.EnergyStorage.iChargeRate,
+            Microgrid.EnergyStorage.iMaxCapacity - Microgrid.EnergyStorage.iCurrentCharge)
+        iCharge = min(iMaxPossibleCharge, Action * abs(iConsumptionMismatch))
+        Microgrid.EnergyStorage.iCurrentCharge += iCharge
+        #iActualAction = (iConsumptionMismatch - iCharge)
+        println("The actual charge of the microgrid will be ", )
+    else
+        iMaxPossibleDischarge = min(Microgrid.EnergyStorage.iDischargeRate,
+            Microgrid.EnergyStorage.iCurrentCharge)
+        iDischarge = min(iMaxPossibleDischarge, Action * abs(iConsumptionMismatch))
+        Microgrid.EnergyStorage.iCurrentCharge -= iDischarge
+    end
+end
 
+function Act!(Microgrid::Microgrid, CurrentState::Vector, iTimeStep::Int64)
+    Random.seed!(72945)
+    Action = rand(Policy)
+    println(Action)
 
-    #return(Dict("iPriceBuy" => iPriceBuy, "iPriceSell" => iPriceSell))
+    #if CurrentState.dictProductionAndConsumption.iProductionConsumptionMismatch >= 0
+    if CurrentState[3] >= 0
+        println("Microgrid wants to sell $Action% of production to the battery and the rest to the external grid")
+        if (Action) > 0
+            ChargeOrDischargeBattery!(Microgrid, true, Action, CurrentState[3])
+        else
+            ChargeOrDischargeBattery!(Microgrid, false, Action, CurrentState[3])
+        end
+    else
+        if (Action) > 0
+            ChargeOrDischargeBattery!(Microgrid, false, Action, CurrentState[3])
+        else
+            ChargeOrDischargeBattery!(Microgrid, true, Action, CurrentState[3])
+        end
+    end
+
 
 
 end
 
-GetState(FullMicrogrid,23)
+GetState(FullMicrogrid,1)
+testState = GetState(FullMicrogrid,1)
 testAction = GetAction(FullMicrogrid, Policy)
-Act!(FullMicrogrid, testAction, 23)
+Act!(FullMicrogrid, testState, 1)
 
-
+FullMicrogrid.EnergyStorage
 
 #########################################
 ######## Brain class definition #########
@@ -82,3 +128,5 @@ function Brain(env; β = 1, ηₚ = 0.00001, ηᵥ = 0.001)
                     Dense(52, 1, identity))
     Brain(β, 64 , 50_000, 1000, [], policy_net, value_net, ηₚ, ηᵥ)
 end
+
+@pipe Flux.onehot(6, collect(0:23)) |> collect(_) |> Int.(_)
