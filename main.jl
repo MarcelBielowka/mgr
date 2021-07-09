@@ -94,6 +94,7 @@ MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory, 2019,
 
 FullMicrogrid = GetMicrogrid(DayAheadPowerPrices, Weather,
     MyWindPark, MyWarehouse, Households)
+FullMicrogrid.DayAheadPricesHandler.dfQuantilesOfPrices.iFirstQuartile
 
 #########################################
 ########## Learning process #############
