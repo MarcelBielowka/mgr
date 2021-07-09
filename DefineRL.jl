@@ -2,7 +2,7 @@ using Distributions, DataFrames
 using Flux
 
 
-Policy = Distributions.Normal(0.5, .1)
+Policy = Distributions.Normal(0, .1)
 Action = rand(Policy)
 pdf(Actions, Action)
 pdf(Policy, 0.05)
@@ -76,8 +76,9 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid,
 end
 
 function Act!(Microgrid::Microgrid, CurrentState::Vector, iTimeStep::Int64)
-    Random.seed!(72945)
+    #Random.seed!(72945)
     Action = rand(Policy)
+    println("We're in time step $iTimeStep and the intended action is $Action")
     println(Action)
 
     #if CurrentState.dictProductionAndConsumption.iProductionConsumptionMismatch >= 0
@@ -85,6 +86,8 @@ function Act!(Microgrid::Microgrid, CurrentState::Vector, iTimeStep::Int64)
 
 
 end
+
+Random.seed!(72945)
 
 GetState(FullMicrogrid,1)
 testState = GetState(FullMicrogrid,1)
