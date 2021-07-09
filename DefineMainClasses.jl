@@ -24,6 +24,7 @@ end
 #########################################
 mutable struct DayAheadPricesHandler
     dfDayAheadPrices::DataFrame
+    dfQuantilesOfPrices::DataFrame
 end
 
 function GetDayAheadPricesHandler(cPowerPricesDataDir::String,
@@ -33,8 +34,12 @@ function GetDayAheadPricesHandler(cPowerPricesDataDir::String,
     dfDayAheadPrices = ReadPrices(cPowerPricesDataDir,
         DeliveryFilterStart = DeliveryFilterStart,
         DeliveryFilterEnd = DeliveryFilterEnd)
+    dfQuantilesOfPrices = @pipe dfDayAheadPrices |>
+        groupby(_, :DeliveryHour) |>
+        combine(_, :Price => (x -> quantile(x, 0.75)) => :iThirdQuartile,
+                    :Price => (x -> quantile(x, 0.25)) => :iFirstQuartile)
 
-    return DayAheadPricesHandler(dfDayAheadPrices)
+    return DayAheadPricesHandler(dfDayAheadPrices, dfQuantilesOfPrices)
 end
 
 #testDA = GetDayAheadPricesHandler(cPowerPricesDataDir, cWeatherPricesDataWindowStart,

@@ -21,6 +21,8 @@ function ReadPrices(cFilePrices::String; DeliveryFilterStart = nothing, Delivery
     # We mvoe all the data to UTC + 1 to facilitate handling of all the data
     println("Some additional shenanigans for DSL switch")
     dfPriceDataRaw = ChangeHourToPlus1(dfPriceDataRaw)
+    insertcols!(dfPriceDataRaw,
+        :DeliveryMonth => Dates.month.(dfPriceDataRaw.DeliveryDate))
 
     # basic data validation - check if any data missing
     # and if all the days have all the hours
