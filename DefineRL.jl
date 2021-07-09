@@ -53,9 +53,8 @@ function GetAction(Microgrid::Microgrid, Policy::Distribution)
     return action
 end
 
-function ChargeOrDischargeBattery!(Microgrid::Microgrid,
-    Action::Float64,
-    iConsumptionMismatch::Float64)
+function ChargeOrDischargeBattery!(Microgrid::Microgrid, State::Vector, Action::Float64)
+    iConsumptionMismatch = State[3]
     iChargeDischargeVolume = Action * iConsumptionMismatch
     if iChargeDischargeVolume >= 0
         iMaxPossibleCharge = min(Microgrid.EnergyStorage.iChargeRate,
@@ -75,6 +74,17 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid,
     return ActualAction
 end
 
+function CalculateReward(Microgrid::Microgrid, State::Vector, Action::Float64)
+    iGridVolume = (1 - Action) * State[3]
+    if iGridVolume >= 0
+        iReward = iGridVolume * State[4]
+    else
+        iReward = iGridVolume * State[5]
+    end
+    return iReward
+end
+
+
 function Act!(Microgrid::Microgrid, CurrentState::Vector, iTimeStep::Int64)
     #Random.seed!(72945)
     Action = rand(Policy)
@@ -82,8 +92,11 @@ function Act!(Microgrid::Microgrid, CurrentState::Vector, iTimeStep::Int64)
     println(Action)
 
     #if CurrentState.dictProductionAndConsumption.iProductionConsumptionMismatch >= 0
-    AcutalAction = ChargeOrDischargeBattery!(Microgrid, Action, CurrentState[3])
-
+    ActualAction = ChargeOrDischargeBattery!(Microgrid, CurrentState, Action)
+    iReward = CalculateReward(Microgrid, CurrentState, ActualAction)
+    return Dict(
+        "ActualAction" => ActualAction,
+        "iReward" => iReward)
 
 end
 
@@ -92,7 +105,7 @@ Random.seed!(72945)
 GetState(FullMicrogrid,1)
 testState = GetState(FullMicrogrid,1)
 testAction = GetAction(FullMicrogrid, Policy)
-Act!(FullMicrogrid, testState, 1)
+Juno.@enter Act!(FullMicrogrid, testState, 1)
 
 FullMicrogrid.EnergyStorage
 
