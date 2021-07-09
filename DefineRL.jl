@@ -54,22 +54,25 @@ function GetAction(Microgrid::Microgrid, Policy::Distribution)
 end
 
 function ChargeOrDischargeBattery!(Microgrid::Microgrid,
-    Charge::Bool,
     Action::Float64,
     iConsumptionMismatch::Float64)
-    if Charge
+    iChargeDischargeVolume = Action * iConsumptionMismatch
+    if iChargeDischargeVolume >= 0
         iMaxPossibleCharge = min(Microgrid.EnergyStorage.iChargeRate,
             Microgrid.EnergyStorage.iMaxCapacity - Microgrid.EnergyStorage.iCurrentCharge)
-        iCharge = min(iMaxPossibleCharge, Action * abs(iConsumptionMismatch))
+        iCharge = min(iMaxPossibleCharge, iChargeDischargeVolume)
         Microgrid.EnergyStorage.iCurrentCharge += iCharge
-        #iActualAction = (iConsumptionMismatch - iCharge)
-        println("The actual charge of the microgrid will be ", )
+        ActualAction = iCharge / iConsumptionMismatch
+        println("The actual charge of the battery is $iCharge, equivalent to action $ActualAction ")
     else
-        iMaxPossibleDischarge = min(Microgrid.EnergyStorage.iDischargeRate,
+        iMaxPossibleDischarge = max(Microgrid.EnergyStorage.iDischargeRate,
             Microgrid.EnergyStorage.iCurrentCharge)
-        iDischarge = min(iMaxPossibleDischarge, Action * abs(iConsumptionMismatch))
-        Microgrid.EnergyStorage.iCurrentCharge -= iDischarge
+        iDischarge = max(iMaxPossibleDischarge, iChargeDischargeVolume)
+        Microgrid.EnergyStorage.iCurrentCharge += iDischarge
+        ActualAction = iDischarge / iConsumptionMismatch
+        println("The actual discharge of the battery is $iDischarge, equivalent to action $ActualAction ")
     end
+    return ActualAction
 end
 
 function Act!(Microgrid::Microgrid, CurrentState::Vector, iTimeStep::Int64)
@@ -78,21 +81,7 @@ function Act!(Microgrid::Microgrid, CurrentState::Vector, iTimeStep::Int64)
     println(Action)
 
     #if CurrentState.dictProductionAndConsumption.iProductionConsumptionMismatch >= 0
-    if CurrentState[3] >= 0
-        println("Microgrid wants to sell $Action% of production to the battery and the rest to the external grid")
-        if (Action) > 0
-            ChargeOrDischargeBattery!(Microgrid, true, Action, CurrentState[3])
-        else
-            ChargeOrDischargeBattery!(Microgrid, false, Action, CurrentState[3])
-        end
-    else
-        if (Action) > 0
-            ChargeOrDischargeBattery!(Microgrid, false, Action, CurrentState[3])
-        else
-            ChargeOrDischargeBattery!(Microgrid, true, Action, CurrentState[3])
-        end
-    end
-
+    AcutalAction = ChargeOrDischargeBattery!(Microgrid, Action, CurrentState[3])
 
 
 end
