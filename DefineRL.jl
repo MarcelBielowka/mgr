@@ -18,20 +18,13 @@ function GetState(Microgrid::Microgrid, iTimeStep::Int64)
     iTotalProduction = Microgrid.dfTotalProduction.TotalProduction[iTimeStep,]
     iTotalConsumption = Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep,]
     iProductionConsumptionMismatch = iTotalProduction - iTotalConsumption
-
     iHour = Dates.hour(Microgrid.dfTotalProduction.date[iTimeStep])
-    iPriceBuy = filter(row -> row.DeliveryHour == iHour,
-        Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices).iThirdQuartile[1]
-    iPriceSell = filter(row -> row.DeliveryHour == iHour,
-        Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices).iFirstQuartile[1]
     iHours = @pipe Flux.onehot(iHour, collect(0:23)) |> collect(_) |> Int.(_)
 
     Microgrid.State = vcat([
         iTotalProduction
         iTotalConsumption
         iProductionConsumptionMismatch
-        iPriceBuy
-        iPriceSell
         Microgrid.EnergyStorage.iCurrentCharge
     ], @pipe Flux.onehot(iHour, collect(0:23)) |> collect(_) |> Int.(_))
     #return State(
@@ -51,8 +44,20 @@ function GetAction(Microgrid::Microgrid, Policy::Distribution)
     return action
 end
 
-function ChargeOrDischargeBattery!(Microgrid::Microgrid, State::Vector, Action::Float64)
-    iConsumptionMismatch = State[3]
+function GetReward(Microgrid::Microgrid, iTimeStep::Int)
+    iHour = Dates.hour(Microgrid.dfTotalProduction.date[iTimeStep])
+    iPriceBuy = filter(row -> row.DeliveryHour == iHour,
+        Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices).iThirdQuartile[1]
+    iPriceSell = filter(row -> row.DeliveryHour == iHour,
+        Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices).iFirstQuartile[1]
+    return Dict(
+        "iPriceBuy" => iPriceBuy,
+        "iPriceSell" => iPriceSell
+    )
+end
+
+function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64)
+    iConsumptionMismatch = Microgrid.State[3]
     iChargeDischargeVolume = Action * iConsumptionMismatch
     if iChargeDischargeVolume >= 0
         iMaxPossibleCharge = min(Microgrid.EnergyStorage.iChargeRate,
@@ -72,12 +77,13 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, State::Vector, Action::
     return ActualAction
 end
 
-function CalculateReward(Microgrid::Microgrid, State::Vector, Action::Float64)
-    iGridVolume = (1 - Action) * State[3]
+function CalculateReward(Microgrid::Microgrid, Action::Float64, iTimeStep::Int64)
+    iGridVolume = (1 - Action) * Microgrid.State[3]
+    dictRewards = GetReward(Microgrid, iTimeStep)
     if iGridVolume >= 0
-        iReward = iGridVolume * State[4]
+        iReward = iGridVolume * dictRewards["iPriceSell"]
     else
-        iReward = iGridVolume * State[5]
+        iReward = iGridVolume * dictRewards["iPriceBuy"]
     end
     return iReward
 end
@@ -96,8 +102,8 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int64, Policy::Distribution, iHor
     println("We're in time step $iTimeStep and the intended action is $Action")
 
     #if CurrentState.dictProductionAndConsumption.iProductionConsumptionMismatch >= 0
-    ActualAction = ChargeOrDischargeBattery!(Microgrid, CurrentState, Action)
-    iReward = CalculateReward(Microgrid, CurrentState, ActualAction)
+    ActualAction = ChargeOrDischargeBattery!(Microgrid, Action)
+    iReward = CalculateReward(Microgrid, ActualAction)
 
     NextState = GetState(Microgrid, iTimeStep + 1)
     Microgrid.State = NextState
@@ -118,14 +124,17 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int64, Policy::Distribution, iHor
 end
 
 Random.seed!(72945)
+restart!(FullMicrogrid, 1)
 
-restart!()
 GetState(FullMicrogrid,1)
 testState = GetState(FullMicrogrid,1)
 testAction = GetAction(FullMicrogrid, ExamplePolicy)
 a = Act!(FullMicrogrid, 1, ExamplePolicy, 10)
+FullMicrogrid.State
+FullMicrogrid.Reward
 
-restart!(FullMicrogrid, 1)
 
 FullMicrogrid.State
 FullMicrogrid.Brain.policy_net(FullMicrogrid.State)
+
+Juno.@enter CalculateReward(FullMicrogrid, 0.0, 1)
