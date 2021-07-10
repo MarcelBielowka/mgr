@@ -15,8 +15,8 @@ include("Households.jl")
 include("NonRefrigeratedStorage.jl")
 include("ReadWeatherData.jl")
 include("ReadPowerPricesData.jl")
-include("DefineRL.jl")
 include("DefineMainClasses.jl")
+include("DefineRL.jl")
 
 #########################################
 ##### Static variables definition  ######

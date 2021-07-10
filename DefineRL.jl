@@ -2,7 +2,7 @@ using Distributions, DataFrames
 using Flux
 
 
-ExamplePolicy = Distributions.Normal(0, .1)
+#ExamplePolicy = Distributions.Normal(0, .1)
 #Action = rand(Policy)
 
 
@@ -147,17 +147,17 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int64, Policy::Distribution, iHor
         )
 end
 
-Random.seed!(72945)
-restart!(FullMicrogrid, 1)
+#Random.seed!(72945)
+#restart!(FullMicrogrid, 1)
 
-GetState(FullMicrogrid,1)
-testState = GetState(FullMicrogrid,1)
-testAction = GetAction(FullMicrogrid, ExamplePolicy)
-a = Act!(FullMicrogrid, 3, ExamplePolicy, 10)
-FullMicrogrid.State
-FullMicrogrid.Reward
+#GetState(FullMicrogrid,1)
+#testState = GetState(FullMicrogrid,1)
+#testAction = GetAction(FullMicrogrid, ExamplePolicy)
+#a = Act!(FullMicrogrid, 3, ExamplePolicy, 10)
+#FullMicrogrid.State
+#FullMicrogrid.Reward
 
 
-FullMicrogrid.Brain.memory
+#FullMicrogrid.Brain.memory
 
-CalculateReward(FullMicrogrid, 0.0, 1)
+#CalculateReward(FullMicrogrid, 0.0, 1)
