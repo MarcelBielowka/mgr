@@ -1,4 +1,4 @@
-using DataFrames, Random
+using DataFrames, Random, Flux
 
 #########################################
 #### Energy storage definition class ####

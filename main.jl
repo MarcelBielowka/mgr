@@ -9,6 +9,7 @@ using CSV, DataFrames, Dates, DataStructures, Distributions
 using FreqTables, HypothesisTests
 using MultivariateStats, Random
 using StatsPlots, StatsBase
+using Flux
 using Distributed
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 include("Households.jl")
