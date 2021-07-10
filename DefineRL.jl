@@ -2,19 +2,17 @@ using Distributions, DataFrames
 using Flux
 
 
-Policy = Distributions.Normal(0, .1)
-Action = rand(Policy)
-pdf(Actions, Action)
-pdf(Policy, 0.05)
+#ExamplePolicy = Distributions.Normal(0, .1)
+#Action = rand(Policy)
 
 
-mutable struct State
-    dictProductionAndConsumption::Dict
-    iBuyPrice::Float64
-    iSellPrice::Float64
-    iCurrentCharge::Float64
-    iHour::BitArray
-end
+#mutable struct State
+#    dictProductionAndConsumption::Dict
+#    iBuyPrice::Float64
+#    iSellPrice::Float64
+#    iCurrentCharge::Float64
+#    iHour::BitArray
+#end
 
 function GetState(Microgrid::Microgrid, iTimeStep::Int64)
     iTotalProduction = Microgrid.dfTotalProduction.TotalProduction[iTimeStep,]
