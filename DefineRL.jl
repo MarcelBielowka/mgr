@@ -2,7 +2,7 @@ using Distributions, DataFrames
 using Flux
 
 
-#ExamplePolicy = Distributions.Normal(0, .1)
+ExamplePolicy = Distributions.Normal(0, .1)
 #Action = rand(Policy)
 
 
@@ -26,7 +26,7 @@ function GetState(Microgrid::Microgrid, iTimeStep::Int64)
         Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices).iFirstQuartile[1]
     iHours = @pipe Flux.onehot(iHour, collect(0:23)) |> collect(_) |> Int.(_)
 
-    return vcat([
+    Microgrid.State = vcat([
         iTotalProduction
         iTotalConsumption
         iProductionConsumptionMismatch
@@ -82,27 +82,50 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, Action::Float64)
     return iReward
 end
 
+function restart!(Microgrid::Microgrid, iInitTimeStep::Int)
+    GetState(Microgrid, iInitTimeStep)
+    Microgrid.Reward = 0
+    Microgrid.EnergyStorage.iCurrentCharge = 0
 
-function Act!(Microgrid::Microgrid, CurrentState::Vector, iTimeStep::Int64)
+end
+
+function Act!(Microgrid::Microgrid, iTimeStep::Int64, Policy::Distribution, iHorizon::Int)
     #Random.seed!(72945)
+    CurrentState = deepcopy(Microgrid.State)
     Action = rand(Policy)
     println("We're in time step $iTimeStep and the intended action is $Action")
-    println(Action)
 
     #if CurrentState.dictProductionAndConsumption.iProductionConsumptionMismatch >= 0
     ActualAction = ChargeOrDischargeBattery!(Microgrid, CurrentState, Action)
     iReward = CalculateReward(Microgrid, CurrentState, ActualAction)
-    return Dict(
-        "ActualAction" => ActualAction,
-        "iReward" => iReward)
 
+    NextState = GetState(Microgrid, iTimeStep + 1)
+    Microgrid.State = NextState
+    Microgrid.Reward += iReward
+    if iTimeStep + 1 == iHorizon
+        bTerminal = true
+    else
+        bTerminal = false
+    end
+
+
+    return Dict(
+        "CurrentState" => CurrentState,
+        "ActualAction" => ActualAction,
+        "iReward" => iReward,
+        "NextState" => NextState
+        )
 end
 
 Random.seed!(72945)
 
+restart!()
 GetState(FullMicrogrid,1)
 testState = GetState(FullMicrogrid,1)
-testAction = GetAction(FullMicrogrid, Policy)
-Juno.@enter Act!(FullMicrogrid, testState, 1)
+testAction = GetAction(FullMicrogrid, ExamplePolicy)
+a = Act!(FullMicrogrid, 1, ExamplePolicy, 10)
 
-FullMicrogrid.EnergyStorage
+restart!(FullMicrogrid, 1)
+
+FullMicrogrid.State
+FullMicrogrid.Brain.policy_net(FullMicrogrid.State)
