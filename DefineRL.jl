@@ -108,30 +108,3 @@ testAction = GetAction(FullMicrogrid, Policy)
 Juno.@enter Act!(FullMicrogrid, testState, 1)
 
 FullMicrogrid.EnergyStorage
-
-#########################################
-######## Brain class definition #########
-#########################################
-mutable struct Brain
-    β::Float64
-    batch_size::Int
-    memory_size::Int
-    min_memory_size::Int
-    memory::Array{Tuple,1}
-    policy_net::Chain
-    value_net::Chain
-    ηₚ::Float64
-    ηᵥ::Float64
-end
-
-function Brain(env; β = 1, ηₚ = 0.00001, ηᵥ = 0.001)
-    policy_net = Chain(Dense(length(env.state), 40, identity),
-                Dense(40,40,identity),
-                Dense(40,1,identity))
-    value_net = Chain(Dense(length(env.state), 128, relu),
-                    Dense(128, 52, relu),
-                    Dense(52, 1, identity))
-    Brain(β, 64 , 50_000, 1000, [], policy_net, value_net, ηₚ, ηᵥ)
-end
-
-@pipe Flux.onehot(6, collect(0:23)) |> collect(_) |> Int.(_)

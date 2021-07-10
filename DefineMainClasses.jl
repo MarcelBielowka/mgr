@@ -254,11 +254,38 @@ function GetMicrogridAggregator()
 
 end
 
+#########################################
+######## Brain class definition #########
+#########################################
+mutable struct Brain
+    β::Float64
+    batch_size::Int
+    memory_size::Int
+    min_memory_size::Int
+    memory::Array{Tuple,1}
+    policy_net::Chain
+    value_net::Chain
+    ηₚ::Float64
+    ηᵥ::Float64
+end
+
+function GetBrain(DimState; β = 1, ηₚ = 0.00001, ηᵥ = 0.001)
+    policy_net = Chain(Dense(length(DimState), 40, identity),
+                Dense(40,40,identity),
+                Dense(40,1,identity))
+    value_net = Chain(Dense(length(env.state), 128, relu),
+                    Dense(128, 52, relu),
+                    Dense(52, 1, identity))
+    return Brain(β, 64 , 50_000, 1000, [], policy_net, value_net, ηₚ, ηᵥ)
+end
 
 #########################################
 ####### Microgrid class definition ######
 #########################################
 mutable struct Microgrid
+    Brain::Brain
+    State::Vector
+    Reward::Float64
     DayAheadPricesHandler::DayAheadPricesHandler
     WeatherDataHandler::WeatherDataHandler
     Constituents::Dict
@@ -269,7 +296,10 @@ end
 
 function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
-    MyWarehouse::Warehouse, MyHouseholds::⌂)
+    MyWarehouse::Warehouse, MyHouseholds::⌂,
+    DimState::Int=30)
+
+    Brain = GetBrain(DimState)
 
     dfTotalProduction = DataFrames.innerjoin(MyWindPark.dfWindParkProductionData,
         MyWarehouse.SolarPanels.dfSolarProductionData, on = :date)
@@ -284,13 +314,18 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
         :TotalConsumption => dfTotalConsumption.HouseholdConsumption .+ dfTotalConsumption.WarehouseConsumption)
 
     return Microgrid(
-        DayAheadPricesHandler, WeatherDataHandler,
+        Brain,
+        repeat([-Inf], 30),
+        0.0,
+        DayAheadPricesHandler,
+        WeatherDataHandler,
         Dict(
             "Windpark" => MyWindPark,
             "Warehouse" => MyWarehouse,
             "Households" => MyHouseholds
         ),
-        dfTotalProduction, dfTotalConsumption,
+        dfTotalProduction,
+        dfTotalConsumption,
         GetEnergyStorage(MyHouseholds.EnergyStorage.iMaxCapacity + MyWarehouse.EnergyStorage.iMaxCapacity,
                          MyHouseholds.EnergyStorage.iChargeRate + MyWarehouse.EnergyStorage.iChargeRate,
                          MyHouseholds.EnergyStorage.iDischargeRate + MyWarehouse.EnergyStorage.iDischargeRate,
