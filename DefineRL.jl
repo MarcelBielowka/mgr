@@ -39,6 +39,12 @@ function GetState(Microgrid::Microgrid, iTimeStep::Int64)
     #)
 end
 
+function restart!(Microgrid::Microgrid, iInitTimeStep::Int)
+    Microgrid.Reward = 0
+    Microgrid.EnergyStorage.iCurrentCharge = 0
+    GetState(Microgrid, iInitTimeStep)
+end
+
 function GetAction(Microgrid::Microgrid, Policy::Distribution)
     action = rand(Policy)
     return action
@@ -88,32 +94,50 @@ function CalculateReward(Microgrid::Microgrid, Action::Float64, iTimeStep::Int64
     return iReward
 end
 
-function restart!(Microgrid::Microgrid, iInitTimeStep::Int)
-    GetState(Microgrid, iInitTimeStep)
-    Microgrid.Reward = 0
-    Microgrid.EnergyStorage.iCurrentCharge = 0
+# update pamieci
+function Remember!(Microgrid::Microgrid, step::Tuple)
+    length(Microgrid.Brain.memory) == Microgrid.Brain.memory_size && deleteat!(Microgrid.Brain.memory,1)
+    push!(Microgrid.Brain.memory, step)
+end
 
+# definicja, ktore kroki mamy wykonac
+# bierze siec neuronowa i zwraca jej wynik
+function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool; iσFixed::Float64 = 0.2)
+    μ_policy = Microgrid.Brain.policy_net(state)[1]    # wektor p-w na bazie sieci aktora
+    if bσFixed
+        Policy = Distributions.Normal(μ_policy, iσFixed)
+    else
+        println("Not yet implemented")
+        return nothing
+    end
+    v = Microgrid.Brain.value_net(state)[1]   # wektor f wartosic na bazie sieci krytyka
+    return Policy,v
 end
 
 function Act!(Microgrid::Microgrid, iTimeStep::Int64, Policy::Distribution, iHorizon::Int)
     #Random.seed!(72945)
     CurrentState = deepcopy(Microgrid.State)
+    Policy, v = Forward(Microgrid, CurrentState, true)
     Action = rand(Policy)
     println("We're in time step $iTimeStep and the intended action is $Action")
 
     #if CurrentState.dictProductionAndConsumption.iProductionConsumptionMismatch >= 0
     ActualAction = ChargeOrDischargeBattery!(Microgrid, Action)
-    iReward = CalculateReward(Microgrid, ActualAction)
+    iReward = CalculateReward(Microgrid, ActualAction, iTimeStep)
 
     NextState = GetState(Microgrid, iTimeStep + 1)
     Microgrid.State = NextState
     Microgrid.Reward += iReward
+    _, v′ = Forward(Microgrid, NextState, true)
     if iTimeStep + 1 == iHorizon
         bTerminal = true
     else
         bTerminal = false
     end
+    Remember!(Microgrid, (CurrentState,ActualAction,iReward,NextState,v,v′,bTerminal))
 
+
+    #remember!(Microgrid.Brain, (CurrentState, Action, iReward, NextState))
 
     return Dict(
         "CurrentState" => CurrentState,
@@ -129,12 +153,11 @@ restart!(FullMicrogrid, 1)
 GetState(FullMicrogrid,1)
 testState = GetState(FullMicrogrid,1)
 testAction = GetAction(FullMicrogrid, ExamplePolicy)
-a = Act!(FullMicrogrid, 1, ExamplePolicy, 10)
+a = Act!(FullMicrogrid, 3, ExamplePolicy, 10)
 FullMicrogrid.State
 FullMicrogrid.Reward
 
 
-FullMicrogrid.State
-FullMicrogrid.Brain.policy_net(FullMicrogrid.State)
+FullMicrogrid.Brain.memory
 
-Juno.@enter CalculateReward(FullMicrogrid, 0.0, 1)
+CalculateReward(FullMicrogrid, 0.0, 1)
