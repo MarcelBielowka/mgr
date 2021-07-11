@@ -114,7 +114,7 @@ function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool; iσFixed::
     return Policy,v
 end
 
-function Act!(Microgrid::Microgrid, iTimeStep::Int64, Policy::Distribution, iHorizon::Int)
+function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int)
     #Random.seed!(72945)
     CurrentState = deepcopy(Microgrid.State)
     Policy, v = Forward(Microgrid, CurrentState, true)
@@ -153,7 +153,7 @@ end
 #GetState(FullMicrogrid,1)
 #testState = GetState(FullMicrogrid,1)
 #testAction = GetAction(FullMicrogrid, ExamplePolicy)
-#a = Act!(FullMicrogrid, 3, ExamplePolicy, 10)
+#a = Act!(FullMicrogrid, 1, 10)
 #FullMicrogrid.State
 #FullMicrogrid.Reward
 
