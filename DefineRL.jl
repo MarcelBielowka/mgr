@@ -155,7 +155,7 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
     iRewards = []
     restart!(Microgrid,iTimeStepStart)
     for iEpisode in 1:iNumberOfEpisodes
-        for iTimeStep in iTimeStepStart:1:iTimeStepEnd
+        for iTimeStep in iTimeStepStart:1:(iTimeStepEnd-1)
             bTerminal = Act!(Microgrid, iTimeStep, iTimeStepEnd)
             if bTerminal
                 push!(iRewards, Microgrid.Reward)
@@ -168,7 +168,7 @@ end
 
 Random.seed!(72945)
 restart!(FullMicrogrid, 1)
-Juno.@enter Run!(FullMicrogrid, 1, 1, 20)
+#Juno.@enter Run!(FullMicrogrid, 1, 1, 20)
 Run!(FullMicrogrid, 1, 1, 20)
 
 #GetState(FullMicrogrid,1)
@@ -178,7 +178,7 @@ Run!(FullMicrogrid, 1, 1, 20)
 #FullMicrogrid.State
 #FullMicrogrid.Reward
 
-
-FullMicrogrid.Brain.memory
+FullMicrogrid.DayAheadPricesHandler.dfQuantilesOfPrices
+FullMicrogrid.Brain.memory[19]
 
 #CalculateReward(FullMicrogrid, 0.0, 1)
