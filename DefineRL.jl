@@ -80,6 +80,10 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64)
         ActualAction = iDischarge / iConsumptionMismatch
         println("The actual discharge of the battery is $iDischarge, equivalent to action $ActualAction ")
     end
+    if ActualAction / Action < 0
+        ActualAction = -ActualAction
+    end
+    t = 3
     return ActualAction
 end
 
