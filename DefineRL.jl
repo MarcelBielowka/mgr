@@ -74,7 +74,7 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64)
         println("The actual charge of the battery is $iCharge, equivalent to action $ActualAction ")
     else
         iMaxPossibleDischarge = max(Microgrid.EnergyStorage.iDischargeRate,
-            Microgrid.EnergyStorage.iCurrentCharge)
+            -Microgrid.EnergyStorage.iCurrentCharge)
         iDischarge = max(iMaxPossibleDischarge, iChargeDischargeVolume)
         Microgrid.EnergyStorage.iCurrentCharge += iDischarge
         ActualAction = iDischarge / iConsumptionMismatch
@@ -136,28 +136,45 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int)
     end
     Remember!(Microgrid, (CurrentState,ActualAction,iReward,NextState,v,v′,bTerminal))
 
+    return bTerminal
 
-    #remember!(Microgrid.Brain, (CurrentState, Action, iReward, NextState))
-
-    return Dict(
-        "CurrentState" => CurrentState,
-        "ActualAction" => ActualAction,
-        "iReward" => iReward,
-        "NextState" => NextState
-        )
+    #return Dict(
+    #    "CurrentState" => CurrentState,
+    #    "ActualAction" => ActualAction,
+    #    "iReward" => iReward,
+    #    "NextState" => NextState
+    #    )
 end
 
-#Random.seed!(72945)
-#restart!(FullMicrogrid, 1)
+function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
+    iTimeStepStart::Int, iTimeStepEnd::Int)
+    iRewards = []
+    restart!(Microgrid,iTimeStepStart)
+    for iEpisode in 1:iNumberOfEpisodes
+        for iTimeStep in iTimeStepStart:1:iTimeStepEnd
+            bTerminal = Act!(Microgrid, iTimeStep, iTimeStepEnd)
+            if bTerminal
+                push!(iRewards, Microgrid.Reward)
+                restart!(Microgrid,iTimeStepStart)
+            end
+        end
+    end
+    return iRewards
+end
+
+Random.seed!(72945)
+restart!(FullMicrogrid, 1)
+Juno.@enter Run!(FullMicrogrid, 1, 1, 20)
+Run!(FullMicrogrid, 1, 1, 20)
 
 #GetState(FullMicrogrid,1)
 #testState = GetState(FullMicrogrid,1)
 #testAction = GetAction(FullMicrogrid, ExamplePolicy)
-#a = Act!(FullMicrogrid, 1, 10)
+#a = Act!(FullMicrogrid, 2, 10)
 #FullMicrogrid.State
 #FullMicrogrid.Reward
 
 
-#FullMicrogrid.Brain.memory
+FullMicrogrid.Brain.memory
 
 #CalculateReward(FullMicrogrid, 0.0, 1)
