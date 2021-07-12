@@ -45,11 +45,6 @@ function restart!(Microgrid::Microgrid, iInitTimeStep::Int)
     GetState(Microgrid, iInitTimeStep)
 end
 
-function GetAction(Microgrid::Microgrid, Policy::Distribution)
-    action = rand(Policy)
-    return action
-end
-
 function GetReward(Microgrid::Microgrid, iTimeStep::Int)
     iHour = Dates.hour(Microgrid.dfTotalProduction.date[iTimeStep])
     iPriceBuy = filter(row -> row.DeliveryHour == iHour,
@@ -60,6 +55,17 @@ function GetReward(Microgrid::Microgrid, iTimeStep::Int)
         "iPriceBuy" => iPriceBuy,
         "iPriceSell" => iPriceSell
     )
+end
+
+function ActorLoss(state, A; ι::Float64 = 0.001, iσFixed::Float64 = 0.2)
+    μ_policy = Microgrid.Brain.policy_net(state)[1]
+    Policy = Distributions.Normal(μ_policy, iσFixed)
+    iLoss = sum(-Distributions.logpdf.(Policy .+ 1e-7) .* A) / size(A,1)
+    return iLoss
+end
+
+function CriticLoss(State, Value; ξ = 0.5)
+    return ξ*Flux.mse(Microgrid.Brain.value_net(State), Value)
 end
 
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64)
@@ -118,7 +124,32 @@ function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool; iσFixed::
     return Policy,v
 end
 
-function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int)
+function Replay!(Microgrid::Microgrid)
+    x = zeros(Float64, length(Microgrid.State), Microgrid.brain.batch_size)
+    A = zeros(Float64, 1, Microgrid.Brain.batch_size)
+    y = zeros(Float64, 1, Microgrid.Brain.batch_size)
+    iter = @pipe sample(Microgrid.Brain.memory, Microgrid.Brain.batch_size, replace = false) |>
+        enumerate |> collect
+    for (i, step) in inter
+        State, Action, Reward, NextState, v, v′, bTerminal = step
+        if !bTerminal
+            R = Reward
+        else
+            R = Reward + Microgrid.Brain.β * v′
+        end
+        iAdvantage = R - v
+        x[:, i] .= s
+        A[:, i] .= iAdvantage
+        y[:, i] .= R
+
+    end
+
+    Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,A)], ADAM(Microgrid.Brain.ηₚ))
+    Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))
+end
+
+
+function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, bLearn::Bool)
     #Random.seed!(72945)
     CurrentState = deepcopy(Microgrid.State)
     Policy, v = Forward(Microgrid, CurrentState, true)
@@ -140,6 +171,10 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int)
     end
     Remember!(Microgrid, (CurrentState,ActualAction,iReward,NextState,v,v′,bTerminal))
 
+    if (bLearn && length(Microgrid.Brain.memory) > Microgrid.Brain.min_memory_size)
+        Replay!(Microgrid)
+    end
+
     return bTerminal
 
     #return Dict(
@@ -151,7 +186,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int)
 end
 
 function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
-    iTimeStepStart::Int, iTimeStepEnd::Int)
+    iTimeStepStart::Int, iTimeStepEnd::Int, bLearn::Bool)
     iRewards = []
     restart!(Microgrid,iTimeStepStart)
     for iEpisode in 1:iNumberOfEpisodes
@@ -169,7 +204,9 @@ end
 Random.seed!(72945)
 restart!(FullMicrogrid, 1)
 #Juno.@enter Run!(FullMicrogrid, 1, 1, 20)
-Run!(FullMicrogrid, 1, 1, 20)
+Run!(FullMicrogrid, 10, 1, 744)
+
+FullMicrogrid.Brain.policy_net(FullMicrogrid.State)
 
 #GetState(FullMicrogrid,1)
 #testState = GetState(FullMicrogrid,1)
@@ -178,7 +215,14 @@ Run!(FullMicrogrid, 1, 1, 20)
 #FullMicrogrid.State
 #FullMicrogrid.Reward
 
-FullMicrogrid.DayAheadPricesHandler.dfQuantilesOfPrices
-FullMicrogrid.Brain.memory[19]
+#FullMicrogrid.DayAheadPricesHandler.dfQuantilesOfPrices
+#filter(row-> row.DeliveryHour==14, FullMicrogrid.DayAheadPricesHandler.dfQuantilesOfPrices)
+FullMicrogrid.Brain.memory
+FullMicrogrid.Brain
+#FullMicrogrid.Brain.memory[110]
+#FullMicrogrid.Brain.memory[110][1][5:28]
+
+#FullMicrogrid.Brain.memory[114]
+#FullMicrogrid.Brain.memory[110][1][5:28]
 
 #CalculateReward(FullMicrogrid, 0.0, 1)
