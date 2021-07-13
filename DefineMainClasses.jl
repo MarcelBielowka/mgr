@@ -272,7 +272,7 @@ end
 function GetBrain(DimState; β = 1, ηₚ = 0.00001, ηᵥ = 0.001)
     policy_net = Chain(Dense(DimState, 40, identity),
                 Dense(40,40,identity),
-                Dense(40,1,identity))
+                Dense(40,1,sigmoid))
     value_net = Chain(Dense(DimState, 128, relu),
                     Dense(128, 52, relu),
                     Dense(52, 1, identity))
@@ -297,7 +297,7 @@ end
 function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
     MyWarehouse::Warehouse, MyHouseholds::⌂,
-    DimState::Int=28)
+    DimState::Int=27)
 
     Brain = GetBrain(DimState)
 
