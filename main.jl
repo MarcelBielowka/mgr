@@ -2,8 +2,8 @@
 # project.toml - dependencies expressed directly
 # amnifest.toml - dependencies of dependencies
 
-#using JuliaInterpreter
-#push!(JuliaInterpreter.compiled_modules, Base)
+using JuliaInterpreter
+push!(JuliaInterpreter.compiled_modules, Base)
 using Pipe: @pipe
 using CSV, DataFrames, Dates, DataStructures, Distributions
 using FreqTables, HypothesisTests
