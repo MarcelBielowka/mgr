@@ -105,10 +105,13 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64)
         ActualAction = -ActualAction
     end
     t = 3
-    return ActualAction
+    return Action, ActualAction
 end
 
-function CalculateReward(Microgrid::Microgrid, Action::Float64, iTimeStep::Int64)
+function CalculateReward(Microgrid::Microgrid, Action::Float64, ActualAction::Float64, iTimeStep::Int64)
+    if abs(Action / ActualAction) > 2
+        return -1e6
+    end
     iGridVolume = (1 - Action) * Microgrid.State[3]
     dictRewards = GetReward(Microgrid, iTimeStep)
     if iGridVolume >= 0
@@ -172,11 +175,11 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, bLearn::Bool)
     CurrentState = deepcopy(Microgrid.State)
     Policy, v = Forward(Microgrid, CurrentState, true)
     Action = rand(Policy)
-    println("We're in time step $iTimeStep and the intended action is $Action")
+    println("We're in time step $iTimeStep and the intended action is $Action. This equals to an intended charge/discharge of ", Action * CurrentState[3])
 
     #if CurrentState.dictProductionAndConsumption.iProductionConsumptionMismatch >= 0
-    ActualAction = ChargeOrDischargeBattery!(Microgrid, Action)
-    iReward = CalculateReward(Microgrid, ActualAction, iTimeStep)
+    Action, ActualAction = ChargeOrDischargeBattery!(Microgrid, Action)
+    iReward = CalculateReward(Microgrid, Action, ActualAction, iTimeStep)
 
     NextState = GetState(Microgrid, iTimeStep + 1)
     Microgrid.State = NextState
@@ -187,7 +190,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, bLearn::Bool)
     else
         bTerminal = false
     end
-    Remember!(Microgrid, (CurrentState,ActualAction,iReward,NextState,v,v′,bTerminal))
+    Remember!(Microgrid, (CurrentState,Action,iReward,NextState,v,v′,bTerminal))
 
     if (bLearn && length(Microgrid.Brain.memory) > Microgrid.Brain.min_memory_size)
         Replay!(Microgrid)
