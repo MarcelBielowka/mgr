@@ -317,6 +317,7 @@ end
 
 ##################################
 ##### Runner of a single sim #####
+# Conveyor model used is 0/VSH MT#
 ##################################
 function SimOneRun(RunID, SimWindow,
     DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, PrintLogs;
