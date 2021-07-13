@@ -116,8 +116,8 @@ function CalculateReward(Microgrid::Microgrid, Action::Float64, ActualAction::Fl
     else
         iReward = iGridVolume * dictRewards["iPriceBuy"]
     end
-    if abs(Action / ActualAction) > 2
-        iReward -= 1e6
+    if abs(Action / ActualAction) > 1.3
+        iReward -= 1e7
     end
     return iReward
 end
