@@ -23,15 +23,11 @@ function GetState(Microgrid::Microgrid, iTimeStep::Int64)
 
     if iHour !=23
         Microgrid.State = vcat([
-            iTotalProduction
-            iTotalConsumption
             iProductionConsumptionMismatch
             Microgrid.EnergyStorage.iCurrentCharge
             ], @pipe Flux.onehot(iHour, collect(0:22)) |> collect(_) |> Int.(_))
     else
         Microgrid.State = vcat([
-            iTotalProduction
-            iTotalConsumption
             iProductionConsumptionMismatch
             Microgrid.EnergyStorage.iCurrentCharge
             ], repeat([0], 23))
@@ -110,7 +106,7 @@ function Replay!(Microgrid::Microgrid)
 end
 
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64)
-    iConsumptionMismatch = Microgrid.State[3]
+    iConsumptionMismatch = Microgrid.State[1]
     iChargeDischargeVolume = Action * iConsumptionMismatch
     if iChargeDischargeVolume >= 0
         iMaxPossibleCharge = min(Microgrid.EnergyStorage.iChargeRate,
@@ -135,16 +131,16 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64)
 end
 
 function CalculateReward(Microgrid::Microgrid, Action::Float64, ActualAction::Float64, iTimeStep::Int64)
-    iGridVolume = (1 - ActualAction) * Microgrid.State[3]
+    iGridVolume = (1 - ActualAction) * Microgrid.State[1]
     dictRewards = GetReward(Microgrid, iTimeStep)
     if iGridVolume >= 0
         iReward = iGridVolume * dictRewards["iPriceSell"]
     else
         iReward = iGridVolume * dictRewards["iPriceBuy"]
     end
-    if abs(Action / ActualAction) > 1.3
-        iReward = iReward - min(100000 * abs(Action / ActualAction), 1e7)
-    end
+    #if abs(Action / ActualAction) > 1.3
+    #    iReward = iReward - min(100000 * abs(Action / ActualAction), 1e7)
+    #end
     return iReward
 end
 
@@ -189,7 +185,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, bLearn::Bool)
     else
         bTerminal = false
     end
-    Remember!(Microgrid, (CurrentState,Action,iReward,NextState,v,v′,bTerminal))
+    Remember!(Microgrid, (CurrentState,ActualAction,iReward,NextState,v,v′,bTerminal))
 
     if (bLearn && length(Microgrid.Brain.memory) > Microgrid.Brain.min_memory_size)
         Replay!(Microgrid)
