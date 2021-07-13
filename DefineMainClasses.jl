@@ -321,7 +321,7 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
 
     return Microgrid(
         Brain,
-        repeat([-Inf], 27),
+        repeat([-Inf], DimState),
         0.0,
         DayAheadPricesHandler,
         WeatherDataHandler,
