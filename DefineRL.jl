@@ -109,15 +109,15 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64)
 end
 
 function CalculateReward(Microgrid::Microgrid, Action::Float64, ActualAction::Float64, iTimeStep::Int64)
-    if abs(Action / ActualAction) > 2
-        return -1e6
-    end
-    iGridVolume = (1 - Action) * Microgrid.State[3]
+    iGridVolume = (1 - ActualAction) * Microgrid.State[3]
     dictRewards = GetReward(Microgrid, iTimeStep)
     if iGridVolume >= 0
         iReward = iGridVolume * dictRewards["iPriceSell"]
     else
         iReward = iGridVolume * dictRewards["iPriceBuy"]
+    end
+    if abs(Action / ActualAction) > 2
+        iReward -= 1e6
     end
     return iReward
 end
@@ -175,7 +175,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, bLearn::Bool)
     CurrentState = deepcopy(Microgrid.State)
     Policy, v = Forward(Microgrid, CurrentState, true)
     Action = rand(Policy)
-    println("We're in time step $iTimeStep and the intended action is $Action. This equals to an intended charge/discharge of ", Action * CurrentState[3])
+    println("We're in time step $iTimeStep and the intended action is $Action. This equals to an intended charge/discharge of ", Action * CurrentState[3], " kW")
 
     #if CurrentState.dictProductionAndConsumption.iProductionConsumptionMismatch >= 0
     Action, ActualAction = ChargeOrDischargeBattery!(Microgrid, Action)
