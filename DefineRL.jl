@@ -68,19 +68,45 @@ end
 
 function ActorLoss(x, Actions, A; ι::Float64 = 0.001, iσFixed::Float64 = 0.2)
     μ_policy = FullMicrogrid.Brain.policy_net(x)
-    println("μ_policy: $μ_policy")
+    #println("μ_policy: $μ_policy")
     #println(typeof(μ_policy))
     Policy = Distributions.Normal.(μ_policy, iσFixed)
-    println("Policy: $Policy")
+    #println("Policy: $Policy")
     iScoreFunction = -Distributions.logpdf.(Policy, Actions)
-    println("iScoreFunction: $iScoreFunction")
+    #println("iScoreFunction: $iScoreFunction")
     iLoss = sum(iScoreFunction .* A) / size(A,1)
-    println("Loss function: $iLoss")
+    #println("Loss function: $iLoss")
     return iLoss
 end
 
 function CriticLoss(x, y; ξ = 0.5)
     return ξ*Flux.mse(FullMicrogrid.Brain.value_net(x), y)
+end
+
+function Replay!(Microgrid::Microgrid)
+    println("Start learning")
+    x = zeros(Float64, length(Microgrid.State), Microgrid.Brain.batch_size)
+    Actions = zeros(Float64, 1, Microgrid.Brain.batch_size)
+    A = zeros(Float64, 1, Microgrid.Brain.batch_size)
+    y = zeros(Float64, 1, Microgrid.Brain.batch_size)
+    iter = @pipe sample(Microgrid.Brain.memory, Microgrid.Brain.batch_size, replace = false) |>
+        enumerate |> collect
+    for (i, step) in iter
+        State, Action, Reward, NextState, v, v′, bTerminal = step
+        if !bTerminal
+            R = Reward
+        else
+            R = Reward + Microgrid.Brain.β * v′
+        end
+        iAdvantage = R - v
+        x[:, i] .= State
+        A[:, i] .= iAdvantage
+        Actions[:,i] .= Action
+        y[:, i] .= R
+    end
+
+    Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,Actions,A)], ADAM(Microgrid.Brain.ηₚ))
+    Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))
 end
 
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64)
@@ -140,33 +166,6 @@ function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool; iσFixed::
     end
     v = Microgrid.Brain.value_net(state)[1]   # wektor f wartosic na bazie sieci krytyka
     return Policy,v
-end
-
-function Replay!(Microgrid::Microgrid)
-    println("Start learning")
-    x = zeros(Float64, length(Microgrid.State), Microgrid.Brain.batch_size)
-    Actions = zeros(Float64, 1, Microgrid.Brain.batch_size)
-    A = zeros(Float64, 1, Microgrid.Brain.batch_size)
-    y = zeros(Float64, 1, Microgrid.Brain.batch_size)
-    iter = @pipe sample(Microgrid.Brain.memory, Microgrid.Brain.batch_size, replace = false) |>
-        enumerate |> collect
-    for (i, step) in iter
-        State, Action, Reward, NextState, v, v′, bTerminal = step
-        if !bTerminal
-            R = Reward
-        else
-            R = Reward + Microgrid.Brain.β * v′
-        end
-        iAdvantage = R - v
-        x[:, i] .= State
-        A[:, i] .= iAdvantage
-        Actions[:,i] .= Action
-        y[:, i] .= R
-
-    end
-
-    Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,Actions,A)], ADAM(Microgrid.Brain.ηₚ))
-    Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))
 end
 
 
