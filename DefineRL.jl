@@ -57,15 +57,21 @@ function GetReward(Microgrid::Microgrid, iTimeStep::Int)
     )
 end
 
-function ActorLoss(state, A; ι::Float64 = 0.001, iσFixed::Float64 = 0.2)
-    μ_policy = Microgrid.Brain.policy_net(state)[1]
-    Policy = Distributions.Normal(μ_policy, iσFixed)
-    iLoss = sum(-Distributions.logpdf.(Policy .+ 1e-7) .* A) / size(A,1)
+function ActorLoss(x, Actions, A; ι::Float64 = 0.001, iσFixed::Float64 = 0.2)
+    μ_policy = FullMicrogrid.Brain.policy_net(x)
+    println("μ_policy: $μ_policy")
+    #println(typeof(μ_policy))
+    Policy = Distributions.Normal.(μ_policy, iσFixed)
+    println("Policy: $Policy")
+    iScoreFunction = -Distributions.logpdf.(Policy, Actions)
+    println("iScoreFunction: $iScoreFunction")
+    iLoss = sum(iScoreFunction .* A) / size(A,1)
+    println("Loss function: $iLoss")
     return iLoss
 end
 
-function CriticLoss(State, Value; ξ = 0.5)
-    return ξ*Flux.mse(Microgrid.Brain.value_net(State), Value)
+function CriticLoss(x, y; ξ = 0.5)
+    return ξ*Flux.mse(FullMicrogrid.Brain.value_net(x), y)
 end
 
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64)
@@ -125,12 +131,14 @@ function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool; iσFixed::
 end
 
 function Replay!(Microgrid::Microgrid)
-    x = zeros(Float64, length(Microgrid.State), Microgrid.brain.batch_size)
+    println("Start learning")
+    x = zeros(Float64, length(Microgrid.State), Microgrid.Brain.batch_size)
+    Actions = zeros(Float64, 1, Microgrid.Brain.batch_size)
     A = zeros(Float64, 1, Microgrid.Brain.batch_size)
     y = zeros(Float64, 1, Microgrid.Brain.batch_size)
     iter = @pipe sample(Microgrid.Brain.memory, Microgrid.Brain.batch_size, replace = false) |>
         enumerate |> collect
-    for (i, step) in inter
+    for (i, step) in iter
         State, Action, Reward, NextState, v, v′, bTerminal = step
         if !bTerminal
             R = Reward
@@ -138,13 +146,14 @@ function Replay!(Microgrid::Microgrid)
             R = Reward + Microgrid.Brain.β * v′
         end
         iAdvantage = R - v
-        x[:, i] .= s
+        x[:, i] .= State
         A[:, i] .= iAdvantage
+        Actions[:,i] .= Action
         y[:, i] .= R
 
     end
 
-    Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,A)], ADAM(Microgrid.Brain.ηₚ))
+    Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,Actions,A)], ADAM(Microgrid.Brain.ηₚ))
     Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))
 end
 
@@ -191,7 +200,7 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
     restart!(Microgrid,iTimeStepStart)
     for iEpisode in 1:iNumberOfEpisodes
         for iTimeStep in iTimeStepStart:1:(iTimeStepEnd-1)
-            bTerminal = Act!(Microgrid, iTimeStep, iTimeStepEnd)
+            bTerminal = Act!(Microgrid, iTimeStep, iTimeStepEnd, true)
             if bTerminal
                 push!(iRewards, Microgrid.Reward)
                 restart!(Microgrid,iTimeStepStart)
@@ -203,8 +212,11 @@ end
 
 Random.seed!(72945)
 restart!(FullMicrogrid, 1)
+FullMicrogrid.Brain.min_memory_size = 5
+FullMicrogrid.Brain.batch_size = 5
 #Juno.@enter Run!(FullMicrogrid, 1, 1, 20)
-Run!(FullMicrogrid, 10, 1, 744)
+reward = Juno.@enter Run!(FullMicrogrid, 1000, 1, 744, true)
+reward = Run!(FullMicrogrid, 10, 1, 744, true)
 
 FullMicrogrid.Brain.policy_net(FullMicrogrid.State)
 
@@ -219,6 +231,11 @@ FullMicrogrid.Brain.policy_net(FullMicrogrid.State)
 #filter(row-> row.DeliveryHour==14, FullMicrogrid.DayAheadPricesHandler.dfQuantilesOfPrices)
 FullMicrogrid.Brain.memory
 FullMicrogrid.Brain
+FullMicrogrid
+
+Juno.@enter Replay!(FullMicrogrid)
+
+
 #FullMicrogrid.Brain.memory[110]
 #FullMicrogrid.Brain.memory[110][1][5:28]
 
