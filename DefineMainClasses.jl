@@ -270,12 +270,18 @@ mutable struct Brain
 end
 
 function GetBrain(DimState; β = 1, ηₚ = 0.00001, ηᵥ = 0.001)
-    policy_net = Chain(Dense(DimState, 40, identity),
-                Dense(40,40,identity),
-                Dense(40,1,sigmoid))
-    value_net = Chain(Dense(DimState, 128, relu),
-                    Dense(128, 52, relu),
-                    Dense(52, 1, identity))
+    #policy_net = Chain(Dense(DimState, 40, identity),
+    #            Dense(40,40,identity),
+    #            Dense(40,1,sigmoid))
+    policy_net = Chain(
+        Dense(DimState, 1, identity)
+    )
+    value_net = Chain(
+        Dense(DimState, 1, identity)
+    )
+    #value_net = Chain(Dense(DimState, 128, relu),
+    #                Dense(128, 52, relu),
+    #                Dense(52, 1, identity))
     return Brain(β, 64 , 50_000, 1000, [], policy_net, value_net, ηₚ, ηᵥ)
 end
 
@@ -315,7 +321,7 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
 
     return Microgrid(
         Brain,
-        repeat([-Inf], 30),
+        repeat([-Inf], 27),
         0.0,
         DayAheadPricesHandler,
         WeatherDataHandler,
