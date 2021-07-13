@@ -75,7 +75,7 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001, iσFixed::Float64 = 0.2)
     iScoreFunction = -Distributions.logpdf.(Policy, Actions)
     #println("iScoreFunction: $iScoreFunction")
     iLoss = sum(iScoreFunction .* A) / size(A,1)
-    #println("Loss function: $iLoss")
+    println("Loss function: $iLoss")
     return iLoss
 end
 
@@ -143,7 +143,7 @@ function CalculateReward(Microgrid::Microgrid, Action::Float64, ActualAction::Fl
         iReward = iGridVolume * dictRewards["iPriceBuy"]
     end
     if abs(Action / ActualAction) > 1.3
-        iReward -= 1e7
+        iReward = iReward - min(100000 * abs(Action / ActualAction), 1e7)
     end
     return iReward
 end
@@ -210,7 +210,9 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
     iRewards = []
     restart!(Microgrid,iTimeStepStart)
     for iEpisode in 1:iNumberOfEpisodes
+        println("Episode $iEpisode")
         for iTimeStep in iTimeStepStart:1:(iTimeStepEnd-1)
+            println("Step $iTimeStep")
             bTerminal = Act!(Microgrid, iTimeStep, iTimeStepEnd, true)
             if bTerminal
                 push!(iRewards, Microgrid.Reward)
