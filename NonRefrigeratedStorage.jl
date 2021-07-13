@@ -322,7 +322,7 @@ function SimOneRun(RunID, SimWindow,
     DistWeightCon, DistInitFill, ArrivalsDict, DeparturesDict, PrintLogs;
     SlotsLength = 45, SlotsWidth = 51, SlotsHeight = 7,
     ConveyorSectionLength = 1.4, ConveyorSectionWidth = 1.4, ConveyorEfficiency = 0.8,
-    StorageSlotHeight = 1.4, ConveyorMassPerM2 = 1.1,
+    StorageSlotHeight = 1.4, ConveyorMassPerM2 = 2.2,
     ConsignmentLength = 1.2, ConsignmentWidth = 0.8, ConsignmentHeight = 1.2,
     FrictionCoefficient = 0.33,  HandlingRoadString = "||",
     LightningMinimum = 20, LightningLampLumenPerW = 60, LightningLampWork = 150,

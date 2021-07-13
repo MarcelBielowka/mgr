@@ -44,9 +44,9 @@ Distributed.nprocs()
 Distributed.nworkers()
 @everywhere include("NonRefrigeratedStorage.jl")
 @everywhere ArrivalsDict = zip(0:23,
-    floor.([0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0])) |> collect |> Dict
+    floor.([0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0] .* 2)) |> collect |> Dict
 @everywhere DeparturesDict = zip(0:23,
-    floor.([0, 0, 0, 0, 0, 0, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 0, 0])) |> collect |> Dict
+    floor.([0, 0, 0, 0, 0, 0, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 0, 0] .* 2)) |> collect |> Dict
 @everywhere DistWeightCon = Distributions.Normal(1300, 200)
 @everywhere DistInitFill = Distributions.Uniform(0.2, 0.5)
 
@@ -69,30 +69,28 @@ Weather = GetWeatherDataHandler(cWindTempDataDir, cIrrDataDir,
 ####
 # Initiate the wind park
 ####
-MyWindPark = GetWindPark(2000.0, 11.5, 3.0, 20.0, Weather, 1)
+MyWindPark = GetWindPark(2000.0, 11.5, 3.0, 20.0, Weather, 5)
 
 ####
 # Initiate the households
 ####
 Households = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, dPLHolidayCalendar,
     cWeatherPricesDataWindowStart, cWeatherPricesDataWindowEnd,
-    100, 13.5, 7.0, -5.0, 10)
+    250, 13.5, 7.0, -5.0, 10)
 #Households.EnergyConsumption[(12,6)]
 
 ####
 # Initiate the warehouse
 ####
-#MyWarehouse = Juno.@enter GetWarehouse(iWarehouseNumberOfSimulations, iWarehouseSimWindow, 2019
-#    0.55, 0.0035, 45, 600, Weather, 11.7, 1.5*11.75, 0.5*11.7, 10)
-#MyWarehouse = GetWarehouse(4, 40, 2019,
-#    0.55, 0.0035, 45, 600, Weather, 11.7, 1.5*11.75, 0.5*11.7, 10)
-#CSV.write("C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv", MyWarehouse.dfEnergyConsumption)
-#CSV.write("C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.csv", MyWarehouse.dfConsignmentHistory)
+MyWarehouse = Juno.@enter GetWarehouse(iWarehouseNumberOfSimulations, iWarehouseSimWindow, 2019
+    0.55, 0.0035, 45, 600, Weather, 11.7, 1.5*11.75, 0.5*11.7, 10)
+CSV.write("C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv", MyWarehouse.dfEnergyConsumption)
+CSV.write("C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.csv", MyWarehouse.dfConsignmentHistory)
 
-dfRawEnergyConsumption = CSV.File("C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv") |> DataFrame
-dfRawConsHistory = CSV.File("C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.csv") |> DataFrame
-MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory, 2019,
-    0.55, 0.0035, 45, 600, Weather, 11.7, 1.35*11.75, -0.5*11.7, 10)
+#dfRawEnergyConsumption = CSV.File("C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv") |> DataFrame
+#dfRawConsHistory = CSV.File("C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.csv") |> DataFrame
+#MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory, 2019,
+#    0.55, 0.0035, 45, 600, Weather, 11.7, 1.35*11.75, -0.5*11.7, 10)
 
 FullMicrogrid = GetMicrogrid(DayAheadPowerPrices, Weather,
     MyWindPark, MyWarehouse, Households)
