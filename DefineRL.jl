@@ -62,7 +62,7 @@ function GetReward(Microgrid::Microgrid, iTimeStep::Int)
     )
 end
 
-function ActorLoss(x, Actions, A; ι::Float64 = 0.001, iσFixed::Float64 = 0.2)
+function ActorLoss(x, Actions, A; ι::Float64 = 0.001, iσFixed::Float64 = 8.0)
     μ_policy = FullMicrogrid.Brain.policy_net(x)
     #println("μ_policy: $μ_policy")
     #println(typeof(μ_policy))
@@ -130,8 +130,8 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64)
     return Action, ActualAction
 end
 
-function CalculateReward(Microgrid::Microgrid, Action::Float64, ActualAction::Float64, iTimeStep::Int64)
-    iGridVolume = deepcopy(Action)
+function CalculateReward(Microgrid::Microgrid, State::Vector, Action::Float64, iTimeStep::Int64)
+    iGridVolume = deepcopy(Action) + State[1]
     dictRewards = GetReward(Microgrid, iTimeStep)
     if iGridVolume >= 0
         iReward = iGridVolume * dictRewards["iPriceSell"]
@@ -152,7 +152,7 @@ end
 
 # definicja, ktore kroki mamy wykonac
 # bierze siec neuronowa i zwraca jej wynik
-function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool; iσFixed::Float64 = 0.2)
+function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool; iσFixed::Float64 = 8.0)
     μ_policy = Microgrid.Brain.policy_net(state)[1]    # wektor p-w na bazie sieci aktora
     if bσFixed
         Policy = Distributions.Normal(μ_policy, iσFixed)
@@ -174,7 +174,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, bLearn::Bool)
 
     #if CurrentState.dictProductionAndConsumption.iProductionConsumptionMismatch >= 0
     Action, ActualAction = ChargeOrDischargeBattery!(Microgrid, Action)
-    iReward = CalculateReward(Microgrid, Action, ActualAction, iTimeStep)
+    iReward = CalculateReward(Microgrid, CurrentState, ActualAction, iTimeStep)
 
     NextState = GetState(Microgrid, iTimeStep + 1)
     Microgrid.State = NextState
@@ -191,7 +191,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, bLearn::Bool)
         Replay!(Microgrid)
     end
 
-    return bTerminal
+    return bTerminal, iReward
 
     #return Dict(
     #    "CurrentState" => CurrentState,
@@ -204,17 +204,19 @@ end
 function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
     iTimeStepStart::Int, iTimeStepEnd::Int, bLearn::Bool)
     iRewards = []
+    iRewardsTimeStep = []
     restart!(Microgrid,iTimeStepStart)
     for iEpisode in 1:iNumberOfEpisodes
         println("Episode $iEpisode")
         for iTimeStep in iTimeStepStart:1:(iTimeStepEnd-1)
             println("Step $iTimeStep")
-            bTerminal = Act!(Microgrid, iTimeStep, iTimeStepEnd, true)
+            bTerminal, iReward = Act!(Microgrid, iTimeStep, iTimeStepEnd, true)
+            push!(iRewardsTimeStep, iReward)
             if bTerminal
                 push!(iRewards, Microgrid.Reward)
                 restart!(Microgrid,iTimeStepStart)
             end
         end
     end
-    return iRewards
+    return iRewards, iRewardsTimeStep
 end
