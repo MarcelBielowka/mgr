@@ -21,12 +21,21 @@ function GetState(Microgrid::Microgrid, iTimeStep::Int64)
     iHour = Dates.hour(Microgrid.dfTotalProduction.date[iTimeStep])
     iHours = @pipe Flux.onehot(iHour, collect(0:23)) |> collect(_) |> Int.(_)
 
-    Microgrid.State = vcat([
-        iTotalProduction
-        iTotalConsumption
-        iProductionConsumptionMismatch
-        Microgrid.EnergyStorage.iCurrentCharge
-    ], @pipe Flux.onehot(iHour, collect(0:23)) |> collect(_) |> Int.(_))
+    if iHour !=23
+        Microgrid.State = vcat([
+            iTotalProduction
+            iTotalConsumption
+            iProductionConsumptionMismatch
+            Microgrid.EnergyStorage.iCurrentCharge
+            ], @pipe Flux.onehot(iHour, collect(0:22)) |> collect(_) |> Int.(_))
+    else
+        Microgrid.State = vcat([
+            iTotalProduction
+            iTotalConsumption
+            iProductionConsumptionMismatch
+            Microgrid.EnergyStorage.iCurrentCharge
+            ], repeat([0], 23))
+    end
     #return State(
     #    Dict(
     #        "iTotalProduction" => iTotalProduction,
@@ -209,37 +218,3 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
     end
     return iRewards
 end
-
-Random.seed!(72945)
-restart!(FullMicrogrid, 1)
-FullMicrogrid.Brain.min_memory_size = 5
-FullMicrogrid.Brain.batch_size = 5
-#Juno.@enter Run!(FullMicrogrid, 1, 1, 20)
-reward = Juno.@enter Run!(FullMicrogrid, 1000, 1, 744, true)
-reward = Run!(FullMicrogrid, 10, 1, 744, true)
-
-FullMicrogrid.Brain.policy_net(FullMicrogrid.State)
-
-#GetState(FullMicrogrid,1)
-#testState = GetState(FullMicrogrid,1)
-#testAction = GetAction(FullMicrogrid, ExamplePolicy)
-#a = Act!(FullMicrogrid, 2, 10)
-#FullMicrogrid.State
-#FullMicrogrid.Reward
-
-#FullMicrogrid.DayAheadPricesHandler.dfQuantilesOfPrices
-#filter(row-> row.DeliveryHour==14, FullMicrogrid.DayAheadPricesHandler.dfQuantilesOfPrices)
-FullMicrogrid.Brain.memory
-FullMicrogrid.Brain
-FullMicrogrid
-
-Juno.@enter Replay!(FullMicrogrid)
-
-
-#FullMicrogrid.Brain.memory[110]
-#FullMicrogrid.Brain.memory[110][1][5:28]
-
-#FullMicrogrid.Brain.memory[114]
-#FullMicrogrid.Brain.memory[110][1][5:28]
-
-#CalculateReward(FullMicrogrid, 0.0, 1)
