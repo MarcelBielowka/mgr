@@ -495,19 +495,20 @@ function AggregateWarehouseConsumptionDataForMonth(iMonth::Int, iYear::Int,
     return dfWarehouseConsumptionMonthly
 end
 
-function AggregateWarehouseConsumptionData(dfOutput::DataFrame, iYear::Int)
+function AggregateWarehouseConsumptionData(dfOutput::DataFrame, iNumberOfWarehouses::Int, iYear::Int)
     dfFinalConsumption = AggregateWarehouseConsumptionDataForMonth(1, iYear, dfOutput)
     for month in 2:12
         dfMonthlyData = AggregateWarehouseConsumptionDataForMonth(month, iYear, dfOutput)
         dfFinalConsumption = vcat(dfFinalConsumption, dfMonthlyData)
     end
+    dfFinalConsumption.Consumption .*= 2
     return dfFinalConsumption
 end
 
 ##################################
 ###### Final data extractor ######
 ##################################
-function ExtractFinalStorageData(OutputDictionary, iYear::Int)
+function ExtractFinalStorageData(OutputDictionary, iNumberOfWarehouses::Int, iYear::Int)
     dfOutputDataSample = OutputDictionary[1]["Storage"].ElectricityConsumption
     dfConsignmentsHistorySample = OutputDictionary[1]["ConsignmentsHistory"]
     for i in 2:length(OutputDictionary)
@@ -537,7 +538,8 @@ function ExtractFinalStorageData(OutputDictionary, iYear::Int)
     )
     select!(dfConsignmentsHistory, [:Day, :Hour, :ConsignmentIn, :ConsignmentOut, :ConsignmentInStd, :ConsignmentOutStd])
 
-    dfWarehouseEnergyConsumptionYearly = AggregateWarehouseConsumptionData(dfOutputData, iYear)
+    dfWarehouseEnergyConsumptionYearly = AggregateWarehouseConsumptionData(dfOutputData,
+        iNumberOfWarehouses, iYear)
 
     return Dict(
         "dfWarehouseEnergyConsumption" => dfOutputData,
