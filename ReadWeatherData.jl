@@ -147,6 +147,7 @@ function ReadWeatherData(cFileWind::String, cFileIrr::String; FilterStart = noth
     select!(dfFinalWeatherData, [:date, :Temperature, :WindSpeed, :Irradiation])
 
     dfFinalWeatherData.date = dfFinalWeatherData.date + Dates.Hour(1)
+    dfFinalWeatherData = dfFinalWeatherData[1:(nrow(dfFinalWeatherData)-1),:]
 
     return Dict(
         "dfFinalWeatherData" => dfFinalWeatherData,

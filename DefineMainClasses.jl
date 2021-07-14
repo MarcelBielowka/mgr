@@ -311,6 +311,7 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
         MyWarehouse.SolarPanels.dfSolarProductionData, on = :date)
     insertcols!(dfTotalProduction,
         :TotalProduction => dfTotalProduction.WindProduction .+ dfTotalProduction.dfSolarProduction)
+    # dfTotalProduction = dfTotalProduction[1:8759,:]
     dfTotalConsumption = DataFrames.DataFrame(
         date = MyHouseholds.dfEnergyConsumption.date,
         HouseholdConsumption = MyHouseholds.dfEnergyConsumption.ProfileWeighted,
@@ -318,6 +319,8 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     )
     insertcols!(dfTotalConsumption,
         :TotalConsumption => dfTotalConsumption.HouseholdConsumption .+ dfTotalConsumption.WarehouseConsumption)
+    dfTotalConsumption = dfTotalConsumption[2:8760,:]
+    dfTotalConsumption.date = dfTotalProduction.date
 
     return Microgrid(
         Brain,
