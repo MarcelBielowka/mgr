@@ -326,7 +326,7 @@ function SimOneRun(RunID, SimWindow,
     StorageSlotHeight = 1.4, ConveyorMassPerM2 = 2.2,
     ConsignmentLength = 1.2, ConsignmentWidth = 0.8, ConsignmentHeight = 1.2,
     FrictionCoefficient = 0.33,  HandlingRoadString = "||",
-    LightningMinimum = 20, LightningLampLumenPerW = 60, LightningLampWork = 150,
+    LightningMinimum = 150, LightningLampLumenPerW = 60, LightningLampWork = 150,
     ITPowerConsumption = 2.153)
 
     # Additional consigns to send - any demand that was not met the previous hour
