@@ -76,7 +76,7 @@ MyWindPark = GetWindPark(2000.0, 11.5, 3.0, 20.0, Weather, 3)
 ####
 Households = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, dPLHolidayCalendar,
     cWeatherPricesDataWindowStart, cWeatherPricesDataWindowEnd,
-    350, 13.5, 7.0, -5.0, 25)
+    150, 13.5, 7.0, -5.0, 25)
 #Households.EnergyConsumption[(12,6)]
 
 ####
@@ -90,7 +90,7 @@ Households = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, dPLHolidayCalendar,
 dfRawEnergyConsumption = CSV.File("C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv") |> DataFrame
 dfRawConsHistory = CSV.File("C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.csv") |> DataFrame
 MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory, 2, 2019, 0.1, 20.0,
-    0.55, 0.0035, 45, 300, Weather, 11.7, 1.35*11.7, -0.5*11.7, 20)
+    0.55, 0.0035, 45, 600, Weather, 11.7, 1.35*11.7, -0.5*11.7, 20)
 
 FullMicrogrid = GetMicrogrid(DayAheadPowerPrices, Weather,
     MyWindPark, MyWarehouse, Households)
