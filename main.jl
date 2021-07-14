@@ -69,14 +69,14 @@ Weather = GetWeatherDataHandler(cWindTempDataDir, cIrrDataDir,
 ####
 # Initiate the wind park
 ####
-MyWindPark = GetWindPark(2000.0, 11.5, 3.0, 20.0, Weather, 5)
+MyWindPark = GetWindPark(2000.0, 11.5, 3.0, 20.0, Weather, 3)
 
 ####
 # Initiate the households
 ####
 Households = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, dPLHolidayCalendar,
     cWeatherPricesDataWindowStart, cWeatherPricesDataWindowEnd,
-    250, 13.5, 7.0, -5.0, 10)
+    350, 13.5, 7.0, -5.0, 25)
 #Households.EnergyConsumption[(12,6)]
 
 ####
@@ -90,11 +90,20 @@ Households = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, dPLHolidayCalendar,
 dfRawEnergyConsumption = CSV.File("C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv") |> DataFrame
 dfRawConsHistory = CSV.File("C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.csv") |> DataFrame
 MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory, 2019,
-    0.55, 0.0035, 45, 600, Weather, 11.7, 1.35*11.75, -0.5*11.7, 10)
+    0.55, 0.0035, 45, 300, Weather, 11.7, 1.35*11.75, -0.5*11.7, 20)
 
 FullMicrogrid = GetMicrogrid(DayAheadPowerPrices, Weather,
     MyWindPark, MyWarehouse, Households)
 FullMicrogrid.DayAheadPricesHandler.dfQuantilesOfPrices.iFirstQuartile
+
+sum(abs.(Weather.dfWeatherData.Temperature .- 20) * 0.1 * (2 * (51*12*1.4) + 2 * (45*12*1.4) + (45*51*1.4^2)))/1000
+abs.(Weather.dfWeatherData.Temperature .- 20) * 0.1 * (2 * (51*12*1.4) + 2 * (45*12*1.4) + (45*51*1.4^2))/1000
+MyWarehouse.dfWarehouseEnergyConsumptionYearly.Consumption |> sum
+# testowo
+FullMicrogrid.dfTotalConsumption.TotalConsumption .+=
+    abs.(Weather.dfWeatherData.Temperature[1:8759,] .- 20) * 0.1 * (2 * (51*12*1.4) + 2 * (45*12*1.4) + (45*51*1.4^2))/1000
+FullMicrogrid.dfTotalConsumption.TotalConsumption .+= FullMicrogrid.dfTotalConsumption.WarehouseConsumption
+sum(Households.dfEnergyConsumption.ProfileWeighted) / 250
 
 #########################################
 ########## Learning process #############
