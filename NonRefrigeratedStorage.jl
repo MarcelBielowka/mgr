@@ -495,12 +495,28 @@ function AggregateWarehouseConsumptionDataForMonth(iMonth::Int, iYear::Int,
     return dfWarehouseConsumptionMonthly
 end
 
-function AggregateWarehouseConsumptionData(dfOutput::DataFrame, iNumberOfWarehouses::Int, iYear::Int)
+function AggregateWarehouseConsumptionData(dfOutput::DataFrame,
+    iNumberOfWarehouses::Int, iYear::Int, WeatherData::WeatherDataHandler,
+    iHeatCoefficient::Float64, iInsideTemp::Float64;
+    SlotsLength = 45, SlotsWidth = 51, SlotsHeight = 7,
+    ConveyorSectionLength = 1.4, ConveyorSectionWidth = 1.4,
+    StorageSlotHeight = 1.4)
     dfFinalConsumption = AggregateWarehouseConsumptionDataForMonth(1, iYear, dfOutput)
+
+    WallSurface = (SlotsLength * ConveyorSectionWidth * SlotsWidth * ConveyorSectionLength +
+        2 * SlotsWidth * ConveyorSectionLength) +
+        2 * (StorageSlotHeight * SlotsHeight * SlotsWidth * ConveyorSectionLength) +
+        2 * (StorageSlotHeight * SlotsHeight * SlotsLength * ConveyorSectionWidth +
+            StorageSlotHeight * SlotsHeight * ConveyorSectionWidth * 2)
+
     for month in 2:12
         dfMonthlyData = AggregateWarehouseConsumptionDataForMonth(month, iYear, dfOutput)
         dfFinalConsumption = vcat(dfFinalConsumption, dfMonthlyData)
     end
+    iConsumptionForHeatFluxes =
+        abs.(WeatherData.dfWeatherData.Temperature .- iInsideTemp) .* iHeatCoefficient .* WallSurface./1000
+    iConsumptionForHeatFluxes = vcat(iConsumptionForHeatFluxes[1], iConsumptionForHeatFluxes)
+    dfFinalConsumption.Consumption .+= iConsumptionForHeatFluxes
     dfFinalConsumption.Consumption .*= iNumberOfWarehouses
     return dfFinalConsumption
 end
@@ -508,7 +524,12 @@ end
 ##################################
 ###### Final data extractor ######
 ##################################
-function ExtractFinalStorageData(OutputDictionary, iNumberOfWarehouses::Int, iYear::Int)
+function ExtractFinalStorageData(OutputDictionary,
+    iNumberOfWarehouses::Int, iYear::Int, WeatherData::WeatherDataHandler,
+    iHeatCoefficient::Float64, iInsideTemp::Float64;
+    SlotsLength = 45, SlotsWidth = 51, SlotsHeight = 7,
+    ConveyorSectionLength = 1.4, ConveyorSectionWidth = 1.4,
+    StorageSlotHeight = 1.4)
     dfOutputDataSample = OutputDictionary[1]["Storage"].ElectricityConsumption
     dfConsignmentsHistorySample = OutputDictionary[1]["ConsignmentsHistory"]
     for i in 2:length(OutputDictionary)
@@ -539,7 +560,7 @@ function ExtractFinalStorageData(OutputDictionary, iNumberOfWarehouses::Int, iYe
     select!(dfConsignmentsHistory, [:Day, :Hour, :ConsignmentIn, :ConsignmentOut, :ConsignmentInStd, :ConsignmentOutStd])
 
     dfWarehouseEnergyConsumptionYearly = AggregateWarehouseConsumptionData(dfOutputData,
-        iNumberOfWarehouses, iYear)
+        iNumberOfWarehouses, iYear, WeatherData, iHeatCoefficient, iInsideTemp)
 
     return Dict(
         "dfWarehouseEnergyConsumption" => dfOutputData,

@@ -13,10 +13,10 @@ using Flux
 using Distributed
 cd("C:/Users/Marcel/Desktop/mgr/kody")
 include("Households.jl")
+include("DefineMainClasses.jl")
 include("NonRefrigeratedStorage.jl")
 include("ReadWeatherData.jl")
 include("ReadPowerPricesData.jl")
-include("DefineMainClasses.jl")
 include("DefineRL.jl")
 
 #########################################
@@ -82,22 +82,23 @@ Households = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, dPLHolidayCalendar,
 ####
 # Initiate the warehouse
 ####
-#MyWarehouse = GetWarehouse(iWarehouseNumberOfSimulations, iWarehouseSimWindow, 2, 2019,
+#MyWarehouse = GetWarehouse(iWarehouseNumberOfSimulations, iWarehouseSimWindow, 2, 2019, 0.1, 20.0,
 #    0.55, 0.0035, 45, 300, Weather, 11.7, 1.5*11.75, 0.5*11.7, 10)
 #CSV.write("C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv", MyWarehouse.dfEnergyConsumption)
 #CSV.write("C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.csv", MyWarehouse.dfConsignmentHistory)
 
 dfRawEnergyConsumption = CSV.File("C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv") |> DataFrame
 dfRawConsHistory = CSV.File("C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.csv") |> DataFrame
-MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory, 2019, 2,
-    0.55, 0.0035, 45, 300, Weather, 11.7, 1.35*11.75, -0.5*11.7, 20)
+MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory, 2, 2019, 0.1, 20.0,
+    0.55, 0.0035, 45, 300, Weather, 11.7, 1.35*11.7, -0.5*11.7, 20)
 
 FullMicrogrid = GetMicrogrid(DayAheadPowerPrices, Weather,
     MyWindPark, MyWarehouse, Households)
 FullMicrogrid.DayAheadPricesHandler.dfQuantilesOfPrices.iFirstQuartile
 
 sum(abs.(Weather.dfWeatherData.Temperature .- 20) * 0.1 * (2 * (51*12*1.4) + 2 * (45*12*1.4) + (45*51*1.4^2)))/1000
-abs.(Weather.dfWeatherData.Temperature .- 20) * 0.1 * (2 * (51*12*1.4) + 2 * (45*12*1.4) + (45*51*1.4^2))/1000
+v = abs.(Weather.dfWeatherData.Temperature .- 20) * 0.1 * (2 * (51*12*1.4) + 2 * (45*12*1.4) + (45*51*1.4^2))/1000
+x = vcat(v[1], v)
 MyWarehouse.dfWarehouseEnergyConsumptionYearly.Consumption |> sum
 # testowo
 FullMicrogrid.dfTotalConsumption.TotalConsumption .+=

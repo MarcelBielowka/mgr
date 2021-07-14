@@ -142,6 +142,7 @@ end
 function GetWarehouse(
     iWarehouseNumberOfSimulations::Int, iWarehouseSimWindow::Int,
     iNumberOfWarehouses::Int, iYear::Int,
+    iHeatCoefficient::Float64, iInsideTemp::Float64,
     iPVMaxCapacity::Float64, iPVγ_temp::Float64,
     iNoct::Int, iNumberOfPanels::Int, WeatherData::WeatherDataHandler,
     iStorageMaxCapacity::Float64, iStorageChargeRate::Float64,
@@ -155,7 +156,8 @@ function GetWarehouse(
 
     @time WarehouseDataRaw = pmap(SimWrapper,
         Base.Iterators.product(1:iWarehouseNumberOfSimulations, iWarehouseSimWindow, false))
-    dictFinalData = ExtractFinalStorageData(WarehouseDataRaw, iNumberOfWarehouses, iYear)
+    dictFinalData = ExtractFinalStorageData(WarehouseDataRaw, iNumberOfWarehouses, iYear,
+        WeatherData, iHeatCoefficient, iInsideTemp)
 
     return Warehouse(
         dictFinalData["dfWarehouseEnergyConsumption"],
@@ -177,7 +179,8 @@ end
 #########################################
 function GetTestWarehouse(
     dfWarehouseEnergyConsumption::DataFrame, dfConsignmentHistory::DataFrame,
-    iYear::Int, iNumberOfWarehouses::Int,
+    iNumberOfWarehouses::Int, iYear::Int,
+    iHeatCoefficient::Float64, iInsideTemp::Float64,
     iPVMaxCapacity::Float64, iPVγ_temp::Float64,
     iNoct::Int, iNumberOfPanels::Int, WeatherData::WeatherDataHandler,
     iStorageMaxCapacity::Float64, iStorageChargeRate::Float64,
@@ -190,7 +193,8 @@ function GetTestWarehouse(
     )
 
     dfWarehouseEnergyConsumptionYearly = AggregateWarehouseConsumptionData(
-        dfWarehouseEnergyConsumption, iNumberOfWarehouses, iYear)
+        dfWarehouseEnergyConsumption, iNumberOfWarehouses, iYear,
+        WeatherData, iHeatCoefficient, iInsideTemp)
 
     return Warehouse(
         dfWarehouseEnergyConsumption,
