@@ -501,7 +501,7 @@ function AggregateWarehouseConsumptionData(dfOutput::DataFrame, iNumberOfWarehou
         dfMonthlyData = AggregateWarehouseConsumptionDataForMonth(month, iYear, dfOutput)
         dfFinalConsumption = vcat(dfFinalConsumption, dfMonthlyData)
     end
-    dfFinalConsumption.Consumption .*= 2
+    dfFinalConsumption.Consumption .*= iNumberOfWarehouses
     return dfFinalConsumption
 end
 
