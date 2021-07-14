@@ -82,14 +82,14 @@ Households = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, dPLHolidayCalendar,
 ####
 # Initiate the warehouse
 ####
-#MyWarehouse = GetWarehouse(iWarehouseNumberOfSimulations, iWarehouseSimWindow, 2019,
-#    0.55, 0.0035, 45, 600, Weather, 11.7, 1.5*11.75, 0.5*11.7, 10)
+#MyWarehouse = GetWarehouse(iWarehouseNumberOfSimulations, iWarehouseSimWindow, 2, 2019,
+#    0.55, 0.0035, 45, 300, Weather, 11.7, 1.5*11.75, 0.5*11.7, 10)
 #CSV.write("C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv", MyWarehouse.dfEnergyConsumption)
 #CSV.write("C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.csv", MyWarehouse.dfConsignmentHistory)
 
 dfRawEnergyConsumption = CSV.File("C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv") |> DataFrame
 dfRawConsHistory = CSV.File("C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.csv") |> DataFrame
-MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory, 2019,
+MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory, 2019, 2,
     0.55, 0.0035, 45, 300, Weather, 11.7, 1.35*11.75, -0.5*11.7, 20)
 
 FullMicrogrid = GetMicrogrid(DayAheadPowerPrices, Weather,
@@ -102,7 +102,12 @@ MyWarehouse.dfWarehouseEnergyConsumptionYearly.Consumption |> sum
 # testowo
 FullMicrogrid.dfTotalConsumption.TotalConsumption .+=
     abs.(Weather.dfWeatherData.Temperature[1:8759,] .- 20) * 0.1 * (2 * (51*12*1.4) + 2 * (45*12*1.4) + (45*51*1.4^2))/1000
+FullMicrogrid.dfTotalConsumption.WarehouseConsumption .+=
+    abs.(Weather.dfWeatherData.Temperature[1:8759,] .- 20) * 0.1 * (2 * (51*12*1.4) + 2 * (45*12*1.4) + (45*51*1.4^2))/1000
 FullMicrogrid.dfTotalConsumption.TotalConsumption .+= FullMicrogrid.dfTotalConsumption.WarehouseConsumption
+
+FullMicrogrid.dfTotalConsumption.TotalConsumption += FullMicrogrid.dfTotalConsumption.WarehouseConsumption
+FullMicrogrid.dfTotalConsumption.WarehouseConsumption .*= 2
 sum(Households.dfEnergyConsumption.ProfileWeighted) / 250
 
 #########################################
