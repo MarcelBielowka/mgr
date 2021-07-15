@@ -29,7 +29,7 @@ function GetState(Microgrid::Microgrid, iTimeStep::Int64)
             ], @pipe Flux.onehot(iHour, collect(0:22)) |> collect(_) |> Int.(_))
     else
         Microgrid.State = vcat([
-            TotalProduction
+            iTotalProduction
             iTotalConsumption
             Microgrid.EnergyStorage.iCurrentCharge
             ], repeat([0], 23))
