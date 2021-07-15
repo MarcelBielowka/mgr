@@ -23,12 +23,14 @@ function GetState(Microgrid::Microgrid, iTimeStep::Int64)
 
     if iHour !=23
         Microgrid.State = vcat([
-            iProductionConsumptionMismatch
+            iTotalProduction
+            iTotalConsumption
             Microgrid.EnergyStorage.iCurrentCharge
             ], @pipe Flux.onehot(iHour, collect(0:22)) |> collect(_) |> Int.(_))
     else
         Microgrid.State = vcat([
-            iProductionConsumptionMismatch
+            TotalProduction
+            iTotalConsumption
             Microgrid.EnergyStorage.iCurrentCharge
             ], repeat([0], 23))
     end
@@ -131,7 +133,7 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64)
 end
 
 function CalculateReward(Microgrid::Microgrid, State::Vector, Action::Float64, iTimeStep::Int64)
-    iGridVolume = -deepcopy(Action) + State[1]
+    iGridVolume = -deepcopy(Action) + State[1] - State[2]
     dictRewards = GetReward(Microgrid, iTimeStep)
     if iGridVolume >= 0
         iReward = iGridVolume * dictRewards["iPriceSell"]
