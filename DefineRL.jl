@@ -132,7 +132,7 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64)
     return Action, ActualAction
 end
 
-function CalculateReward(Microgrid::Microgrid, State::Vector, Action::Float64, iTimeStep::Int64)
+function CalculateReward(Microgrid::Microgrid, State::Vector, Action::Float64, ActualAction::Float64, iTimeStep::Int64)
     iGridVolume = -deepcopy(Action) + State[1] - State[2]
     dictRewards = GetReward(Microgrid, iTimeStep)
     if iGridVolume >= 0
@@ -176,7 +176,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, bLearn::Bool)
 
     #if CurrentState.dictProductionAndConsumption.iProductionConsumptionMismatch >= 0
     Action, ActualAction = ChargeOrDischargeBattery!(Microgrid, Action)
-    iReward = CalculateReward(Microgrid, CurrentState, ActualAction, iTimeStep)
+    iReward = CalculateReward(Microgrid, CurrentState, Action, ActualAction, iTimeStep)
 
     NextState = GetState(Microgrid, iTimeStep + 1)
     Microgrid.State = NextState
