@@ -108,8 +108,8 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
     iter = @pipe sample(Microgrid.Brain.memory, Microgrid.Brain.batch_size, replace = false) |>
         enumerate |> collect
     for (i, step) in iter
-        State, Action, Reward, NextState, v, v′, bTerminal = step
-        if !bTerminal
+        State, Action, ActualAction, Reward, NextState, v, v′, bTerminal = step
+        if bTerminal
             R = Reward
         else
             R = Reward + Microgrid.Brain.β * v′
@@ -118,7 +118,7 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
         StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
         x[:, i] .= StateForLearning
         A[:, i] .= iAdvantage
-        Actions[:,i] .= Action
+        Actions[:,i] .= ActualAction
         y[:, i] .= R
     end
 
@@ -153,15 +153,17 @@ end
 
 function CalculateReward(Microgrid::Microgrid, State::Vector, Action::Float64, ActualAction::Float64, iTimeStep::Int64)
     iGridVolume = -deepcopy(ActualAction) + State[1] - State[2]
-    dictRewards = GetReward(Microgrid, iTimeStep)
+    #dictRewards = GetReward(Microgrid, iTimeStep)
     if iGridVolume >= 0
-        iReward = iGridVolume * dictRewards["iPriceSell"]
+    #    iReward = iGridVolume * dictRewards["iPriceSell"]
+        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iFirstQuartile[1]
     else
-        iReward = iGridVolume * dictRewards["iPriceBuy"]
+    #    iReward = iGridVolume * dictRewards["iPriceBuy"]
+        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iThirdQuartile[1]
     end
-    #if abs(Action / ActualAction) > 1.3
-    #    iReward = iReward - 1e5
-    #end
+#    if abs(Action / ActualAction) > 1
+#        iReward = -3e5
+#    end
     return iReward
 end
 
@@ -206,7 +208,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, dictNormParam
     else
         bTerminal = false
     end
-    Remember!(Microgrid, (CurrentState,ActualAction,iReward,NextState,v,v′,bTerminal))
+    Remember!(Microgrid, (CurrentState, Action, ActualAction, iReward, NextState, v, v′, bTerminal))
 
     if (bLearn && length(Microgrid.Brain.memory) > Microgrid.Brain.min_memory_size)
         Replay!(Microgrid, dictNormParams)
