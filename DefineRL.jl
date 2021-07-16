@@ -91,7 +91,7 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001, iσFixed::Float64 = 8.0)
     iScoreFunction = -Distributions.logpdf.(Policy, Actions)
     #println("iScoreFunction: $iScoreFunction")
     iLoss = sum(iScoreFunction .* A) / size(A,1)
-    println("Loss function: $iLoss")
+    # println("Loss function: $iLoss")
     return iLoss
 end
 
@@ -100,7 +100,7 @@ function CriticLoss(x, y; ξ = 0.5)
 end
 
 function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
-    println("Start learning")
+    # println("Start learning")
     x = zeros(Float64, length(Microgrid.State), Microgrid.Brain.batch_size)
     Actions = zeros(Float64, 1, Microgrid.Brain.batch_size)
     A = zeros(Float64, 1, Microgrid.Brain.batch_size)
@@ -135,14 +135,14 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64)
         iCharge = min(iMaxPossibleCharge, iChargeDischargeVolume)
         Microgrid.EnergyStorage.iCurrentCharge += iCharge
         ActualAction = iCharge
-        println("The actual charge of the battery is $iCharge")
+        println("Actual charge of battery: $iCharge")
     else
         iMaxPossibleDischarge = max(Microgrid.EnergyStorage.iDischargeRate,
             -Microgrid.EnergyStorage.iCurrentCharge)
         iDischarge = max(iMaxPossibleDischarge, iChargeDischargeVolume)
         Microgrid.EnergyStorage.iCurrentCharge += iDischarge
         ActualAction = iDischarge
-        println("The actual discharge of the battery is $iDischarge")
+        println("Actual discharge of battery: $iDischarge")
     end
     # if ActualAction / Action < 0
     #     ActualAction = -ActualAction
@@ -159,9 +159,9 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, Action::Float64, A
     else
         iReward = iGridVolume * dictRewards["iPriceBuy"]
     end
-    #if abs(Action / ActualAction) > 1.3
-    #    iReward = iReward - 1e5
-    #end
+    if abs(Action / ActualAction) > 1.3
+        iReward = iReward - 1e5
+    end
     return iReward
 end
 
@@ -191,7 +191,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, dictNormParam
     CurrentState = deepcopy(Microgrid.State)
     Policy, v = Forward(Microgrid, CurrentState, true)
     Action = rand(Policy)
-    println("We're in time step $iTimeStep and the intended action is $Action kW")
+    println("Time step $iTimeStep, intended action $Action kW, prod-cons mismatch ", CurrentState[1] - CurrentState[2])
 
     #if CurrentState.dictProductionAndConsumption.iProductionConsumptionMismatch >= 0
     Action, ActualAction = ChargeOrDischargeBattery!(Microgrid, Action)
