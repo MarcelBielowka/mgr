@@ -133,7 +133,7 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64)
 end
 
 function CalculateReward(Microgrid::Microgrid, State::Vector, Action::Float64, ActualAction::Float64, iTimeStep::Int64)
-    iGridVolume = -deepcopy(Action) + State[1] - State[2]
+    iGridVolume = -deepcopy(ActualAction) + State[1] - State[2]
     dictRewards = GetReward(Microgrid, iTimeStep)
     if iGridVolume >= 0
         iReward = iGridVolume * dictRewards["iPriceSell"]
