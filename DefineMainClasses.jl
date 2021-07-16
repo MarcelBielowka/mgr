@@ -289,7 +289,7 @@ function GetBrain(DimState; β = 1, ηₚ = 0.00001, ηᵥ = 0.001)
     #value_net = Chain(Dense(DimState, 128, relu),
     #                Dense(128, 52, relu),
     #                Dense(52, 1, identity))
-    return Brain(β, 64 , 200_000, 2000, [], policy_net, value_net, ηₚ, ηᵥ)
+    return Brain(β, 256 , 200_000, 2000, [], policy_net, value_net, ηₚ, ηᵥ)
 end
 
 #########################################
