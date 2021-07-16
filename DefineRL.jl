@@ -46,6 +46,24 @@ function GetState(Microgrid::Microgrid, iTimeStep::Int64)
     #)
 end
 
+function GetParamsForNormalisation(Microgrid::Microgrid)
+    return Dict(
+        "ProductionScalingParams" => extrema(Microgrid.dfTotalProduction.TotalProduction),
+        "ConsumptionScalingParams" => extrema(Microgrid.dfTotalConsumption.TotalConsumption),
+        "ChargeParams" => (0, Microgrid.EnergyStorage.iMaxCapacity)
+    )
+end
+
+function NormaliseState!(State::Vector, Params::Dict)
+    (iProdMin, iProdMax) = Params["ProductionScalingParams"]
+    (iConsMin, iConsMax) = Params["ConsumptionScalingParams"]
+    (iChargeMin, iChargeMax) = Params["ChargeParams"]
+    State[1] = (State[1] - iProdMin) / (iProdMax - iProdMin)
+    State[2] = (State[2] - iConsMin) / (iConsMax - iConsMin)
+    State[3] = (State[3] - iChargeMin) / (iChargeMax - iChargeMin)
+    return State
+end
+
 function restart!(Microgrid::Microgrid, iInitTimeStep::Int)
     Microgrid.Reward = 0
     Microgrid.EnergyStorage.iCurrentCharge = 0
@@ -81,7 +99,7 @@ function CriticLoss(x, y; ξ = 0.5)
     return ξ*Flux.mse(FullMicrogrid.Brain.value_net(x), y)
 end
 
-function Replay!(Microgrid::Microgrid)
+function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
     println("Start learning")
     x = zeros(Float64, length(Microgrid.State), Microgrid.Brain.batch_size)
     Actions = zeros(Float64, 1, Microgrid.Brain.batch_size)
@@ -97,7 +115,8 @@ function Replay!(Microgrid::Microgrid)
             R = Reward + Microgrid.Brain.β * v′
         end
         iAdvantage = R - v
-        x[:, i] .= State
+        StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
+        x[:, i] .= StateForLearning
         A[:, i] .= iAdvantage
         Actions[:,i] .= Action
         y[:, i] .= R
@@ -167,7 +186,7 @@ function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool; iσFixed::
 end
 
 
-function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, bLearn::Bool)
+function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, dictNormParams::Dict, bLearn::Bool)
     #Random.seed!(72945)
     CurrentState = deepcopy(Microgrid.State)
     Policy, v = Forward(Microgrid, CurrentState, true)
@@ -190,7 +209,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, bLearn::Bool)
     Remember!(Microgrid, (CurrentState,ActualAction,iReward,NextState,v,v′,bTerminal))
 
     if (bLearn && length(Microgrid.Brain.memory) > Microgrid.Brain.min_memory_size)
-        Replay!(Microgrid)
+        Replay!(Microgrid, dictNormParams)
     end
 
     return bTerminal, iReward
@@ -207,12 +226,13 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
     iTimeStepStart::Int, iTimeStepEnd::Int, bLearn::Bool)
     iRewards = []
     iRewardsTimeStep = []
+    dictParamsForNormalisation = GetParamsForNormalisation(Microgrid)
     restart!(Microgrid,iTimeStepStart)
     for iEpisode in 1:iNumberOfEpisodes
         println("Episode $iEpisode")
         for iTimeStep in iTimeStepStart:1:(iTimeStepEnd-1)
             println("Step $iTimeStep")
-            bTerminal, iReward = Act!(Microgrid, iTimeStep, iTimeStepEnd, bLearn)
+            bTerminal, iReward = Act!(Microgrid, iTimeStep, iTimeStepEnd, dictParamsForNormalisation, bLearn)
             push!(iRewardsTimeStep, iReward)
             if bTerminal
                 push!(iRewards, Microgrid.Reward)
