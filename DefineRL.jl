@@ -212,7 +212,7 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
         println("Episode $iEpisode")
         for iTimeStep in iTimeStepStart:1:(iTimeStepEnd-1)
             println("Step $iTimeStep")
-            bTerminal, iReward = Act!(Microgrid, iTimeStep, iTimeStepEnd, true)
+            bTerminal, iReward = Act!(Microgrid, iTimeStep, iTimeStepEnd, bLearn)
             push!(iRewardsTimeStep, iReward)
             if bTerminal
                 push!(iRewards, Microgrid.Reward)
