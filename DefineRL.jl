@@ -98,7 +98,7 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001, iσFixed::Float64 = 8.0)
     iScoreFunction = -Distributions.logpdf.(Policy, Actions)
     #println("iScoreFunction: $iScoreFunction")
     iLoss = sum(iScoreFunction .* A) / size(A,1)
-    # println("Loss function: $iLoss")
+    println("Loss function: $iLoss")
     return iLoss
 end
 
@@ -125,7 +125,7 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
         StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
         x[:, i] .= StateForLearning
         A[:, i] .= iAdvantage
-        Actions[:,i] .= ActualAction
+        Actions[:,i] .= Action
         y[:, i] .= R
     end
 
@@ -204,7 +204,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int,
     CurrentState = deepcopy(Microgrid.State)
     Policy, v = Forward(Microgrid, CurrentState, true)
     Action = rand(Policy)
-    println("Time step $iTimeStep, intended action $Action kW, prod-cons mismatch ", CurrentState[1] - CurrentState[2])
+    println("Time step $iTimeStep, intended action $Action kW, prod-cons mismatch ", CurrentState[1])
 
     #if CurrentState.dictProductionAndConsumption.iProductionConsumptionMismatch >= 0
     Action, ActualAction = ChargeOrDischargeBattery!(Microgrid, Action)
