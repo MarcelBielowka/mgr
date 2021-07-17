@@ -98,7 +98,7 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001, iσFixed::Float64 = 8.0)
     iScoreFunction = -Distributions.logpdf.(Policy, Actions)
     #println("iScoreFunction: $iScoreFunction")
     iLoss = sum(iScoreFunction .* A) / size(A,1)
-    println("Loss function: $iLoss")
+    # println("Loss function: $iLoss")
     return iLoss
 end
 
