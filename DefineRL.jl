@@ -151,7 +151,9 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64)
     return Action, ActualAction
 end
 
-function CalculateReward(Microgrid::Microgrid, State::Vector, Action::Float64, ActualAction::Float64, iTimeStep::Int64)
+function CalculateReward(Microgrid::Microgrid, State::Vector,
+    Action::Float64, ActualAction::Float64, iTimeStep::Int64,
+    iPenalty::Float64, bLearn::Bool)
     iGridVolume = -deepcopy(ActualAction) + State[1] - State[2]
     dictRewards = GetReward(Microgrid, iTimeStep)
     if iGridVolume >= 0
@@ -161,9 +163,9 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, Action::Float64, A
         iReward = iGridVolume * dictRewards["iPriceBuy"]
     #    iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iThirdQuartile[1]
     end
-#    if abs(Action / ActualAction) > 1
-#        iReward = -3e5
-#    end
+    if (bLearn && abs(Action / ActualAction) > 1)
+        iReward -= iPenalty
+    end
     return iReward
 end
 
@@ -188,7 +190,8 @@ function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool; iσFixed::
 end
 
 
-function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, dictNormParams::Dict, bLearn::Bool)
+function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int,
+    dictNormParams::Dict, iPenalty::Float64, bLearn::Bool)
     #Random.seed!(72945)
     CurrentState = deepcopy(Microgrid.State)
     Policy, v = Forward(Microgrid, CurrentState, true)
@@ -197,7 +200,8 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, dictNormParam
 
     #if CurrentState.dictProductionAndConsumption.iProductionConsumptionMismatch >= 0
     Action, ActualAction = ChargeOrDischargeBattery!(Microgrid, Action)
-    iReward = CalculateReward(Microgrid, CurrentState, Action, ActualAction, iTimeStep)
+    iReward = CalculateReward(Microgrid, CurrentState,
+        Action, ActualAction, iTimeStep, iPenalty, bLearn)
 
     NextState = GetState(Microgrid, iTimeStep + 1)
     Microgrid.State = NextState
@@ -225,7 +229,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, dictNormParam
 end
 
 function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
-    iTimeStepStart::Int, iTimeStepEnd::Int, bLearn::Bool)
+    iTimeStepStart::Int, iTimeStepEnd::Int, iPenalty::Float64, bLearn::Bool)
     iRewards = []
     iRewardsTimeStep = []
     dictParamsForNormalisation = GetParamsForNormalisation(Microgrid)
@@ -234,7 +238,8 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
         println("Episode $iEpisode")
         for iTimeStep in iTimeStepStart:1:(iTimeStepEnd-1)
             println("Step $iTimeStep")
-            bTerminal, iReward = Act!(Microgrid, iTimeStep, iTimeStepEnd, dictParamsForNormalisation, bLearn)
+            bTerminal, iReward = Act!(Microgrid, iTimeStep, iTimeStepEnd,
+                dictParamsForNormalisation, iPenalty, bLearn)
             push!(iRewardsTimeStep, iReward)
             if bTerminal
                 push!(iRewards, Microgrid.Reward)
