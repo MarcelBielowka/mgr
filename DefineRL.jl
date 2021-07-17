@@ -163,13 +163,13 @@ function CalculateReward(Microgrid::Microgrid, State::Vector,
     iPenalty::Float64, bLearn::Bool)
     #iGridVolume = -deepcopy(ActualAction) + State[1] - State[2]
     iGridVolume = -deepcopy(ActualAction) + State[1]
-    dictRewards = GetReward(Microgrid, iTimeStep)
+    #dictRewards = GetReward(Microgrid, iTimeStep)
     if iGridVolume >= 0
-        iReward = iGridVolume * dictRewards["iPriceSell"]
-    #    iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iFirstQuartile[1]
+        #iReward = iGridVolume * dictRewards["iPriceSell"]
+        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iFirstQuartile[1]
     else
-        iReward = iGridVolume * dictRewards["iPriceBuy"]
-    #    iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iThirdQuartile[1]
+        #iReward = iGridVolume * dictRewards["iPriceBuy"]
+        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iThirdQuartile[1]
     end
     if (bLearn && abs(Action / ActualAction) > 1)
         iReward -= iPenalty

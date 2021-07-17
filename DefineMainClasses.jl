@@ -35,7 +35,7 @@ function GetDayAheadPricesHandler(cPowerPricesDataDir::String,
         DeliveryFilterStart = DeliveryFilterStart,
         DeliveryFilterEnd = DeliveryFilterEnd)
     dfQuantilesOfPrices = @pipe dfDayAheadPrices |>
-        groupby(_, :DeliveryHour) |>
+#        groupby(_, :DeliveryHour) |>
         combine(_, :Price => (x -> quantile(x, 0.75)) => :iThirdQuartile,
                     :Price => (x -> quantile(x, 0.25)) => :iFirstQuartile)
 
