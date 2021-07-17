@@ -23,14 +23,16 @@ function GetState(Microgrid::Microgrid, iTimeStep::Int64)
 
     if iHour !=23
         Microgrid.State = vcat([
-            iTotalProduction
-            iTotalConsumption
+            #iTotalProduction
+            #iTotalConsumption
+            iProductionConsumptionMismatch
             Microgrid.EnergyStorage.iCurrentCharge
             ], @pipe Flux.onehot(iHour, collect(0:22)) |> collect(_) |> Int.(_))
     else
         Microgrid.State = vcat([
-            iTotalProduction
-            iTotalConsumption
+            #iTotalProduction
+            #iTotalConsumption
+            iProductionConsumptionMismatch
             Microgrid.EnergyStorage.iCurrentCharge
             ], repeat([0], 23))
     end
@@ -47,20 +49,25 @@ function GetState(Microgrid::Microgrid, iTimeStep::Int64)
 end
 
 function GetParamsForNormalisation(Microgrid::Microgrid)
+    iOverallConsMismatch = Microgrid.dfTotalProduction.TotalProduction - Microgrid.dfTotalConsumption.TotalConsumption
     return Dict(
-        "ProductionScalingParams" => extrema(Microgrid.dfTotalProduction.TotalProduction),
-        "ConsumptionScalingParams" => extrema(Microgrid.dfTotalConsumption.TotalConsumption),
+    #    "ProductionScalingParams" => extrema(Microgrid.dfTotalProduction.TotalProduction),
+    #    "ConsumptionScalingParams" => extrema(Microgrid.dfTotalConsumption.TotalConsumption),
+        "ConsMismatchParams" => extrema(iOverallConsMismatch),
         "ChargeParams" => (0, Microgrid.EnergyStorage.iMaxCapacity)
     )
 end
 
 function NormaliseState!(State::Vector, Params::Dict)
-    (iProdMin, iProdMax) = Params["ProductionScalingParams"]
-    (iConsMin, iConsMax) = Params["ConsumptionScalingParams"]
+    #(iProdMin, iProdMax) = Params["ProductionScalingParams"]
+    #(iConsMin, iConsMax) = Params["ConsumptionScalingParams"]
+    (iMismatchMin, iMismatchMax) = Params["ConsMismatchParams"]
     (iChargeMin, iChargeMax) = Params["ChargeParams"]
-    State[1] = (State[1] - iProdMin) / (iProdMax - iProdMin)
-    State[2] = (State[2] - iConsMin) / (iConsMax - iConsMin)
-    State[3] = (State[3] - iChargeMin) / (iChargeMax - iChargeMin)
+    #State[1] = (State[1] - iProdMin) / (iProdMax - iProdMin)
+    #State[2] = (State[2] - iConsMin) / (iConsMax - iConsMin)
+    #State[3] = (State[3] - iChargeMin) / (iChargeMax - iChargeMin)
+    State[1] = (State[1] - iMismatchMin) / (iMismatchMax - iMismatchMin)
+    State[2] = (State[2] - iChargeMin) / (iChargeMax - iChargeMin)
     return State
 end
 
@@ -154,7 +161,8 @@ end
 function CalculateReward(Microgrid::Microgrid, State::Vector,
     Action::Float64, ActualAction::Float64, iTimeStep::Int64,
     iPenalty::Float64, bLearn::Bool)
-    iGridVolume = -deepcopy(ActualAction) + State[1] - State[2]
+    #iGridVolume = -deepcopy(ActualAction) + State[1] - State[2]
+    iGridVolume = -deepcopy(ActualAction) + State[1]
     dictRewards = GetReward(Microgrid, iTimeStep)
     if iGridVolume >= 0
         iReward = iGridVolume * dictRewards["iPriceSell"]
