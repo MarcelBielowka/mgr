@@ -153,13 +153,13 @@ end
 
 function CalculateReward(Microgrid::Microgrid, State::Vector, Action::Float64, ActualAction::Float64, iTimeStep::Int64)
     iGridVolume = -deepcopy(ActualAction) + State[1] - State[2]
-    #dictRewards = GetReward(Microgrid, iTimeStep)
+    dictRewards = GetReward(Microgrid, iTimeStep)
     if iGridVolume >= 0
-    #    iReward = iGridVolume * dictRewards["iPriceSell"]
-        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iFirstQuartile[1]
+        iReward = iGridVolume * dictRewards["iPriceSell"]
+    #    iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iFirstQuartile[1]
     else
-    #    iReward = iGridVolume * dictRewards["iPriceBuy"]
-        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iThirdQuartile[1]
+        iReward = iGridVolume * dictRewards["iPriceBuy"]
+    #    iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iThirdQuartile[1]
     end
 #    if abs(Action / ActualAction) > 1
 #        iReward = -3e5
