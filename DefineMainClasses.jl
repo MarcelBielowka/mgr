@@ -299,6 +299,7 @@ mutable struct Microgrid
     Brain::Brain
     State::Vector
     Reward::Float64
+    RewardHistory::Array
     DayAheadPricesHandler::DayAheadPricesHandler
     WeatherDataHandler::WeatherDataHandler
     Constituents::Dict
@@ -333,6 +334,7 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
         Brain,
         repeat([-Inf], DimState),
         0.0,
+        [],
         DayAheadPricesHandler,
         WeatherDataHandler,
         Dict(

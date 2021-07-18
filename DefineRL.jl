@@ -160,7 +160,7 @@ end
 
 function CalculateReward(Microgrid::Microgrid, State::Vector,
     Action::Float64, ActualAction::Float64, iTimeStep::Int64,
-    iPenalty::Float64, bLearn::Bool)
+    iPenalty::Float64, cPenaltyType::String, bLearn::Bool)
     #iGridVolume = -deepcopy(ActualAction) + State[1] - State[2]
     iGridVolume = -deepcopy(ActualAction) + State[1]
     #dictRewards = GetReward(Microgrid, iTimeStep)
@@ -172,7 +172,11 @@ function CalculateReward(Microgrid::Microgrid, State::Vector,
         iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iThirdQuartile[1]
     end
     if (bLearn && abs(Action / ActualAction) > 1)
-        iReward = -abs(iReward) - iPenalty
+        if cPenaltyType == "Flat"
+            iReward = -iPenalty
+        else
+            iReward -= iPenalty
+        end
     end
     return iReward
 end
@@ -199,7 +203,7 @@ end
 
 
 function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int,
-    dictNormParams::Dict, iPenalty::Float64, bLearn::Bool)
+    dictNormParams::Dict, iPenalty::Float64, cPenaltyType::String, bLearn::Bool)
     #Random.seed!(72945)
     CurrentState = deepcopy(Microgrid.State)
     Policy, v = Forward(Microgrid, CurrentState, true)
@@ -209,7 +213,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int,
     #if CurrentState.dictProductionAndConsumption.iProductionConsumptionMismatch >= 0
     Action, ActualAction = ChargeOrDischargeBattery!(Microgrid, Action)
     iReward = CalculateReward(Microgrid, CurrentState,
-        Action, ActualAction, iTimeStep, iPenalty, bLearn)
+        Action, ActualAction, iTimeStep, iPenalty, cPenaltyType, bLearn)
 
     NextState = GetState(Microgrid, iTimeStep + 1)
     Microgrid.State = NextState
@@ -237,9 +241,12 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int,
 end
 
 function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
-    iTimeStepStart::Int, iTimeStepEnd::Int, iPenalty::Float64, bLearn::Bool)
+    iTimeStepStart::Int, iTimeStepEnd::Int,
+    iPenalty::Float64, cPenaltyType::String, bLearn::Bool)
     Random.seed!(72945)
     println("Bebok")
+    cPermittedPenaltyTypes = ["Flat", "Bias"]
+    @assert any(cPermittedPenaltyTypes .== cPenaltyType) "The penalty type is wrong"
     iRewards = []
     iRewardsTimeStep = []
     dictParamsForNormalisation = GetParamsForNormalisation(Microgrid)
@@ -249,10 +256,11 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
         for iTimeStep in iTimeStepStart:1:(iTimeStepEnd-1)
             println("Step $iTimeStep")
             bTerminal, iReward = Act!(Microgrid, iTimeStep, iTimeStepEnd,
-                dictParamsForNormalisation, iPenalty, bLearn)
+                dictParamsForNormalisation, iPenalty, cPenaltyType, bLearn)
             push!(iRewardsTimeStep, iReward)
             if bTerminal
                 push!(iRewards, Microgrid.Reward)
+                push!(Microgrid.RewardHistory, Microgrid.Reward)
                 restart!(Microgrid,iTimeStepStart)
             end
         end
