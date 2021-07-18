@@ -281,7 +281,7 @@ function GetBrain(DimState; β = 1, ηₚ = 0.00001, ηᵥ = 0.001)
     #            Dense(40,40,identity),
     #            Dense(40,1,sigmoid))
     policy_net = Chain(
-        Dense(DimState, 1, identity)
+        Dense(DimState, 2, identity)
     )
     value_net = Chain(
         Dense(DimState, 1, identity)

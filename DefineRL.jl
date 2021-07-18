@@ -90,10 +90,12 @@ function GetReward(Microgrid::Microgrid, iTimeStep::Int)
 end
 
 function ActorLoss(x, Actions, A; ι::Float64 = 0.001, iσFixed::Float64 = 8.0)
-    μ_policy = FullMicrogrid.Brain.policy_net(x)
+    #μ_policy = FullMicrogrid.Brain.policy_net(x)
+    PolicyParams = FullMicrogrid.Brain.policy_net(x)
+    PolicyParams[2] = softplus(PolicyParams[2])
     #println("μ_policy: $μ_policy")
     #println(typeof(μ_policy))
-    Policy = Distributions.Normal.(μ_policy, iσFixed)
+    Policy = Distributions.Normal.(PolicyParams[1], PolicyParams[2])
     #println("Policy: $Policy")
     iScoreFunction = -Distributions.logpdf.(Policy, Actions)
     #println("iScoreFunction: $iScoreFunction")
@@ -172,7 +174,7 @@ function CalculateReward(Microgrid::Microgrid, State::Vector,
         iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iThirdQuartile[1]
     end
     if (bLearn && abs(Action / ActualAction) > 1)
-        iReward -= iPenalty
+        iReward = -abs(iReward) - iPenalty
     end
     return iReward
 end
@@ -186,13 +188,16 @@ end
 # definicja, ktore kroki mamy wykonac
 # bierze siec neuronowa i zwraca jej wynik
 function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool; iσFixed::Float64 = 8.0)
-    μ_policy = Microgrid.Brain.policy_net(state)[1]    # wektor p-w na bazie sieci aktora
-    if bσFixed
-        Policy = Distributions.Normal(μ_policy, iσFixed)
-    else
-        println("Not yet implemented")
-        return nothing
-    end
+    #μ_policy = Microgrid.Brain.policy_net(state)[1]    # wektor p-w na bazie sieci aktora
+    #if bσFixed
+    #    Policy = Distributions.Normal(μ_policy, iσFixed)
+    #else
+    #    println("Not yet implemented")
+    #    return nothing
+    #end
+    PolicyParams = Microgrid.Brain.policy_net(state)
+    PolicyParams[2] = softplus(PolicyParams[2])
+    Policy = Distributions.Normal.(PolicyParams[1], PolicyParams[2])
     v = Microgrid.Brain.value_net(state)[1]   # wektor f wartosic na bazie sieci krytyka
     return Policy,v
 end
