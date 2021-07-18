@@ -252,7 +252,7 @@ end
 
 function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
     iTimeStepStart::Int, iTimeStepEnd::Int,
-    iPenalty::Float64, cPenaltyType::String, bLearn::Bool; bLog::Bool = true)
+    iPenalty::Float64, cPenaltyType::String, bLearn::Bool, bLog::Bool)
     println("############################")
     println("The run is starting. The parameters are: number of episodes $iNumberOfEpisodes")
     println("Starting time step: $iTimeStepStart")
@@ -298,13 +298,13 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
 end
 
 function RunAll!(params)
-    Microgrid, iEpisodes, dRunStart, dRunEnd, iPenalty, cPenaltyType, bLearn = params
-    res = Run!(Microgrid, iEpisodes, dRunStart, dRunEnd, iPenalty, cPenaltyType, bLearn)
+    Microgrid, iEpisodes, dRunStart, dRunEnd, iPenalty, cPenaltyType, bLearn, bLog = params
+    res = Run!(Microgrid, iEpisodes, dRunStart, dRunEnd, iPenalty, cPenaltyType, bLearn, bLog)
     return Dict(
-        "cPenaltyType" => cPenaltyType,
-        "iPenalty" => iPenalty,
-        "Microgrid" => Microgrid,
-        "result" => res
+        (cPenaltyType, iPenalty) => Dict(
+                "Microgrid" => Microgrid,
+                "result" => res
+            )
     )
 end
 
