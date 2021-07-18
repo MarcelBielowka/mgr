@@ -265,7 +265,9 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
     dictParamsForNormalisation = GetParamsForNormalisation(Microgrid)
     restart!(Microgrid,iTimeStepStart)
     for iEpisode in 1:iNumberOfEpisodes
-        println("Episode $iEpisode")
+        if bLog
+            println("Episode $iEpisode")
+        end
         for iTimeStep in iTimeStepStart:1:(iTimeStepEnd-1)
             if bLog
                 println("Step $iTimeStep")
@@ -280,6 +282,14 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
             end
         end
     end
+    println("############################")
+    println("The below run has ended: ")
+    println("Starting time step: $iTimeStepStart")
+    println("Ending time step: $iTimeStepEnd")
+    println("Penalty height: $iPenalty")
+    println("Penalty type: $cPenaltyType")
+    println("Learning: $bLearn")
+    println("############################")
     return iRewards, iRewardsTimeStep
 end
 
