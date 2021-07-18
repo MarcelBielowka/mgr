@@ -174,7 +174,7 @@ function CalculateReward(Microgrid::Microgrid, State::Vector,
         iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iThirdQuartile[1]
     end
     if (bLearn && abs(Action / ActualAction) > 1)
-        iReward = -abs(iReward) - iPenalty
+        iReward -= iPenalty
     end
     return iReward
 end
