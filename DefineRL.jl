@@ -334,6 +334,7 @@ function RunWrapper(DayAheadPricesHandler::DayAheadPricesHandler,
         iTestBatteryCharge = deepcopy([MyMicrogrid.Brain.memory[i][1][3] for i in 1:length(FullMicrogrid.Brain.memory)])
 
         push!(FinalDict, (Penalties[pen], PenaltyTypes[type]) => Dict(
+                "Microgrid" => MyMicrogrid,
                 "iTrainRewardHistory" => iTrainRewardHistory,
                 "iTrainIntendedActions" => iTrainIntendedActions,
                 "iTrainActualActions" => iTrainActualActions,
