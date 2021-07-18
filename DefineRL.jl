@@ -108,7 +108,7 @@ end
 
 function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
     # println("Start learning")
-    # x = zeros(Float64, length(Microgrid.State), Microgrid.Brain.batch_size)
+    x = zeros(Float64, length(Microgrid.State), Microgrid.Brain.batch_size)
     μ_hat = zeros(Float64, 1, Microgrid.Brain.batch_size)
     ŷ = zeros(Float64, 1, Microgrid.Brain.batch_size)
     Actions = zeros(Float64, 1, Microgrid.Brain.batch_size)
@@ -125,9 +125,9 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
         end
         iAdvantage = R - v
         StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
-        μ_hat[:, i] = Microgrid.Brain.policy_network(StateForLearning)
-        ŷ[:, i] = Microgrid.Brain.value_network(StateForLearning)
         x[:, i] .= StateForLearning
+        μ_hat[:, i] = Microgrid.Brain.policy_net(StateForLearning)
+        ŷ[:, i] = Microgrid.Brain.value_net(StateForLearning)
         A[:, i] .= iAdvantage
         Actions[:,i] .= Action
         y[:, i] .= R
