@@ -133,7 +133,7 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
     Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))
 end
 
-function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64)
+function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, bLog::Bool)
     # iConsumptionMismatch = Microgrid.State[1]
     iChargeDischargeVolume = deepcopy(Action)
     if iChargeDischargeVolume >= 0
@@ -142,14 +142,18 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64)
         iCharge = min(iMaxPossibleCharge, iChargeDischargeVolume)
         Microgrid.EnergyStorage.iCurrentCharge += iCharge
         ActualAction = iCharge
-        println("Actual charge of battery: $iCharge")
+        if bLog
+            println("Actual charge of battery: $iCharge")
+        end
     else
         iMaxPossibleDischarge = max(Microgrid.EnergyStorage.iDischargeRate,
             -Microgrid.EnergyStorage.iCurrentCharge)
         iDischarge = max(iMaxPossibleDischarge, iChargeDischargeVolume)
         Microgrid.EnergyStorage.iCurrentCharge += iDischarge
         ActualAction = iDischarge
-        println("Actual discharge of battery: $iDischarge")
+        if bLog
+            println("Actual discharge of battery: $iDischarge")
+        end
     end
     # if ActualAction / Action < 0
     #     ActualAction = -ActualAction
@@ -203,15 +207,17 @@ end
 
 
 function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int,
-    dictNormParams::Dict, iPenalty::Float64, cPenaltyType::String, bLearn::Bool)
+    dictNormParams::Dict, iPenalty::Float64, cPenaltyType::String, bLearn::Bool, bLog::Bool)
     #Random.seed!(72945)
     CurrentState = deepcopy(Microgrid.State)
     Policy, v = Forward(Microgrid, CurrentState, true)
     Action = rand(Policy)
-    println("Time step $iTimeStep, intended action $Action kW, prod-cons mismatch ", CurrentState[1])
+    if bLog
+        println("Time step $iTimeStep, intended action $Action kW, prod-cons mismatch ", CurrentState[1])
+    end
 
     #if CurrentState.dictProductionAndConsumption.iProductionConsumptionMismatch >= 0
-    Action, ActualAction = ChargeOrDischargeBattery!(Microgrid, Action)
+    Action, ActualAction = ChargeOrDischargeBattery!(Microgrid, Action, bLog)
     iReward = CalculateReward(Microgrid, CurrentState,
         Action, ActualAction, iTimeStep, iPenalty, cPenaltyType, bLearn)
 
@@ -242,7 +248,7 @@ end
 
 function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
     iTimeStepStart::Int, iTimeStepEnd::Int,
-    iPenalty::Float64, cPenaltyType::String, bLearn::Bool)
+    iPenalty::Float64, cPenaltyType::String, bLearn::Bool; bLog::Bool = false)
     println("############################")
     println("The run is starting. The parameters are: number of episodes $iNumberOfEpisodes")
     println("Starting time step: $iTimeStepStart")
@@ -252,7 +258,6 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
     println("Learning: $bLearn")
     println("############################")
     Random.seed!(72945)
-    println("Bebok")
     cPermittedPenaltyTypes = ["Flat", "Bias"]
     @assert any(cPermittedPenaltyTypes .== cPenaltyType) "The penalty type is wrong"
     iRewards = []
@@ -262,9 +267,11 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
     for iEpisode in 1:iNumberOfEpisodes
         println("Episode $iEpisode")
         for iTimeStep in iTimeStepStart:1:(iTimeStepEnd-1)
-            println("Step $iTimeStep")
+            if bLog
+                println("Step $iTimeStep")
+            end
             bTerminal, iReward = Act!(Microgrid, iTimeStep, iTimeStepEnd,
-                dictParamsForNormalisation, iPenalty, cPenaltyType, bLearn)
+                dictParamsForNormalisation, iPenalty, cPenaltyType, bLearn, bLog)
             push!(iRewardsTimeStep, iReward)
             if bTerminal
                 push!(iRewards, Microgrid.Reward)
