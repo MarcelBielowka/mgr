@@ -309,12 +309,17 @@ function RunWrapper(DayAheadPricesHandler::DayAheadPricesHandler,
     MyWarehouse::Warehouse, MyHouseholds::⌂,
     iEpisodes::Int, dRunStartTrain::Int, dRunEndTrain::Int,
     dRunStartTest::Int, dRunEndTest::Int,
-    Penalties::Vector, PenaltyTypes::Vector)
+    Penalties::Vector, PenaltyTypes::Vector;
+    bTestMode::Bool = false)
 
     FinalDict = Dict{}()
     for pen in 1:length(Penalties), type in 1:length(PenaltyTypes)
         MyMicrogrid = GetMicrogrid(DayAheadPricesHandler, WeatherDataHandler,
             MyWindPark, MyWarehouse, MyHouseholds)
+        if bTestMode
+            MyMicrogrid.Brain.min_memory_size = 8
+            MyMicrogrid.Brain.batch_size = 5
+        end
 
         TrainRun = Run!(MyMicrogrid, iEpisodes, dRunStartTrain, dRunEndTrain, Penalties[pen], PenaltyTypes[type], true)
         iTrainRewardHistory = TrainRun[1]
