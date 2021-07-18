@@ -239,6 +239,7 @@ end
 function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
     iTimeStepStart::Int, iTimeStepEnd::Int, iPenalty::Float64, bLearn::Bool)
     Random.seed!(72945)
+    println("Bebok")
     iRewards = []
     iRewardsTimeStep = []
     dictParamsForNormalisation = GetParamsForNormalisation(Microgrid)
