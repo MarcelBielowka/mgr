@@ -301,10 +301,10 @@ function RunAll!(params)
     Microgrid, iEpisodes, dRunStart, dRunEnd, iPenalty, cPenaltyType, bLearn, bLog = params
     res = Run!(Microgrid, iEpisodes, dRunStart, dRunEnd, iPenalty, cPenaltyType, bLearn, bLog)
     return Dict(
-        (cPenaltyType, iPenalty) => Dict(
-                "Microgrid" => Microgrid,
-                "result" => res
-            )
+        "cPenaltyType" => cPenaltyType,
+        "iPenalty" => iPenalty,
+        "Microgrid" => Microgrid,
+        "result" => res
     )
 end
 
