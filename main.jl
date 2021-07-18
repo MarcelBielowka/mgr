@@ -92,9 +92,9 @@ dfRawConsHistory = CSV.File("C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.cs
 MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory, 2, 2019, 0.1, 20.0,
     0.55, 0.0035, 45, 600, Weather, 11.7, 1.35*11.7, -0.5*11.7, 40)
 
-FullMicrogrid = GetMicrogrid(DayAheadPowerPrices, Weather,
-    MyWindPark, MyWarehouse, Households)
-FullMicrogrid.DayAheadPricesHandler.dfQuantilesOfPrices.iFirstQuartile
+#FullMicrogrid = GetMicrogrid(DayAheadPowerPrices, Weather,
+#    MyWindPark, MyWarehouse, Households)
+#FullMicrogrid.DayAheadPricesHandler.dfQuantilesOfPrices.iFirstQuartile
 
 #########################################
 ########## Learning process #############
