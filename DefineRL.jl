@@ -1,5 +1,5 @@
-using Distributions, DataFrames
-using Flux
+using Distributions, Dates, DataFrames
+using Flux, Pipe
 
 
 #ExamplePolicy = Distributions.Normal(0, .1)
@@ -243,6 +243,14 @@ end
 function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
     iTimeStepStart::Int, iTimeStepEnd::Int,
     iPenalty::Float64, cPenaltyType::String, bLearn::Bool)
+    println("############################")
+    println("The run is starting. The parameters are: number of episodes $iNumberOfEpisodes")
+    println("Starting time step: $iTimeStepStart")
+    println("Ending time step: $iTimeStepEnd")
+    println("Penalty height: $iPenalty")
+    println("Penalty type: $cPenaltyType")
+    println("Learning: $bLearn")
+    println("############################")
     Random.seed!(72945)
     println("Bebok")
     cPermittedPenaltyTypes = ["Flat", "Bias"]
@@ -266,4 +274,15 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
         end
     end
     return iRewards, iRewardsTimeStep
+end
+
+function RunAll!(params)
+    Microgrid, iEpisodes, dRunStart, dRunEnd, iPenalty, cPenaltyType, bLearn = params
+    res = Run!(Microgrid, iEpisodes, dRunStart, dRunEnd, iPenalty, cPenaltyType, bLearn)
+    return Dict(
+        "cPenaltyType" => cPenaltyType,
+        "iPenalty" => iPenalty,
+        "Microgrid" => Microgrid,
+        "result" => res
+    )
 end
