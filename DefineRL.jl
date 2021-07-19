@@ -15,9 +15,9 @@ using Flux, Pipe
 #end
 
 function GetState(Microgrid::Microgrid, iTimeStep::Int64)
-    iTotalProduction = Microgrid.dfTotalProduction.TotalProduction[iTimeStep:iTimeStep+1,]
-    iTotalConsumption = Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep:iTimeStep+1,]
-    iProductionConsumptionMismatch = iTotalProduction - iTotalConsumption
+    iTotalProduction = Microgrid.dfTotalProduction.TotalProduction[iTimeStep:iTimeStep+4,]
+    iTotalConsumption = Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep:iTimeStep+4,]
+    iProductionConsumptionMismatch = iTotalProduction .- iTotalConsumption
     iHour = Dates.hour(Microgrid.dfTotalProduction.date[iTimeStep])
     iHours = @pipe Flux.onehot(iHour, collect(0:23)) |> collect(_) |> Int.(_)
 
@@ -126,7 +126,8 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
             R = Reward + Microgrid.Brain.β * v′
         end
         iAdvantage = R - v
-        StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
+        StateForLearning = deepcopy(State)
+        #StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
         x[:, i] .= StateForLearning
         μ_hat[:, i] = Microgrid.Brain.policy_net(StateForLearning)
         ŷ[:, i] = Microgrid.Brain.value_net(StateForLearning)
