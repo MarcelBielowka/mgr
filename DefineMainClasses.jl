@@ -277,12 +277,12 @@ mutable struct Brain
 end
 
 function GetBrain(DimState; β = 1, ηₚ = 0.001, ηᵥ = 0.001)
-    #policy_net = Chain(Dense(DimState, 40, identity),
-    #            Dense(40,40,identity),
-    #            Dense(40,1,sigmoid))
-    policy_net = Chain(
-        Dense(DimState, 1, identity)
-    )
+    policy_net = Chain(Dense(DimState, 40, relu),
+                Dense(40,40,relu),
+                Dense(40,1,identity))
+    #policy_net = Chain(
+    #    Dense(DimState, 1, identity)
+    #)
     value_net = Chain(
         Dense(DimState, 1, identity)
     )
