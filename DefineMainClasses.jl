@@ -311,7 +311,7 @@ end
 function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
     MyWarehouse::Warehouse, MyHouseholds::⌂,
-    DimState::Int=2)
+    DimState::Int=3)
 
     Brain = GetBrain(DimState)
 

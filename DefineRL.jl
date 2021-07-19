@@ -15,8 +15,8 @@ using Flux, Pipe
 #end
 
 function GetState(Microgrid::Microgrid, iTimeStep::Int64)
-    iTotalProduction = Microgrid.dfTotalProduction.TotalProduction[iTimeStep,]
-    iTotalConsumption = Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep,]
+    iTotalProduction = Microgrid.dfTotalProduction.TotalProduction[iTimeStep:iTimeStep+1,]
+    iTotalConsumption = Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep:iTimeStep+1,]
     iProductionConsumptionMismatch = iTotalProduction - iTotalConsumption
     iHour = Dates.hour(Microgrid.dfTotalProduction.date[iTimeStep])
     iHours = @pipe Flux.onehot(iHour, collect(0:23)) |> collect(_) |> Int.(_)
