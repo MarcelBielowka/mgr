@@ -171,7 +171,7 @@ function CalculateReward(Microgrid::Microgrid, State::Vector,
     iPenalty::Float64, cPenaltyType::String, bLearn::Bool)
     #iGridVolume = -deepcopy(ActualAction) + State[1] - State[2]
     iMicrogridVolume = deepcopy(ActualAction)
-    iMicrogridReward = iMicrogridVolume * 200
+    #iMicrogridReward = iMicrogridVolume * 200
 
     iGridVolume = -iMicrogridVolume + State[1]
     #dictRewards = GetReward(Microgrid, iTimeStep)
@@ -189,8 +189,9 @@ function CalculateReward(Microgrid::Microgrid, State::Vector,
             iReward -= iPenalty
         end
     end
-    iTotalReward = iMicrogridReward + iReward
-    return iTotalReward
+    #iTotalReward = iMicrogridReward + iReward
+    #return iTotalReward
+    return iReward
 end
 
 # update pamieci
