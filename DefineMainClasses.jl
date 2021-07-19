@@ -36,8 +36,8 @@ function GetDayAheadPricesHandler(cPowerPricesDataDir::String,
         DeliveryFilterEnd = DeliveryFilterEnd)
     dfQuantilesOfPrices = @pipe dfDayAheadPrices |>
 #        groupby(_, :DeliveryHour) |>
-        combine(_, :Price => (x -> quantile(x, 0.75)) => :iThirdQuartile,
-                    :Price => (x -> quantile(x, 0.25)) => :iFirstQuartile)
+        combine(_, :Price => (x -> quantile(x, 0.9)) => :iThirdQuartile,
+                    :Price => (x -> quantile(x, 0.1)) => :iFirstQuartile)
 
     return DayAheadPricesHandler(dfDayAheadPrices, dfQuantilesOfPrices)
 end
@@ -276,7 +276,7 @@ mutable struct Brain
     ηᵥ::Float64
 end
 
-function GetBrain(DimState; β = 1, ηₚ = 0.00001, ηᵥ = 0.001)
+function GetBrain(DimState; β = 1, ηₚ = 0.001, ηᵥ = 0.001)
     #policy_net = Chain(Dense(DimState, 40, identity),
     #            Dense(40,40,identity),
     #            Dense(40,1,sigmoid))
@@ -311,7 +311,7 @@ end
 function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
     MyWarehouse::Warehouse, MyHouseholds::⌂,
-    DimState::Int=25)
+    DimState::Int=2)
 
     Brain = GetBrain(DimState)
 

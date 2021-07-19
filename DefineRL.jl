@@ -22,19 +22,19 @@ function GetState(Microgrid::Microgrid, iTimeStep::Int64)
     iHours = @pipe Flux.onehot(iHour, collect(0:23)) |> collect(_) |> Int.(_)
 
     if iHour !=23
-        Microgrid.State = vcat([
+        Microgrid.State = [
             #iTotalProduction
             #iTotalConsumption
             iProductionConsumptionMismatch
             Microgrid.EnergyStorage.iCurrentCharge
-            ], @pipe Flux.onehot(iHour, collect(0:22)) |> collect(_) |> Int.(_))
+            ]
     else
-        Microgrid.State = vcat([
+        Microgrid.State = [
             #iTotalProduction
             #iTotalConsumption
             iProductionConsumptionMismatch
             Microgrid.EnergyStorage.iCurrentCharge
-            ], repeat([0], 23))
+            ]
     end
     #return State(
     #    Dict(
@@ -325,25 +325,27 @@ function RunWrapper(DayAheadPricesHandler::DayAheadPricesHandler,
             MyMicrogrid.Brain.batch_size = 5
         end
 
-        TrainRun = Run!(MyMicrogrid, iEpisodes, dRunStartTrain, dRunEndTrain, Penalties[pen], PenaltyTypes[type], true)
+        TrainRun = Run!(MyMicrogrid, iEpisodes, dRunStartTrain, dRunEndTrain, Penalties[pen], PenaltyTypes[type], true, true)
         iTrainRewardHistory = TrainRun[1]
         iTrainIntendedActions = deepcopy([MyMicrogrid.Brain.memory[i][2] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTrainActualActions = deepcopy([MyMicrogrid.Brain.memory[i][3] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTrainMismatch = deepcopy([MyMicrogrid.Brain.memory[i][1][1] for i in 1:length(MyMicrogrid.Brain.memory)])
-        iTrainBatteryCharge = deepcopy([MyMicrogrid.Brain.memory[i][1][3] for i in 1:length(FullMicrogrid.Brain.memory)])
+        iTrainBatteryCharge = deepcopy([MyMicrogrid.Brain.memory[i][1][3] for i in 1:length(MyMicrogrid.Brain.memory)])
 
+        MicrogridAfterTraining = deepcopy(MyMicrogrid)
         MyMicrogrid.Brain.memory = []
         MyMicrogrid.EnergyStorage.iCurrentCharge = 0
 
-        TestRun = Run!(MyMicrogrid, iEpisodes, dRunStartTest, dRunEndTest, Penalties[pen], PenaltyTypes[type], false)
+        TestRun = Run!(MyMicrogrid, iEpisodes, dRunStartTest, dRunEndTest, Penalties[pen], PenaltyTypes[type], false, true)
         iTestRewardHistory = TestRun[1]
         iTestIntendedActions = deepcopy([MyMicrogrid.Brain.memory[i][2] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTestActualActions = deepcopy([MyMicrogrid.Brain.memory[i][3] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTestMismatch = deepcopy([MyMicrogrid.Brain.memory[i][1][1] for i in 1:length(MyMicrogrid.Brain.memory)])
-        iTestBatteryCharge = deepcopy([MyMicrogrid.Brain.memory[i][1][3] for i in 1:length(FullMicrogrid.Brain.memory)])
+        iTestBatteryCharge = deepcopy([MyMicrogrid.Brain.memory[i][1][3] for i in 1:length(MyMicrogrid.Brain.memory)])
 
         push!(FinalDict, (Penalties[pen], PenaltyTypes[type]) => Dict(
-                "Microgrid" => MyMicrogrid,
+                "MicrogridAfterTraining" => MicrogridAfterTraining,
+                "Microgrid" => deepcopy(MyMicrogrid),
                 "iTrainRewardHistory" => iTrainRewardHistory,
                 "iTrainIntendedActions" => iTrainIntendedActions,
                 "iTrainActualActions" => iTrainActualActions,
