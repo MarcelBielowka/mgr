@@ -208,19 +208,19 @@ end
 # definicja, ktore kroki mamy wykonac
 # bierze siec neuronowa i zwraca jej wynik
 function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool; iσFixed::Float64 = 8.0)
-    μ_policy = Microgrid.Brain.policy_net(state)[1]    # wektor p-w na bazie sieci aktora
+    μ_policy = Microgrid.Brain.policy_net(Microgrid.State)[1]    # wektor p-w na bazie sieci aktora
     if bσFixed
         Policy = Distributions.Normal(μ_policy, iσFixed)
     else
         println("Not yet implemented")
         return nothing
     end
-    v = Microgrid.Brain.value_net(state)[1]   # wektor f wartosic na bazie sieci krytyka
+    v = Microgrid.Brain.value_net(Microgrid.State)[1]   # wektor f wartosic na bazie sieci krytyka
     return Policy,v
 end
 
 
-function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int,
+function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookAhead::Int,
     dictNormParams::Dict, iPenalty::Float64, cPenaltyType::String, bLearn::Bool, bLog::Bool)
     #Random.seed!(72945)
     CurrentState = deepcopy(Microgrid.State)
@@ -235,7 +235,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int,
     iReward = CalculateReward(Microgrid, CurrentState,
         Action, ActualAction, iTimeStep, iPenalty, cPenaltyType, bLearn)
 
-    NextState = GetState(Microgrid, iTimeStep + 1)
+    NextState = GetState(Microgrid, iLookAhead, iTimeStep + 1)
     Microgrid.State = NextState
     Microgrid.Reward += iReward
     _, v′ = Forward(Microgrid, NextState, true)
@@ -288,7 +288,7 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookAhead::Int,
             if bLog
                 println("Step $iTimeStep")
             end
-            bTerminal, iReward = Act!(Microgrid, iTimeStep, iTimeStepEnd,
+            bTerminal, iReward = Act!(Microgrid, iTimeStep, iTimeStepEnd, iLookAhead,
                 dictParamsForNormalisation, iPenalty, cPenaltyType, bLearn, bLog)
             push!(iRewardsTimeStep, iReward)
             if bTerminal
@@ -327,19 +327,19 @@ function RunWrapper(DayAheadPricesHandler::DayAheadPricesHandler,
     MyWarehouse::Warehouse, MyHouseholds::⌂,
     iEpisodes::Int, dRunStartTrain::Int, dRunEndTrain::Int,
     dRunStartTest::Int, dRunEndTest::Int,
-    Penalties::Vector, PenaltyTypes::Vector;
+    Penalties::Vector, PenaltyTypes::Vector, iLookAheads::Vector;
     bTestMode::Bool = false)
 
     FinalDict = Dict{}()
-    for pen in 1:length(Penalties), type in 1:length(PenaltyTypes)
+    for pen in 1:length(Penalties), type in 1:length(PenaltyTypes), iLookAhead in iLookAheads
         MyMicrogrid = GetMicrogrid(DayAheadPricesHandler, WeatherDataHandler,
-            MyWindPark, MyWarehouse, MyHouseholds)
+            MyWindPark, MyWarehouse, MyHouseholds, iLookAhead)
         if bTestMode
             MyMicrogrid.Brain.min_memory_size = 8
             MyMicrogrid.Brain.batch_size = 5
         end
 
-        TrainRun = Run!(MyMicrogrid, iEpisodes, dRunStartTrain, dRunEndTrain, Penalties[pen], PenaltyTypes[type], true, true)
+        TrainRun = Run!(MyMicrogrid, iEpisodes, iLookAhead, dRunStartTrain, dRunEndTrain, Penalties[pen], PenaltyTypes[type], true, true)
         iTrainRewardHistory = TrainRun[1]
         iTrainIntendedActions = deepcopy([MyMicrogrid.Brain.memory[i][2] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTrainActualActions = deepcopy([MyMicrogrid.Brain.memory[i][3] for i in 1:length(MyMicrogrid.Brain.memory)])
@@ -350,14 +350,14 @@ function RunWrapper(DayAheadPricesHandler::DayAheadPricesHandler,
         MyMicrogrid.Brain.memory = []
         MyMicrogrid.EnergyStorage.iCurrentCharge = 0
 
-        TestRun = Run!(MyMicrogrid, iEpisodes, dRunStartTest, dRunEndTest, Penalties[pen], PenaltyTypes[type], false, true)
+        TestRun = Run!(MyMicrogrid, iEpisodes, iLookAhead, dRunStartTest, dRunEndTest, Penalties[pen], PenaltyTypes[type], false, true)
         iTestRewardHistory = TestRun[1]
         iTestIntendedActions = deepcopy([MyMicrogrid.Brain.memory[i][2] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTestActualActions = deepcopy([MyMicrogrid.Brain.memory[i][3] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTestMismatch = deepcopy([MyMicrogrid.Brain.memory[i][1][1] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTestBatteryCharge = deepcopy([MyMicrogrid.Brain.memory[i][1][3] for i in 1:length(MyMicrogrid.Brain.memory)])
 
-        push!(FinalDict, (Penalties[pen], PenaltyTypes[type]) => Dict(
+        push!(FinalDict, (Penalties[pen], PenaltyTypes[type], iLookAhead) => Dict(
                 "MicrogridAfterTraining" => MicrogridAfterTraining,
                 "Microgrid" => deepcopy(MyMicrogrid),
                 "iTrainRewardHistory" => iTrainRewardHistory,
