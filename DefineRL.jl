@@ -14,9 +14,9 @@ using Flux, Pipe
 #    iHour::BitArray
 #end
 
-function GetState(Microgrid::Microgrid, iTimeStep::Int64)
-    iTotalProduction = Microgrid.dfTotalProduction.TotalProduction[iTimeStep:iTimeStep+4,]
-    iTotalConsumption = Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep:iTimeStep+4,]
+function GetState(Microgrid::Microgrid, iLookAhead::Int, iTimeStep::Int)
+    iTotalProduction = Microgrid.dfTotalProduction.TotalProduction[iTimeStep:iTimeStep + iLookAhead,]
+    iTotalConsumption = Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep:iTimeStep + iLookAhead,]
     iProductionConsumptionMismatch = iTotalProduction .- iTotalConsumption
     iHour = Dates.hour(Microgrid.dfTotalProduction.date[iTimeStep])
     iHours = @pipe Flux.onehot(iHour, collect(0:23)) |> collect(_) |> Int.(_)
@@ -66,15 +66,17 @@ function NormaliseState!(State::Vector, Params::Dict)
     #State[1] = (State[1] - iProdMin) / (iProdMax - iProdMin)
     #State[2] = (State[2] - iConsMin) / (iConsMax - iConsMin)
     #State[3] = (State[3] - iChargeMin) / (iChargeMax - iChargeMin)
-    State[1] = (State[1] - iMismatchMin) / (iMismatchMax - iMismatchMin)
-    State[2] = (State[2] - iChargeMin) / (iChargeMax - iChargeMin)
+    for i in 1:(length(State)-1)
+        State[i] = (State[i] - iMismatchMin) / (iMismatchMax - iMismatchMin)
+    end
+    State[length(State)] = (State[length(State)] - iChargeMin) / (iChargeMax - iChargeMin)
     return State
 end
 
-function restart!(Microgrid::Microgrid, iInitTimeStep::Int)
+function restart!(Microgrid::Microgrid, iLookAhead::Int, iInitTimeStep::Int)
     Microgrid.Reward = 0
     Microgrid.EnergyStorage.iCurrentCharge = 0
-    GetState(Microgrid, iInitTimeStep)
+    GetState(Microgrid, iLookAhead, iInitTimeStep)
 end
 
 function GetReward(Microgrid::Microgrid, iTimeStep::Int)
@@ -100,8 +102,8 @@ function ActorLoss(μ_hat, Actions, A; ι::Float64 = 0.0001, iσFixed::Float64 =
     iLoss = sum(iScoreFunction .* A) / size(A,1)
     iEntropy = sum(Distributions.entropy.(Policy))
     # println("Loss function: $iLoss")
-    return iLoss - ι*iEntropy
-    #return iLoss
+    #return iLoss - ι*iEntropy
+    return iLoss
 end
 
 function CriticLoss(ŷ, y; ξ = 0.5)
@@ -127,7 +129,7 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
         end
         iAdvantage = R - v
         StateForLearning = deepcopy(State)
-        #StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
+        # StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
         x[:, i] .= StateForLearning
         μ_hat[:, i] = Microgrid.Brain.policy_net(StateForLearning)
         ŷ[:, i] = Microgrid.Brain.value_net(StateForLearning)
@@ -170,7 +172,7 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, bLog::
 end
 
 function CalculateReward(Microgrid::Microgrid, State::Vector,
-    Action::Float64, ActualAction::Float64, iTimeStep::Int64,
+    Action::Float64, ActualAction::Float64, iTimeStep::Int,
     iPenalty::Float64, cPenaltyType::String, bLearn::Bool)
     #iGridVolume = -deepcopy(ActualAction) + State[1] - State[2]
     iMicrogridVolume = deepcopy(ActualAction)
@@ -258,11 +260,13 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int,
     #    )
 end
 
-function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
+function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookAhead::Int,
     iTimeStepStart::Int, iTimeStepEnd::Int,
     iPenalty::Float64, cPenaltyType::String, bLearn::Bool, bLog::Bool)
     println("############################")
-    println("The run is starting. The parameters are: number of episodes $iNumberOfEpisodes")
+    println("The run is starting. The parameters are:")
+    println("Number of episodes $iNumberOfEpisodes")
+    println("Look ahead steps: $iLookAhead")
     println("Starting time step: $iTimeStepStart")
     println("Ending time step: $iTimeStepEnd")
     println("Penalty height: $iPenalty")
@@ -275,7 +279,7 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
     iRewards = []
     iRewardsTimeStep = []
     dictParamsForNormalisation = GetParamsForNormalisation(Microgrid)
-    restart!(Microgrid,iTimeStepStart)
+    restart!(Microgrid,iLookAhead,iTimeStepStart)
     for iEpisode in 1:iNumberOfEpisodes
         if bLog
             println("Episode $iEpisode")
@@ -290,12 +294,14 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int,
             if bTerminal
                 push!(iRewards, Microgrid.Reward)
                 push!(Microgrid.RewardHistory, Microgrid.Reward)
-                restart!(Microgrid,iTimeStepStart)
+                restart!(Microgrid,iLookAhead,iTimeStepStart)
             end
         end
     end
     println("############################")
     println("The below run has ended: ")
+    println("Number of episodes $iNumberOfEpisodes")
+    println("Look ahead steps: $iLookAhead")
     println("Starting time step: $iTimeStepStart")
     println("Ending time step: $iTimeStepEnd")
     println("Penalty height: $iPenalty")

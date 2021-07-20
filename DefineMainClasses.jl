@@ -276,17 +276,17 @@ mutable struct Brain
     ηᵥ::Float64
 end
 
-function GetBrain(DimState; β = 1, ηₚ = 0.001, ηᵥ = 0.001)
-    policy_net = Chain(Dense(DimState, 40, relu),
-                Dense(40,40,relu),
-                Dense(40,1,identity))
+function GetBrain(iLookAhead; β = 1, ηₚ = 0.001, ηᵥ = 0.001)
+    policy_net = Chain(Dense((iLookAhead + 1), 10, relu),
+                Dense(10,10,relu),
+                Dense(10,1,identity))
     #policy_net = Chain(
-    #    Dense(DimState, 1, identity)
+    #    Dense((iLookAhead + 1), 1, identity)
     #)
     value_net = Chain(
-        Dense(DimState, 1, identity)
+        Dense((iLookAhead + 1), 1, identity)
     )
-    #value_net = Chain(Dense(DimState, 128, relu),
+    #value_net = Chain(Dense((iLookAhead + 1), 128, relu),
     #                Dense(128, 52, relu),
     #                Dense(52, 1, identity))
     return Brain(β, 256 , 200_000, 8000, [], policy_net, value_net, ηₚ, ηᵥ)
@@ -310,10 +310,9 @@ end
 
 function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
-    MyWarehouse::Warehouse, MyHouseholds::⌂,
-    DimState::Int=6)
+    MyWarehouse::Warehouse, MyHouseholds::⌂, iLookAhead::Int)
 
-    Brain = GetBrain(DimState)
+    Brain = GetBrain(iLookAhead + 1)
 
     dfTotalProduction = DataFrames.innerjoin(MyWindPark.dfWindParkProductionData,
         MyWarehouse.SolarPanels.dfSolarProductionData, on = :date)
@@ -332,7 +331,7 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
 
     return Microgrid(
         Brain,
-        repeat([-Inf], DimState),
+        repeat([-Inf], (iLookAhead + 1)),
         0.0,
         [],
         DayAheadPricesHandler,
