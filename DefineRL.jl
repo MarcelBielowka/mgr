@@ -102,8 +102,8 @@ function ActorLoss(μ_hat, Actions, A; ι::Float64 = 0.0001, iσFixed::Float64 =
     iLoss = sum(iScoreFunction .* A) / size(A,1)
     iEntropy = sum(Distributions.entropy.(Policy))
     # println("Loss function: $iLoss")
-    #return iLoss - ι*iEntropy
-    return iLoss
+    return iLoss - ι*iEntropy
+    #return iLoss
 end
 
 function CriticLoss(ŷ, y; ξ = 0.5)
@@ -332,6 +332,7 @@ function RunWrapper(DayAheadPricesHandler::DayAheadPricesHandler,
 
     FinalDict = Dict{}()
     for pen in 1:length(Penalties), type in 1:length(PenaltyTypes), iLookAhead in iLookAheads
+        println(iLookAhead)
         MyMicrogrid = GetMicrogrid(DayAheadPricesHandler, WeatherDataHandler,
             MyWindPark, MyWarehouse, MyHouseholds, iLookAhead)
         if bTestMode
@@ -344,7 +345,7 @@ function RunWrapper(DayAheadPricesHandler::DayAheadPricesHandler,
         iTrainIntendedActions = deepcopy([MyMicrogrid.Brain.memory[i][2] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTrainActualActions = deepcopy([MyMicrogrid.Brain.memory[i][3] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTrainMismatch = deepcopy([MyMicrogrid.Brain.memory[i][1][1] for i in 1:length(MyMicrogrid.Brain.memory)])
-        iTrainBatteryCharge = deepcopy([MyMicrogrid.Brain.memory[i][1][3] for i in 1:length(MyMicrogrid.Brain.memory)])
+        iTrainBatteryCharge = deepcopy([MyMicrogrid.Brain.memory[i][1][length(MyMicrogrid.State)] for i in 1:length(MyMicrogrid.Brain.memory)])
 
         MicrogridAfterTraining = deepcopy(MyMicrogrid)
         MyMicrogrid.Brain.memory = []
@@ -355,7 +356,7 @@ function RunWrapper(DayAheadPricesHandler::DayAheadPricesHandler,
         iTestIntendedActions = deepcopy([MyMicrogrid.Brain.memory[i][2] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTestActualActions = deepcopy([MyMicrogrid.Brain.memory[i][3] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTestMismatch = deepcopy([MyMicrogrid.Brain.memory[i][1][1] for i in 1:length(MyMicrogrid.Brain.memory)])
-        iTestBatteryCharge = deepcopy([MyMicrogrid.Brain.memory[i][1][3] for i in 1:length(MyMicrogrid.Brain.memory)])
+        iTestBatteryCharge = deepcopy([MyMicrogrid.Brain.memory[i][1][length(MyMicrogrid.State)] for i in 1:length(MyMicrogrid.Brain.memory)])
 
         push!(FinalDict, (Penalties[pen], PenaltyTypes[type], iLookAhead) => Dict(
                 "MicrogridAfterTraining" => MicrogridAfterTraining,
