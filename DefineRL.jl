@@ -1,19 +1,6 @@
 using Distributions, Dates, DataFrames
 using Flux, Pipe
 
-
-#ExamplePolicy = Distributions.Normal(0, .1)
-#Action = rand(Policy)
-
-
-#mutable struct State
-#    dictProductionAndConsumption::Dict
-#    iBuyPrice::Float64
-#    iSellPrice::Float64
-#    iCurrentCharge::Float64
-#    iHour::BitArray
-#end
-
 function GetState(Microgrid::Microgrid, iLookAhead::Int, iTimeStep::Int)
     iTotalProduction = Microgrid.dfTotalProduction.TotalProduction[iTimeStep:iTimeStep + iLookAhead,]
     iTotalConsumption = Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep:iTimeStep + iLookAhead,]
@@ -23,29 +10,15 @@ function GetState(Microgrid::Microgrid, iLookAhead::Int, iTimeStep::Int)
 
     if iHour !=23
         Microgrid.State = [
-            #iTotalProduction
-            #iTotalConsumption
             iProductionConsumptionMismatch
             Microgrid.EnergyStorage.iCurrentCharge
             ]
     else
         Microgrid.State = [
-            #iTotalProduction
-            #iTotalConsumption
             iProductionConsumptionMismatch
             Microgrid.EnergyStorage.iCurrentCharge
             ]
     end
-    #return State(
-    #    Dict(
-    #        "iTotalProduction" => iTotalProduction,
-    #        "iTotalConsumption" => iTotalConsumption,
-    #        "iProductionConsumptionMismatch" => iProductionConsumptionMismatch
-    #    ),
-    #    iPriceBuy,
-    #    iPriceSell,
-    #    Microgrid.EnergyStorage.iCurrentCharge
-    #)
 end
 
 function GetParamsForNormalisation(Microgrid::Microgrid)
@@ -63,9 +36,6 @@ function NormaliseState!(State::Vector, Params::Dict)
     #(iConsMin, iConsMax) = Params["ConsumptionScalingParams"]
     (iMismatchMin, iMismatchMax) = Params["ConsMismatchParams"]
     (iChargeMin, iChargeMax) = Params["ChargeParams"]
-    #State[1] = (State[1] - iProdMin) / (iProdMax - iProdMin)
-    #State[2] = (State[2] - iConsMin) / (iConsMax - iConsMin)
-    #State[3] = (State[3] - iChargeMin) / (iChargeMax - iChargeMin)
     for i in 1:(length(State)-1)
         State[i] = (State[i] - iMismatchMin) / (iMismatchMax - iMismatchMin)
     end
@@ -92,7 +62,6 @@ function GetReward(Microgrid::Microgrid, iTimeStep::Int)
 end
 
 function ActorLoss(μ_hat, Actions, A; ι::Float64 = 0.0001, iσFixed::Float64 = 0.10)
-    # μ_policy = MyMicrogrid.Brain.policy_net(x)
     #println("μ_policy: $μ_policy")
     #println(typeof(μ_policy))
     Policy = Distributions.Normal.(μ_hat, iσFixed)
@@ -176,22 +145,16 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, bLog::
             println("Actual discharge of battery: $iDischarge")
         end
     end
-    # if ActualAction / Action < 0
-    #     ActualAction = -ActualAction
-    # end
-    # t = 3
     return Action, ActualAction
 end
 
 function CalculateReward(Microgrid::Microgrid, State::Vector,
     Action::Float64, ActualAction::Float64, iTimeStep::Int, bLearn::Bool)
-    #iGridVolume = -deepcopy(ActualAction) + State[1] - State[2]
     if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
         iMicrogridVolume = deepcopy(ActualAction) * State[1]
     else
         iMicrogridVolume = deepcopy(ActualAction)
     end
-    #iMicrogridReward = iMicrogridVolume * 200
 
     iGridVolume = State[1] - iMicrogridVolume
     #dictRewards = GetReward(Microgrid, iTimeStep)
@@ -241,7 +204,6 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookAhead::I
         end
     end
 
-    #if CurrentState.dictProductionAndConsumption.iProductionConsumptionMismatch >= 0
     Action, ActualAction = ChargeOrDischargeBattery!(Microgrid, Action, bLog)
     iReward = CalculateReward(Microgrid, CurrentState,
         Action, ActualAction, iTimeStep, bLearn)
@@ -263,12 +225,6 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookAhead::I
 
     return bTerminal, iReward
 
-    #return Dict(
-    #    "CurrentState" => CurrentState,
-    #    "ActualAction" => ActualAction,
-    #    "iReward" => iReward,
-    #    "NextState" => NextState
-    #    )
 end
 
 function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookAhead::Int,
