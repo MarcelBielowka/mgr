@@ -274,22 +274,31 @@ mutable struct Brain
     value_net::Chain
     ηₚ::Float64
     ηᵥ::Float64
+    cPolicyOutputLayerType::String
 end
 
-function GetBrain(DimState; β = 1, ηₚ = 0.0001, ηᵥ = 0.001)
-    policy_net = Chain(Dense(DimState, 20, relu),
-                Dense(20,10,relu),
-                Dense(10,1,sigmoid))
+function GetBrain(cPolicyOutputLayerType, iDimState; β = 1, ηₚ = 0.0001, ηᵥ = 0.001)
+    @assert any(["identity", "sigmoid"] .== cPolicyOutputLayerType) "The policy output layer type is not correct"
+
+    if cPolicyOutputLayerType == "sigmoid"
+        policy_net = Chain(Dense(iDimState, 20, relu),
+                    Dense(20,10,relu),
+                    Dense(10,1,sigmoid))
+    else
+        policy_net = Chain(Dense(iDimState, 20, relu),
+                    Dense(20,10,relu),
+                    Dense(10,1,identity))
+    end
     #policy_net = Chain(
     #    Dense((iLookAhead + 1), 1, identity)
     #)
     #value_net = Chain(
     #    Dense(DimState, 1, identity)
     #)
-    value_net = Chain(Dense(DimState, 128, relu),
+    value_net = Chain(Dense(iDimState, 128, relu),
                     Dense(128, 52, relu),
                     Dense(52, 1, identity))
-    return Brain(β, 256 , 200_000, 8000, [], policy_net, value_net, ηₚ, ηᵥ)
+    return Brain(β, 256 , 200_000, 8000, [], policy_net, value_net, ηₚ, ηᵥ, cPolicyOutputLayerType)
 end
 
 #########################################
@@ -310,9 +319,9 @@ end
 
 function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
-    MyWarehouse::Warehouse, MyHouseholds::⌂, iLookAhead::Int)
+    MyWarehouse::Warehouse, MyHouseholds::⌂, cPolicyOutputLayerType::String, iLookAhead::Int)
 
-    Brain = GetBrain(iLookAhead + 2)
+    Brain = GetBrain(cPolicyOutputLayerType, iLookAhead + 2)
 
     dfTotalProduction = DataFrames.innerjoin(MyWindPark.dfWindParkProductionData,
         MyWarehouse.SolarPanels.dfSolarProductionData, on = :date)

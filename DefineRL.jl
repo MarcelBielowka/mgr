@@ -144,7 +144,11 @@ end
 
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, bLog::Bool)
     iConsumptionMismatch = Microgrid.State[1]
-    iChargeDischargeVolume = deepcopy(Action) * iConsumptionMismatch
+    if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
+        iChargeDischargeVolume = deepcopy(Action) * iConsumptionMismatch
+    else
+        iChargeDischargeVolume = deepcopy(Action)
+    end
     if iChargeDischargeVolume >= 0
         iMaxPossibleCharge = min(Microgrid.EnergyStorage.iChargeRate,
             Microgrid.EnergyStorage.iMaxCapacity - Microgrid.EnergyStorage.iCurrentCharge)
@@ -175,7 +179,11 @@ function CalculateReward(Microgrid::Microgrid, State::Vector,
     Action::Float64, ActualAction::Float64, iTimeStep::Int,
     iPenalty::Float64, cPenaltyType::String, bLearn::Bool)
     #iGridVolume = -deepcopy(ActualAction) + State[1] - State[2]
-    iMicrogridVolume = deepcopy(ActualAction) * State[1]
+    if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
+        iMicrogridVolume = deepcopy(ActualAction) * State[1]
+    else
+        iMicrogridVolume = deepcopy(ActualAction)
+    end
     #iMicrogridReward = iMicrogridVolume * 200
 
     iGridVolume = State[1] - iMicrogridVolume
@@ -227,7 +235,11 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookAhead::I
     Policy, v = Forward(Microgrid, CurrentState, true)
     Action = rand(Policy)
     if bLog
-        println("Time step $iTimeStep, intended action $Action % of mismatch, prod-cons mismatch ", CurrentState[1])
+        if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
+            println("Time step $iTimeStep, intended action $Action % of mismatch, prod-cons mismatch ", CurrentState[1])
+        else
+            println("Time step $iTimeStep, intended action $Action kW, prod-cons mismatch ", CurrentState[1])
+        end
     end
 
     #if CurrentState.dictProductionAndConsumption.iProductionConsumptionMismatch >= 0
@@ -272,6 +284,7 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookAhead::Int,
     println("Penalty height: $iPenalty")
     println("Penalty type: $cPenaltyType")
     println("Learning: $bLearn")
+    println("MG's brain type: ", Microgrid.Brain.cPolicyOutputLayerType)
     println("############################")
     Random.seed!(72945)
     cPermittedPenaltyTypes = ["Flat", "Bias"]
@@ -307,6 +320,7 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookAhead::Int,
     println("Penalty height: $iPenalty")
     println("Penalty type: $cPenaltyType")
     println("Learning: $bLearn")
+    println("MG's brain type: ", Microgrid.Brain.cPolicyOutputLayerType)
     println("############################")
     return iRewards, iRewardsTimeStep
 end
@@ -324,7 +338,7 @@ end
 
 function RunWrapper(DayAheadPricesHandler::DayAheadPricesHandler,
     WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
-    MyWarehouse::Warehouse, MyHouseholds::⌂,
+    MyWarehouse::Warehouse, MyHouseholds::⌂, cPolicyOutputLayerType::String,
     iEpisodes::Int, dRunStartTrain::Int, dRunEndTrain::Int,
     dRunStartTest::Int, dRunEndTest::Int,
     Penalties::Vector, PenaltyTypes::Vector, iLookAheads::Vector;
@@ -334,7 +348,8 @@ function RunWrapper(DayAheadPricesHandler::DayAheadPricesHandler,
     for pen in 1:length(Penalties), type in 1:length(PenaltyTypes), iLookAhead in iLookAheads
         println(iLookAhead)
         MyMicrogrid = GetMicrogrid(DayAheadPricesHandler, WeatherDataHandler,
-            MyWindPark, MyWarehouse, MyHouseholds, iLookAhead)
+            MyWindPark, MyWarehouse, MyHouseholds,
+            cPolicyOutputLayerType, iLookAhead)
         if bTestMode
             MyMicrogrid.Brain.min_memory_size = 8
             MyMicrogrid.Brain.batch_size = 5
