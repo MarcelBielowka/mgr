@@ -248,20 +248,6 @@ end
 #Test_⌂ = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, 100, 11.7, 7.0, 5.0, 10)
 
 #########################################
-###### Aggregator class definition ######
-#########################################
-mutable struct MicrogridAggregator
-    PowerToSellWindPark::Float64
-    PowerToSellWarehouse::Float64
-end
-
-function GetMicrogridAggregator()
-
-
-
-end
-
-#########################################
 ######## Brain class definition #########
 #########################################
 mutable struct Brain
