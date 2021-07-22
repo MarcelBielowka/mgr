@@ -277,18 +277,18 @@ mutable struct Brain
 end
 
 function GetBrain(DimState; β = 1, ηₚ = 0.001, ηᵥ = 0.001)
-    policy_net = Chain(Dense(DimState, 10, relu),
-                Dense(10,10,relu),
+    policy_net = Chain(Dense(DimState, 20, relu),
+                Dense(20,10,relu),
                 Dense(10,1,identity))
     #policy_net = Chain(
     #    Dense((iLookAhead + 1), 1, identity)
     #)
-    value_net = Chain(
-        Dense(DimState, 1, identity)
-    )
-    #value_net = Chain(Dense((iLookAhead + 1), 128, relu),
-    #                Dense(128, 52, relu),
-    #                Dense(52, 1, identity))
+    #value_net = Chain(
+    #    Dense(DimState, 1, identity)
+    #)
+    value_net = Chain(Dense(DimState, 128, relu),
+                    Dense(128, 52, relu),
+                    Dense(52, 1, identity))
     return Brain(β, 256 , 200_000, 8000, [], policy_net, value_net, ηₚ, ηᵥ)
 end
 
