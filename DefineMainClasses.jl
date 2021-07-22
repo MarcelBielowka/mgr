@@ -276,10 +276,10 @@ mutable struct Brain
     ηᵥ::Float64
 end
 
-function GetBrain(DimState; β = 1, ηₚ = 0.001, ηᵥ = 0.001)
+function GetBrain(DimState; β = 1, ηₚ = 0.0001, ηᵥ = 0.001)
     policy_net = Chain(Dense(DimState, 20, relu),
                 Dense(20,10,relu),
-                Dense(10,1,identity))
+                Dense(10,1,sigmoid))
     #policy_net = Chain(
     #    Dense((iLookAhead + 1), 1, identity)
     #)

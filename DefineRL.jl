@@ -91,7 +91,7 @@ function GetReward(Microgrid::Microgrid, iTimeStep::Int)
     )
 end
 
-function ActorLoss(μ_hat, Actions, A; ι::Float64 = 0.0001, iσFixed::Float64 = 8.0)
+function ActorLoss(μ_hat, Actions, A; ι::Float64 = 0.0001, iσFixed::Float64 = 0.10)
     # μ_policy = MyMicrogrid.Brain.policy_net(x)
     #println("μ_policy: $μ_policy")
     #println(typeof(μ_policy))
@@ -143,14 +143,14 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
 end
 
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, bLog::Bool)
-    # iConsumptionMismatch = Microgrid.State[1]
-    iChargeDischargeVolume = deepcopy(Action)
+    iConsumptionMismatch = Microgrid.State[1]
+    iChargeDischargeVolume = deepcopy(Action) * iConsumptionMismatch
     if iChargeDischargeVolume >= 0
         iMaxPossibleCharge = min(Microgrid.EnergyStorage.iChargeRate,
             Microgrid.EnergyStorage.iMaxCapacity - Microgrid.EnergyStorage.iCurrentCharge)
         iCharge = min(iMaxPossibleCharge, iChargeDischargeVolume)
         Microgrid.EnergyStorage.iCurrentCharge += iCharge
-        ActualAction = iCharge
+        ActualAction = iCharge / iConsumptionMismatch
         if bLog
             println("Actual charge of battery: $iCharge")
         end
@@ -159,7 +159,7 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, bLog::
             -Microgrid.EnergyStorage.iCurrentCharge)
         iDischarge = max(iMaxPossibleDischarge, iChargeDischargeVolume)
         Microgrid.EnergyStorage.iCurrentCharge += iDischarge
-        ActualAction = iDischarge
+        ActualAction = iDischarge / iConsumptionMismatch
         if bLog
             println("Actual discharge of battery: $iDischarge")
         end
@@ -175,10 +175,10 @@ function CalculateReward(Microgrid::Microgrid, State::Vector,
     Action::Float64, ActualAction::Float64, iTimeStep::Int,
     iPenalty::Float64, cPenaltyType::String, bLearn::Bool)
     #iGridVolume = -deepcopy(ActualAction) + State[1] - State[2]
-    iMicrogridVolume = deepcopy(ActualAction)
+    iMicrogridVolume = deepcopy(ActualAction) * State[1]
     #iMicrogridReward = iMicrogridVolume * 200
 
-    iGridVolume = -iMicrogridVolume + State[1]
+    iGridVolume = State[1] - iMicrogridVolume
     #dictRewards = GetReward(Microgrid, iTimeStep)
     if iGridVolume >= 0
         #iReward = iGridVolume * dictRewards["iPriceSell"]
@@ -207,7 +207,7 @@ end
 
 # definicja, ktore kroki mamy wykonac
 # bierze siec neuronowa i zwraca jej wynik
-function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool; iσFixed::Float64 = 8.0)
+function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool; iσFixed::Float64 = 0.10)
     μ_policy = Microgrid.Brain.policy_net(Microgrid.State)[1]    # wektor p-w na bazie sieci aktora
     if bσFixed
         Policy = Distributions.Normal(μ_policy, iσFixed)
@@ -227,7 +227,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookAhead::I
     Policy, v = Forward(Microgrid, CurrentState, true)
     Action = rand(Policy)
     if bLog
-        println("Time step $iTimeStep, intended action $Action kW, prod-cons mismatch ", CurrentState[1])
+        println("Time step $iTimeStep, intended action $Action % of mismatch, prod-cons mismatch ", CurrentState[1])
     end
 
     #if CurrentState.dictProductionAndConsumption.iProductionConsumptionMismatch >= 0
