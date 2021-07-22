@@ -232,9 +232,10 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookAhead::I
     CurrentState = deepcopy(Microgrid.State)
     Policy, v = Forward(Microgrid, CurrentState, true)
     Action = rand(Policy)
+    ActionForPrint = Action * 100
     if bLog
         if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
-            println("Time step $iTimeStep, intended action $Action % of mismatch, prod-cons mismatch ", CurrentState[1])
+            println("Time step $iTimeStep, intended action $ActionForPrint % of mismatch, prod-cons mismatch ", CurrentState[1])
         else
             println("Time step $iTimeStep, intended action $Action kW, prod-cons mismatch ", CurrentState[1])
         end
