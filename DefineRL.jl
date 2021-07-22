@@ -176,8 +176,7 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, bLog::
 end
 
 function CalculateReward(Microgrid::Microgrid, State::Vector,
-    Action::Float64, ActualAction::Float64, iTimeStep::Int,
-    iPenalty::Float64, cPenaltyType::String, bLearn::Bool)
+    Action::Float64, ActualAction::Float64, iTimeStep::Int, bLearn::Bool)
     #iGridVolume = -deepcopy(ActualAction) + State[1] - State[2]
     if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
         iMicrogridVolume = deepcopy(ActualAction) * State[1]
@@ -195,15 +194,6 @@ function CalculateReward(Microgrid::Microgrid, State::Vector,
         #iReward = iGridVolume * dictRewards["iPriceBuy"]
         iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iThirdQuartile[1]
     end
-    if (bLearn && abs(Action / ActualAction) > 1)
-        if cPenaltyType == "Flat"
-            iReward = -iPenalty
-        else
-            iReward -= iPenalty
-        end
-    end
-    #iTotalReward = iMicrogridReward + iReward
-    #return iTotalReward
     return iReward
 end
 
@@ -229,7 +219,7 @@ end
 
 
 function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookAhead::Int,
-    dictNormParams::Dict, iPenalty::Float64, cPenaltyType::String, bLearn::Bool, bLog::Bool)
+    dictNormParams::Dict, bLearn::Bool, bLog::Bool)
     #Random.seed!(72945)
     CurrentState = deepcopy(Microgrid.State)
     Policy, v = Forward(Microgrid, CurrentState, true)
@@ -245,7 +235,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookAhead::I
     #if CurrentState.dictProductionAndConsumption.iProductionConsumptionMismatch >= 0
     Action, ActualAction = ChargeOrDischargeBattery!(Microgrid, Action, bLog)
     iReward = CalculateReward(Microgrid, CurrentState,
-        Action, ActualAction, iTimeStep, iPenalty, cPenaltyType, bLearn)
+        Action, ActualAction, iTimeStep, bLearn)
 
     NextState = GetState(Microgrid, iLookAhead, iTimeStep + 1)
     Microgrid.State = NextState
@@ -273,22 +263,17 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookAhead::I
 end
 
 function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookAhead::Int,
-    iTimeStepStart::Int, iTimeStepEnd::Int,
-    iPenalty::Float64, cPenaltyType::String, bLearn::Bool, bLog::Bool)
+    iTimeStepStart::Int, iTimeStepEnd::Int, bLearn::Bool, bLog::Bool)
     println("############################")
     println("The run is starting. The parameters are:")
     println("Number of episodes $iNumberOfEpisodes")
     println("Look ahead steps: $iLookAhead")
     println("Starting time step: $iTimeStepStart")
     println("Ending time step: $iTimeStepEnd")
-    println("Penalty height: $iPenalty")
-    println("Penalty type: $cPenaltyType")
     println("Learning: $bLearn")
     println("MG's brain type: ", Microgrid.Brain.cPolicyOutputLayerType)
     println("############################")
     Random.seed!(72945)
-    cPermittedPenaltyTypes = ["Flat", "Bias"]
-    @assert any(cPermittedPenaltyTypes .== cPenaltyType) "The penalty type is wrong"
     iRewards = []
     iRewardsTimeStep = []
     dictParamsForNormalisation = GetParamsForNormalisation(Microgrid)
@@ -302,7 +287,7 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookAhead::Int,
                 println("Step $iTimeStep")
             end
             bTerminal, iReward = Act!(Microgrid, iTimeStep, iTimeStepEnd, iLookAhead,
-                dictParamsForNormalisation, iPenalty, cPenaltyType, bLearn, bLog)
+                dictParamsForNormalisation, bLearn, bLog)
             push!(iRewardsTimeStep, iReward)
             if bTerminal
                 push!(iRewards, Microgrid.Reward)
@@ -317,8 +302,6 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookAhead::Int,
     println("Look ahead steps: $iLookAhead")
     println("Starting time step: $iTimeStepStart")
     println("Ending time step: $iTimeStepEnd")
-    println("Penalty height: $iPenalty")
-    println("Penalty type: $cPenaltyType")
     println("Learning: $bLearn")
     println("MG's brain type: ", Microgrid.Brain.cPolicyOutputLayerType)
     println("############################")
@@ -326,11 +309,9 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookAhead::Int,
 end
 
 function RunAll!(params)
-    Microgrid, iEpisodes, dRunStart, dRunEnd, iPenalty, cPenaltyType, bLearn, bLog = params
-    res = Run!(Microgrid, iEpisodes, dRunStart, dRunEnd, iPenalty, cPenaltyType, bLearn, bLog)
+    Microgrid, iEpisodes, dRunStart, dRunEnd, bLearn, bLog = params
+    res = Run!(Microgrid, iEpisodes, dRunStart, dRunEnd, bLearn, bLog)
     return Dict(
-        "cPenaltyType" => cPenaltyType,
-        "iPenalty" => iPenalty,
         "Microgrid" => Microgrid,
         "result" => res
     )
@@ -338,14 +319,13 @@ end
 
 function RunWrapper(DayAheadPricesHandler::DayAheadPricesHandler,
     WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
-    MyWarehouse::Warehouse, MyHouseholds::⌂, cPolicyOutputLayerType::String,
+    MyWarehouse::Warehouse, MyHouseholds::⌂, cPolicyOutputLayerType::Vector{String},
     iEpisodes::Int, dRunStartTrain::Int, dRunEndTrain::Int,
-    dRunStartTest::Int, dRunEndTest::Int,
-    Penalties::Vector, PenaltyTypes::Vector, iLookAheads::Vector;
+    dRunStartTest::Int, dRunEndTest::Int, iLookAheads::Vector;
     bTestMode::Bool = false)
 
     FinalDict = Dict{}()
-    for pen in 1:length(Penalties), type in 1:length(PenaltyTypes), iLookAhead in iLookAheads
+    for iLookAhead in iLookAheads
         println(iLookAhead)
         MyMicrogrid = GetMicrogrid(DayAheadPricesHandler, WeatherDataHandler,
             MyWindPark, MyWarehouse, MyHouseholds,
@@ -355,7 +335,7 @@ function RunWrapper(DayAheadPricesHandler::DayAheadPricesHandler,
             MyMicrogrid.Brain.batch_size = 5
         end
 
-        TrainRun = Run!(MyMicrogrid, iEpisodes, iLookAhead, dRunStartTrain, dRunEndTrain, Penalties[pen], PenaltyTypes[type], true, true)
+        TrainRun = Run!(MyMicrogrid, iEpisodes, iLookAhead, dRunStartTrain, dRunEndTrain, true, true)
         iTrainRewardHistory = TrainRun[1]
         iTrainIntendedActions = deepcopy([MyMicrogrid.Brain.memory[i][2] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTrainActualActions = deepcopy([MyMicrogrid.Brain.memory[i][3] for i in 1:length(MyMicrogrid.Brain.memory)])
@@ -366,14 +346,14 @@ function RunWrapper(DayAheadPricesHandler::DayAheadPricesHandler,
         MyMicrogrid.Brain.memory = []
         MyMicrogrid.EnergyStorage.iCurrentCharge = 0
 
-        TestRun = Run!(MyMicrogrid, iEpisodes, iLookAhead, dRunStartTest, dRunEndTest, Penalties[pen], PenaltyTypes[type], false, true)
+        TestRun = Run!(MyMicrogrid, iEpisodes, iLookAhead, dRunStartTest, dRunEndTest, false, true)
         iTestRewardHistory = TestRun[1]
         iTestIntendedActions = deepcopy([MyMicrogrid.Brain.memory[i][2] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTestActualActions = deepcopy([MyMicrogrid.Brain.memory[i][3] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTestMismatch = deepcopy([MyMicrogrid.Brain.memory[i][1][1] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTestBatteryCharge = deepcopy([MyMicrogrid.Brain.memory[i][1][length(MyMicrogrid.State)] for i in 1:length(MyMicrogrid.Brain.memory)])
 
-        push!(FinalDict, (Penalties[pen], PenaltyTypes[type], iLookAhead) => Dict(
+        push!(FinalDict, (iLookAhead) => Dict(
                 "MicrogridAfterTraining" => MicrogridAfterTraining,
                 "Microgrid" => deepcopy(MyMicrogrid),
                 "iTrainRewardHistory" => iTrainRewardHistory,
