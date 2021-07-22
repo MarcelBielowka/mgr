@@ -327,13 +327,14 @@ end
 
 function RunWrapper(DayAheadPricesHandler::DayAheadPricesHandler,
     WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
-    MyWarehouse::Warehouse, MyHouseholds::⌂, cPolicyOutputLayerType::Vector{String},
+    MyWarehouse::Warehouse, MyHouseholds::⌂, cPolicyOutputLayerTypes::Vector{String},
     iEpisodes::Int, dRunStartTrain::Int, dRunEndTrain::Int,
-    dRunStartTest::Int, dRunEndTest::Int, iLookAheads::Vector;
+    dRunStartTest::Int, dRunEndTest::Int, iLookAheads::Vector, bLog::Bool;
     bTestMode::Bool = false)
 
+    @assert (["identity", "sigmoid"] == cPolicyOutputLayerTypes) "The policy output layer type is not correct"
     FinalDict = Dict{}()
-    for iLookAhead in iLookAheads
+    for cPolicyOutputLayerType in cPolicyOutputLayerTypes, iLookAhead in iLookAheads
         println(iLookAhead)
         MyMicrogrid = GetMicrogrid(DayAheadPricesHandler, WeatherDataHandler,
             MyWindPark, MyWarehouse, MyHouseholds,
@@ -343,7 +344,7 @@ function RunWrapper(DayAheadPricesHandler::DayAheadPricesHandler,
             MyMicrogrid.Brain.batch_size = 5
         end
 
-        TrainRun = Run!(MyMicrogrid, iEpisodes, iLookAhead, dRunStartTrain, dRunEndTrain, true, true)
+        TrainRun = Run!(MyMicrogrid, iEpisodes, iLookAhead, dRunStartTrain, dRunEndTrain, true, bLog)
         iTrainRewardHistory = TrainRun[1]
         iTrainIntendedActions = deepcopy([MyMicrogrid.Brain.memory[i][2] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTrainActualActions = deepcopy([MyMicrogrid.Brain.memory[i][3] for i in 1:length(MyMicrogrid.Brain.memory)])
@@ -354,14 +355,14 @@ function RunWrapper(DayAheadPricesHandler::DayAheadPricesHandler,
         MyMicrogrid.Brain.memory = []
         MyMicrogrid.EnergyStorage.iCurrentCharge = 0
 
-        TestRun = Run!(MyMicrogrid, iEpisodes, iLookAhead, dRunStartTest, dRunEndTest, false, true)
+        TestRun = Run!(MyMicrogrid, iEpisodes, iLookAhead, dRunStartTest, dRunEndTest, false, bLog)
         iTestRewardHistory = TestRun[1]
         iTestIntendedActions = deepcopy([MyMicrogrid.Brain.memory[i][2] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTestActualActions = deepcopy([MyMicrogrid.Brain.memory[i][3] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTestMismatch = deepcopy([MyMicrogrid.Brain.memory[i][1][1] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTestBatteryCharge = deepcopy([MyMicrogrid.Brain.memory[i][1][length(MyMicrogrid.State)] for i in 1:length(MyMicrogrid.Brain.memory)])
 
-        push!(FinalDict, (iLookAhead) => Dict(
+        push!(FinalDict, (cPolicyOutputLayerType, iLookAhead) => Dict(
                 "MicrogridAfterTraining" => MicrogridAfterTraining,
                 "Microgrid" => deepcopy(MyMicrogrid),
                 "iTrainRewardHistory" => iTrainRewardHistory,
