@@ -154,7 +154,11 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, bLog::
             Microgrid.EnergyStorage.iMaxCapacity - Microgrid.EnergyStorage.iCurrentCharge)
         iCharge = min(iMaxPossibleCharge, iChargeDischargeVolume)
         Microgrid.EnergyStorage.iCurrentCharge += iCharge
-        ActualAction = iCharge / iConsumptionMismatch
+        if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
+            ActualAction = iCharge / iConsumptionMismatch
+        else
+            ActualAction = iCharge
+        end
         if bLog
             println("Actual charge of battery: $iCharge")
         end
@@ -163,7 +167,11 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, bLog::
             -Microgrid.EnergyStorage.iCurrentCharge)
         iDischarge = max(iMaxPossibleDischarge, iChargeDischargeVolume)
         Microgrid.EnergyStorage.iCurrentCharge += iDischarge
-        ActualAction = iDischarge / iConsumptionMismatch
+        if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
+            ActualAction = iDischarge / iConsumptionMismatch
+        else
+            ActualAction = iDischarge
+        end
         if bLog
             println("Actual discharge of battery: $iDischarge")
         end
