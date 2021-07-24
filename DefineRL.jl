@@ -61,9 +61,10 @@ function GetReward(Microgrid::Microgrid, iTimeStep::Int)
     )
 end
 
-function ActorLoss(μ_hat, Actions, A; ι::Float64 = 0.001, iσFixed::Float64 = 0.05)
+function ActorLoss(x, Actions, A; ι::Float64 = 0.001, iσFixed::Float64 = 0.01)
     #println("μ_policy: $μ_policy")
     #println(typeof(μ_policy))
+    μ_hat = MyMicrogrid.Brain.policy_net(x)
     Policy = Distributions.Normal.(μ_hat, iσFixed)
     #println("Policy: $Policy")
     iScoreFunction = -Distributions.logpdf.(Policy, Actions)
@@ -75,15 +76,13 @@ function ActorLoss(μ_hat, Actions, A; ι::Float64 = 0.001, iσFixed::Float64 = 
     return iLoss
 end
 
-function CriticLoss(ŷ, y; ξ = 0.5)
-    return ξ*Flux.mse(ŷ, y)
+function CriticLoss(x, y; ξ = 0.5)
+    return ξ*Flux.mse(MyMicrogrid.Brain.value_net(x), y)
 end
 
 function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
     # println("Start learning")
     x = zeros(Float64, length(Microgrid.State), Microgrid.Brain.batch_size)
-    μ_hat = zeros(Float64, 1, Microgrid.Brain.batch_size)
-    ŷ = zeros(Float64, 1, Microgrid.Brain.batch_size)
     Actions = zeros(Float64, 1, Microgrid.Brain.batch_size)
     A = zeros(Float64, 1, Microgrid.Brain.batch_size)
     y = zeros(Float64, 1, Microgrid.Brain.batch_size)
@@ -100,15 +99,13 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
         StateForLearning = deepcopy(State)
         #StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
         x[:, i] .= StateForLearning
-        μ_hat[:, i] = Microgrid.Brain.policy_net(StateForLearning)
-        ŷ[:, i] = Microgrid.Brain.value_net(StateForLearning)
         A[:, i] .= iAdvantage
         Actions[:,i] .= Action
         y[:, i] .= R
     end
 
-    Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(μ_hat,Actions,A)], ADAM(Microgrid.Brain.ηₚ))
-    Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(ŷ,y)], ADAM(Microgrid.Brain.ηᵥ))
+    Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,Actions,A)], ADAM(Microgrid.Brain.ηₚ))
+    Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))
 end
 
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, bLog::Bool)
@@ -176,7 +173,7 @@ end
 
 # definicja, ktore kroki mamy wykonac
 # bierze siec neuronowa i zwraca jej wynik
-function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool; iσFixed::Float64 = 0.05)
+function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool; iσFixed::Float64 = 0.01)
     μ_policy = Microgrid.Brain.policy_net(Microgrid.State)[1]    # wektor p-w na bazie sieci aktora
     if bσFixed
         Policy = Distributions.Normal(μ_policy, iσFixed)
