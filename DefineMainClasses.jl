@@ -263,17 +263,17 @@ mutable struct Brain
     cPolicyOutputLayerType::String
 end
 
-function GetBrain(cPolicyOutputLayerType, iDimState; β = 1, ηₚ = 0.0001, ηᵥ = 0.001)
+function GetBrain(cPolicyOutputLayerType, iDimState; β = 0.999, ηₚ = 0.001, ηᵥ = 0.001)
     @assert any(["identity", "sigmoid"] .== cPolicyOutputLayerType) "The policy output layer type is not correct"
 
     if cPolicyOutputLayerType == "sigmoid"
-        policy_net = Chain(Dense(iDimState, 20, relu),
-                    Dense(20,10,relu),
-                    Dense(10,1,sigmoid))
+        policy_net = Chain(Dense(iDimState, 20, relu; init = Flux.glorot_uniform),
+                    Dense(20,10,relu; init = Flux.glorot_uniform),
+                    Dense(10,1,sigmoid; init = Flux.glorot_uniform))
     else
-        policy_net = Chain(Dense(iDimState, 20, relu),
-                    Dense(20,10,relu),
-                    Dense(10,1,identity))
+        policy_net = Chain(Dense(iDimState, 20, relu; init = Flux.glorot_uniform),
+                    Dense(20,10,relu; init = Flux.glorot_uniform),
+                    Dense(10,1,identity; init = Flux.glorot_uniform))
     end
     #policy_net = Chain(
     #    Dense((iLookAhead + 1), 1, identity)
@@ -281,10 +281,10 @@ function GetBrain(cPolicyOutputLayerType, iDimState; β = 1, ηₚ = 0.0001, η�
     #value_net = Chain(
     #    Dense(DimState, 1, identity)
     #)
-    value_net = Chain(Dense(iDimState, 128, relu),
-                    Dense(128, 52, relu),
-                    Dense(52, 1, identity))
-    return Brain(β, 256 , 200_000, 8000, [], policy_net, value_net, ηₚ, ηᵥ, cPolicyOutputLayerType)
+    value_net = Chain(Dense(iDimState, 128, relu; init = Flux.glorot_uniform),
+                    Dense(128, 52, relu; init = Flux.glorot_uniform),
+                    Dense(52, 1, identity; init = Flux.glorot_uniform))
+    return Brain(β, 256, 200_000, 20000, [], policy_net, value_net, ηₚ, ηᵥ, cPolicyOutputLayerType)
 end
 
 #########################################
