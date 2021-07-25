@@ -96,8 +96,8 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
             R = Reward + Microgrid.Brain.β * v′
         end
         iAdvantage = R - v
-        #StateForLearning = deepcopy(State)
-        StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
+        StateForLearning = deepcopy(State)
+        # StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
         x[:, i] .= StateForLearning
         A[:, i] .= iAdvantage
         Actions[:,i] .= Action
@@ -177,8 +177,10 @@ end
 
 # definicja, ktore kroki mamy wykonac
 # bierze siec neuronowa i zwraca jej wynik
-function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool; iσFixed::Float64 = 0.01)
-    μ_policy = Microgrid.Brain.policy_net(Microgrid.State)[1]    # wektor p-w na bazie sieci aktora
+function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormParams::Dict; iσFixed::Float64 = 0.01)
+    StateForLearning = deepcopy(Microgrid.State)
+    # StateForLearning = @pipe deepcopy(Microgrid.State) |> NormaliseState!(_, dictNormParams)
+    μ_policy = Microgrid.Brain.policy_net(StateForLearning)[1]    # wektor p-w na bazie sieci aktora
     if bσFixed
         Policy = Distributions.Normal(μ_policy, iσFixed)
     else
@@ -194,7 +196,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookAhead::I
     dictNormParams::Dict, bLearn::Bool, bLog::Bool)
     #Random.seed!(72945)
     CurrentState = deepcopy(Microgrid.State)
-    Policy, v = Forward(Microgrid, CurrentState, true)
+    Policy, v = Forward(Microgrid, CurrentState, true, dictNormParams)
     Action = rand(Policy)
     ActionForPrint = Action * 100
     if bLog
@@ -213,7 +215,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookAhead::I
     NextState = GetState(Microgrid, iLookAhead, iTimeStep + 1)
     Microgrid.State = NextState
     Microgrid.Reward += iReward
-    _, v′ = Forward(Microgrid, NextState, true)
+    _, v′ = Forward(Microgrid, NextState, true, dictNormParams)
     if iTimeStep + 1 == iHorizon
         bTerminal = true
     else
