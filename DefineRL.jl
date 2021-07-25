@@ -71,7 +71,7 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001, iσFixed::Float64 = 0.01)
     #println("iScoreFunction: $iScoreFunction")
     iLoss = sum(iScoreFunction .* A) / size(A,1)
     # iEntropy = sum(Distributions.entropy.(Policy))
-    println("Loss function: $iLoss")
+    # println("Loss function: $iLoss")
     # return iLoss - ι*iEntropy
     return iLoss
 end
