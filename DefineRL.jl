@@ -71,7 +71,7 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001, iσFixed::Float64 = 0.01)
     #println("iScoreFunction: $iScoreFunction")
     iLoss = sum(iScoreFunction .* A) / size(A,1)
     # iEntropy = sum(Distributions.entropy.(Policy))
-    # println("Loss function: $iLoss")
+    println("Loss function: $iLoss")
     # return iLoss - ι*iEntropy
     return iLoss
 end
@@ -96,8 +96,8 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
             R = Reward + Microgrid.Brain.β * v′
         end
         iAdvantage = R - v
-        StateForLearning = deepcopy(State)
-        #StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
+        #StateForLearning = deepcopy(State)
+        StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
         x[:, i] .= StateForLearning
         A[:, i] .= iAdvantage
         Actions[:,i] .= Action
@@ -106,25 +106,28 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
 
     Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,Actions,A)], ADAM(Microgrid.Brain.ηₚ))
     Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))
+    println("Actor parameters: ", Flux.params(Microgrid.Brain.policy_net))
 end
 
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, bLog::Bool)
     iConsumptionMismatch = Microgrid.State[1]
-    if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
-        iChargeDischargeVolume = deepcopy(Action) * iConsumptionMismatch
-    else
-        iChargeDischargeVolume = deepcopy(Action)
-    end
+    # if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
+    #     iChargeDischargeVolume = deepcopy(Action) * iConsumptionMismatch
+    #else
+    #    iChargeDischargeVolume = deepcopy(Action)
+    #end
+    iChargeDischargeVolume = deepcopy(Action) * iConsumptionMismatch
     if iChargeDischargeVolume >= 0
         iMaxPossibleCharge = min(Microgrid.EnergyStorage.iChargeRate,
             Microgrid.EnergyStorage.iMaxCapacity - Microgrid.EnergyStorage.iCurrentCharge)
         iCharge = min(iMaxPossibleCharge, iChargeDischargeVolume)
         Microgrid.EnergyStorage.iCurrentCharge += iCharge
-        if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
-            ActualAction = iCharge / iConsumptionMismatch
-        else
-            ActualAction = iCharge
-        end
+        ActualAction = iCharge / iConsumptionMismatch
+        #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
+        #    ActualAction = iCharge / iConsumptionMismatch
+        #else
+        #    ActualAction = iCharge
+        #end
         if bLog
             println("Actual charge of battery: $iCharge")
         end
@@ -133,11 +136,12 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, bLog::
             -Microgrid.EnergyStorage.iCurrentCharge)
         iDischarge = max(iMaxPossibleDischarge, iChargeDischargeVolume)
         Microgrid.EnergyStorage.iCurrentCharge += iDischarge
-        if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
-            ActualAction = iDischarge / iConsumptionMismatch
-        else
-            ActualAction = iDischarge
-        end
+        ActualAction = iDischarge / iConsumptionMismatch
+        #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
+        #    ActualAction = iDischarge / iConsumptionMismatch
+        #else
+        #    ActualAction = iDischarge
+        #end
         if bLog
             println("Actual discharge of battery: $iDischarge")
         end
@@ -147,12 +151,12 @@ end
 
 function CalculateReward(Microgrid::Microgrid, State::Vector,
     Action::Float64, ActualAction::Float64, iTimeStep::Int, bLearn::Bool)
-    if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
-        iMicrogridVolume = deepcopy(ActualAction) * State[1]
-    else
-        iMicrogridVolume = deepcopy(ActualAction)
-    end
-
+    #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
+    #    iMicrogridVolume = deepcopy(ActualAction) * State[1]
+    #else
+    #    iMicrogridVolume = deepcopy(ActualAction)
+    #end
+    iMicrogridVolume = deepcopy(ActualAction) * State[1]
     iGridVolume = State[1] - iMicrogridVolume
     #dictRewards = GetReward(Microgrid, iTimeStep)
     if iGridVolume >= 0
@@ -194,11 +198,12 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookAhead::I
     Action = rand(Policy)
     ActionForPrint = Action * 100
     if bLog
-        if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
-            println("Time step $iTimeStep, intended action $ActionForPrint % of mismatch, prod-cons mismatch ", CurrentState[1])
-        else
-            println("Time step $iTimeStep, intended action $Action kW, prod-cons mismatch ", CurrentState[1])
-        end
+        println("Time step $iTimeStep, intended action $ActionForPrint % of mismatch, prod-cons mismatch ", CurrentState[1])
+        #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
+        #    println("Time step $iTimeStep, intended action $ActionForPrint % of mismatch, prod-cons mismatch ", CurrentState[1])
+        #else
+        #    println("Time step $iTimeStep, intended action $Action kW, prod-cons mismatch ", CurrentState[1])
+        #end
     end
 
     Action, ActualAction = ChargeOrDischargeBattery!(Microgrid, Action, bLog)
