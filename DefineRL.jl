@@ -11,12 +11,12 @@ function GetState(Microgrid::Microgrid, iLookAhead::Int, iTimeStep::Int)
     if iHour !=23
         Microgrid.State = [
             iProductionConsumptionMismatch
-            # Microgrid.EnergyStorage.iCurrentCharge
+            Microgrid.EnergyStorage.iCurrentCharge
             ]
     else
         Microgrid.State = [
             iProductionConsumptionMismatch
-            # Microgrid.EnergyStorage.iCurrentCharge
+            Microgrid.EnergyStorage.iCurrentCharge
             ]
     end
 end
