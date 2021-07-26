@@ -69,9 +69,9 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001, iσFixed::Float64 = 8.0)
     #println("Policy: $Policy")
     iScoreFunction = -Distributions.logpdf.(Policy, Actions)
     #println("iScoreFunction: $iScoreFunction")
-    iLoss = sum(iScoreFunction .* A) / size(A,2)
+    iLoss = sum(iScoreFunction .* A) / size(A,1)
     # iEntropy = sum(Distributions.entropy.(Policy))
-    println("Loss function: $iLoss")
+    println("Actor loss function: $iLoss")
     # return iLoss - ι*iEntropy
     return iLoss
 end
@@ -96,8 +96,8 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
             R = Reward + Microgrid.Brain.β * v′
         end
         iAdvantage = R - v
-        # StateForLearning = deepcopy(State)
-        StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
+        StateForLearning = deepcopy(State)
+        # StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
         x[:, i] .= StateForLearning
         A[:, i] .= iAdvantage
         Actions[:,i] .= Action
@@ -107,6 +107,7 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
     Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,Actions,A)], ADAM(Microgrid.Brain.ηₚ))
     Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))
     println("Actor parameters: ", Flux.params(Microgrid.Brain.policy_net))
+    println("Critic parameters: ", Flux.params(Microgrid.Brain.value_net))
 end
 
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, bLog::Bool)
@@ -178,8 +179,8 @@ end
 # definicja, ktore kroki mamy wykonac
 # bierze siec neuronowa i zwraca jej wynik
 function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormParams::Dict; iσFixed::Float64 = 8.0)
-    # StateForLearning = deepcopy(Microgrid.State)
-    StateForLearning = @pipe deepcopy(Microgrid.State) |> NormaliseState!(_, dictNormParams)
+    StateForLearning = deepcopy(Microgrid.State)
+    # StateForLearning = @pipe deepcopy(Microgrid.State) |> NormaliseState!(_, dictNormParams)
     μ_policy = Microgrid.Brain.policy_net(StateForLearning)[1]    # wektor p-w na bazie sieci aktora
     if bσFixed
         Policy = Distributions.Normal(μ_policy, iσFixed)
