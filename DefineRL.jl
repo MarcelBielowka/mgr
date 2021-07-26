@@ -11,12 +11,12 @@ function GetState(Microgrid::Microgrid, iLookAhead::Int, iTimeStep::Int)
     if iHour !=23
         Microgrid.State = [
             iProductionConsumptionMismatch
-            Microgrid.EnergyStorage.iCurrentCharge
+            # Microgrid.EnergyStorage.iCurrentCharge
             ]
     else
         Microgrid.State = [
             iProductionConsumptionMismatch
-            Microgrid.EnergyStorage.iCurrentCharge
+            # Microgrid.EnergyStorage.iCurrentCharge
             ]
     end
 end
@@ -61,7 +61,7 @@ function GetReward(Microgrid::Microgrid, iTimeStep::Int)
     )
 end
 
-function ActorLoss(x, Actions, A; ι::Float64 = 0.001, iσFixed::Float64 = 0.01)
+function ActorLoss(x, Actions, A; ι::Float64 = 0.001, iσFixed::Float64 = 8.0)
     #println("μ_policy: $μ_policy")
     #println(typeof(μ_policy))
     μ_hat = MyMicrogrid.Brain.policy_net(x)
@@ -177,7 +177,7 @@ end
 
 # definicja, ktore kroki mamy wykonac
 # bierze siec neuronowa i zwraca jej wynik
-function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormParams::Dict; iσFixed::Float64 = 0.01)
+function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormParams::Dict; iσFixed::Float64 = 8.0)
     # StateForLearning = deepcopy(Microgrid.State)
     StateForLearning = @pipe deepcopy(Microgrid.State) |> NormaliseState!(_, dictNormParams)
     μ_policy = Microgrid.Brain.policy_net(StateForLearning)[1]    # wektor p-w na bazie sieci aktora
