@@ -27,8 +27,7 @@ function GetParamsForNormalisation(Microgrid::Microgrid)
     #    "ProductionScalingParams" => extrema(Microgrid.dfTotalProduction.TotalProduction),
     #    "ConsumptionScalingParams" => extrema(Microgrid.dfTotalConsumption.TotalConsumption),
         "ConsMismatchParams" => extrema(iOverallConsMismatch),
-        "ChargeParams" => (0, Microgrid.EnergyStorage.iMaxCapacity),
-        "ActionParams" => (Microgrid.EnergyStorage.iDischargeRate, Microgrid.EnergyStorage.iChargeRate)
+        "ChargeParams" => (0, Microgrid.EnergyStorage.iMaxCapacity)
     )
 end
 
@@ -42,16 +41,6 @@ function NormaliseState!(State::Vector, Params::Dict)
     end
     State[length(State)] = (State[length(State)] - iChargeMin) / (iChargeMax - iChargeMin)
     return State
-end
-
-function NormaliseAction!(Action::Float64, Params::Dict, bNormalise::Bool)
-    (iActionMin, iActionMax) = Params["ActionParams"]
-    if bNormalise
-        Action = (Action - iActionMin) / (iActionMax - iActionMin)
-    else
-        Action = Action * (iActionMax - iActionMin) + iActionMin
-    end
-    return Action
 end
 
 function restart!(Microgrid::Microgrid, iLookAhead::Int, iInitTimeStep::Int)
@@ -76,8 +65,7 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001)
     #println("μ_policy: $μ_policy")
     #println(typeof(μ_policy))
     μ_hat = MyMicrogrid.Brain.policy_net(x)
-    # MyMicrogrid.Brain.cPolicyOutputLayerType == "sigmoid" ? iσFixed = 0.01 : iσFixed = 8.0
-    iσFixed = 0.01
+    MyMicrogrid.Brain.cPolicyOutputLayerType == "sigmoid" ? iσFixed = 0.01 : iσFixed = 8.0
     Policy = Distributions.Normal.(μ_hat, iσFixed)
     #println("Policy: $Policy")
     iScoreFunction = -Distributions.logpdf.(Policy, Actions)
@@ -109,12 +97,11 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
             R = Reward + Microgrid.Brain.β * v′
         end
         iAdvantage = R - v
-        # StateForLearning = deepcopy(State)
-        StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
-        ActionForLearning = @pipe deepcopy(Action) |> NormaliseAction!(_, dictNormParams, true)
+        StateForLearning = deepcopy(State)
+        # StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
         x[:, i] .= StateForLearning
         A[:, i] .= iAdvantage
-        Actions[:,i] .= ActionForLearning
+        Actions[:,i] .= Action
         y[:, i] .= R
     end
 
@@ -128,7 +115,7 @@ end
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, bLog::Bool)
     iConsumptionMismatch = Microgrid.State[1]
     if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
-        iChargeDischargeVolume = deepcopy(Action) * iConsumptionMismatch
+         iChargeDischargeVolume = deepcopy(Action) * iConsumptionMismatch
     else
         iChargeDischargeVolume = deepcopy(Action)
     end
@@ -194,11 +181,10 @@ end
 # definicja, ktore kroki mamy wykonac
 # bierze siec neuronowa i zwraca jej wynik
 function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormParams::Dict)
-    # StateForLearning = deepcopy(Microgrid.State)
-    StateForLearning = @pipe deepcopy(Microgrid.State) |> NormaliseState!(_, dictNormParams)
+    StateForLearning = deepcopy(Microgrid.State)
+    # StateForLearning = @pipe deepcopy(Microgrid.State) |> NormaliseState!(_, dictNormParams)
     μ_policy = Microgrid.Brain.policy_net(StateForLearning)[1]    # wektor p-w na bazie sieci aktora
-    # MyMicrogrid.Brain.cPolicyOutputLayerType == "sigmoid" ? iσFixed = 0.01 : iσFixed = 8.0
-    iσFixed = 0.01
+    MyMicrogrid.Brain.cPolicyOutputLayerType == "sigmoid" ? iσFixed = 0.01 : iσFixed = 8.0
     if bσFixed
         Policy = Distributions.Normal(μ_policy, iσFixed)
     else
@@ -215,8 +201,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookAhead::I
     #Random.seed!(72945)
     CurrentState = deepcopy(Microgrid.State)
     Policy, v = Forward(Microgrid, CurrentState, true, dictNormParams)
-    NormalisedAction = rand(Policy)
-    Action = @pipe deepcopy(NormalisedAction) |> NormaliseAction!(_, dictNormParams, false)
+    Action = rand(Policy)
     ActionForPrint = Action * 100
     if bLog
         # println("Time step $iTimeStep, intended action $ActionForPrint % of mismatch, prod-cons mismatch ", CurrentState[1])
