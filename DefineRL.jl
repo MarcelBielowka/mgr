@@ -36,10 +36,10 @@ function NormaliseState!(State::Vector, Params::Dict)
     #(iConsMin, iConsMax) = Params["ConsumptionScalingParams"]
     (iMismatchMin, iMismatchMax) = Params["ConsMismatchParams"]
     (iChargeMin, iChargeMax) = Params["ChargeParams"]
-    for i in 1:(length(State))
+    for i in 1:(length(State)-1)
         State[i] = (State[i] - iMismatchMin) / (iMismatchMax - iMismatchMin)
     end
-    # State[length(State)] = (State[length(State)] - iChargeMin) / (iChargeMax - iChargeMin)
+    State[length(State)] = (State[length(State)] - iChargeMin) / (iChargeMax - iChargeMin)
     return State
 end
 
@@ -96,8 +96,8 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
             R = Reward + Microgrid.Brain.β * v′
         end
         iAdvantage = R - v
-        StateForLearning = deepcopy(State)
-        # StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
+        # StateForLearning = deepcopy(State)
+        StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
         x[:, i] .= StateForLearning
         A[:, i] .= iAdvantage
         Actions[:,i] .= Action
@@ -179,8 +179,8 @@ end
 # definicja, ktore kroki mamy wykonac
 # bierze siec neuronowa i zwraca jej wynik
 function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormParams::Dict; iσFixed::Float64 = 8.0)
-    StateForLearning = deepcopy(Microgrid.State)
-    # StateForLearning = @pipe deepcopy(Microgrid.State) |> NormaliseState!(_, dictNormParams)
+    # StateForLearning = deepcopy(Microgrid.State)
+    StateForLearning = @pipe deepcopy(Microgrid.State) |> NormaliseState!(_, dictNormParams)
     μ_policy = Microgrid.Brain.policy_net(StateForLearning)[1]    # wektor p-w na bazie sieci aktora
     if bσFixed
         Policy = Distributions.Normal(μ_policy, iσFixed)
