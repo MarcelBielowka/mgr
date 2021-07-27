@@ -61,10 +61,11 @@ function GetReward(Microgrid::Microgrid, iTimeStep::Int)
     )
 end
 
-function ActorLoss(x, Actions, A; ι::Float64 = 0.001, iσFixed::Float64 = 8.0)
+function ActorLoss(x, Actions, A; ι::Float64 = 0.001)
     #println("μ_policy: $μ_policy")
     #println(typeof(μ_policy))
     μ_hat = MyMicrogrid.Brain.policy_net(x)
+    MyMicrogrid.Brain.cPolicyOutputLayerType == "sigmoid" ? iσFixed = 0.01 : iσFixed = 8.0
     Policy = Distributions.Normal.(μ_hat, iσFixed)
     #println("Policy: $Policy")
     iScoreFunction = -Distributions.logpdf.(Policy, Actions)
@@ -96,8 +97,8 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
             R = Reward + Microgrid.Brain.β * v′
         end
         iAdvantage = R - v
-        # StateForLearning = deepcopy(State)
-        StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
+        StateForLearning = deepcopy(State)
+        # StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
         x[:, i] .= StateForLearning
         A[:, i] .= iAdvantage
         Actions[:,i] .= Action
@@ -106,6 +107,7 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
 
     Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,Actions,A)], ADAM(Microgrid.Brain.ηₚ))
     Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))
+    # println("Actor parameters: ", Flux.params(Microgrid.Brain.policy_net))
     println("Actor parameters: ", Flux.params(Microgrid.Brain.policy_net))
     println("Critic parameters: ", Flux.params(Microgrid.Brain.value_net))
 end
@@ -178,10 +180,11 @@ end
 
 # definicja, ktore kroki mamy wykonac
 # bierze siec neuronowa i zwraca jej wynik
-function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormParams::Dict; iσFixed::Float64 = 8.0)
-    # StateForLearning = deepcopy(Microgrid.State)
-    StateForLearning = @pipe deepcopy(Microgrid.State) |> NormaliseState!(_, dictNormParams)
+function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormParams::Dict)
+    StateForLearning = deepcopy(Microgrid.State)
+    # StateForLearning = @pipe deepcopy(Microgrid.State) |> NormaliseState!(_, dictNormParams)
     μ_policy = Microgrid.Brain.policy_net(StateForLearning)[1]    # wektor p-w na bazie sieci aktora
+    MyMicrogrid.Brain.cPolicyOutputLayerType == "sigmoid" ? iσFixed = 0.01 : iσFixed = 8.0
     if bσFixed
         Policy = Distributions.Normal(μ_policy, iσFixed)
     else
