@@ -108,7 +108,7 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
     Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,Actions,A)], ADAM(Microgrid.Brain.ηₚ))
     Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))
     # println("Actor parameters: ", Flux.params(Microgrid.Brain.policy_net))
-    println("Actor parameters: ", Flux.params(Microgrid.Brain.policy_net))
+    println("Actor parameters: ", Flux.params(Microgrid.Brain.policy_net)[1][1:3])
     println("Critic parameters: ", Flux.params(Microgrid.Brain.value_net))
 end
 
@@ -165,9 +165,11 @@ function CalculateReward(Microgrid::Microgrid, State::Vector,
     if iGridVolume >= 0
         #iReward = iGridVolume * dictRewards["iPriceSell"]
         iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iFirstQuartile[1]
+            iMicrogridVolume * 200
     else
         #iReward = iGridVolume * dictRewards["iPriceBuy"]
         iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iThirdQuartile[1]
+            + iMicrogridVolume * 200
     end
     return iReward
 end
