@@ -107,8 +107,8 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
 
     Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,Actions,A)], ADAM(Microgrid.Brain.ηₚ))
     Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))
-    # println("Actor parameters: ", Flux.params(Microgrid.Brain.policy_net))
-    println("Actor parameters: ", Flux.params(Microgrid.Brain.policy_net)[1][1:3])
+    println("Actor parameters: ", Flux.params(Microgrid.Brain.policy_net))
+    # println("Actor parameters: ", Flux.params(Microgrid.Brain.policy_net)[1][1:3])
     println("Critic parameters: ", Flux.params(Microgrid.Brain.value_net))
 end
 
@@ -164,14 +164,19 @@ function CalculateReward(Microgrid::Microgrid, State::Vector,
     #dictRewards = GetReward(Microgrid, iTimeStep)
     if iGridVolume >= 0
         #iReward = iGridVolume * dictRewards["iPriceSell"]
-        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iFirstQuartile[1]
-            iMicrogridVolume * 200
+        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iFirstDecile[1]
     else
         #iReward = iGridVolume * dictRewards["iPriceBuy"]
-        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iThirdQuartile[1]
-            + iMicrogridVolume * 200
+        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iLastDecile[1]
     end
-    return iReward
+
+    if iMicrogridVolume >= 0
+        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i45Quantile[1]
+    else
+        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i55Quantile[1]
+    end
+
+    return iReward + iMicrogridReward
 end
 
 # update pamieci
