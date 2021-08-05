@@ -39,7 +39,7 @@ function NormaliseState!(State::Vector, Params::Dict)
     for i in 1:(length(State)-1)
         State[i] = (State[i] - iMismatchMin) / (iMismatchMax - iMismatchMin)
     end
-    State[length(State)] = (State[length(State)] - iChargeMin) / (iChargeMax - iChargeMin)
+    # State[length(State)] = (State[length(State)] - iChargeMin) / (iChargeMax - iChargeMin)
     return State
 end
 
@@ -97,8 +97,8 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
             R = Reward + Microgrid.Brain.β * v′
         end
         iAdvantage = R - v
-        StateForLearning = deepcopy(State)
-        # StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
+        # StateForLearning = deepcopy(State)
+        StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
         x[:, i] .= StateForLearning
         A[:, i] .= iAdvantage
         Actions[:,i] .= Action
@@ -107,9 +107,9 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
 
     Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,Actions,A)], ADAM(Microgrid.Brain.ηₚ))
     Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))
-    println("Actor parameters: ", Flux.params(Microgrid.Brain.policy_net))
-    # println("Actor parameters: ", Flux.params(Microgrid.Brain.policy_net)[1][1:3])
-    println("Critic parameters: ", Flux.params(Microgrid.Brain.value_net))
+    #println("Actor parameters: ", Flux.params(Microgrid.Brain.policy_net))
+    println("Actor parameters: ", Flux.params(Microgrid.Brain.policy_net)[1][1:3])
+    println("Critic parameters: ", Flux.params(Microgrid.Brain.value_net)[1][1:3])
 end
 
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, bLog::Bool)
@@ -122,9 +122,9 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, bLog::
     # iChargeDischargeVolume = deepcopy(Action) * iConsumptionMismatch
     if iChargeDischargeVolume >= 0
         iMaxPossibleCharge = min(Microgrid.EnergyStorage.iChargeRate,
-            Microgrid.EnergyStorage.iMaxCapacity - Microgrid.EnergyStorage.iCurrentCharge)
+            Microgrid.EnergyStorage.iMaxCapacity - Microgrid.EnergyStorage.iCurrentCharge * Microgrid.EnergyStorage.iMaxCapacity)
         iCharge = min(iMaxPossibleCharge, iChargeDischargeVolume)
-        Microgrid.EnergyStorage.iCurrentCharge += iCharge
+        Microgrid.EnergyStorage.iCurrentCharge += iCharge / Microgrid.EnergyStorage.iMaxCapacity
         # ActualAction = iCharge / iConsumptionMismatch
         if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
             ActualAction = iCharge / iConsumptionMismatch
@@ -136,9 +136,9 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, bLog::
         end
     else
         iMaxPossibleDischarge = max(Microgrid.EnergyStorage.iDischargeRate,
-            -Microgrid.EnergyStorage.iCurrentCharge)
+            -Microgrid.EnergyStorage.iCurrentCharge * Microgrid.EnergyStorage.iMaxCapacity)
         iDischarge = max(iMaxPossibleDischarge, iChargeDischargeVolume)
-        Microgrid.EnergyStorage.iCurrentCharge += iDischarge
+        Microgrid.EnergyStorage.iCurrentCharge += iDischarge / Microgrid.EnergyStorage.iMaxCapacity
         # ActualAction = iDischarge / iConsumptionMismatch
         if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
             ActualAction = iDischarge / iConsumptionMismatch
@@ -188,8 +188,8 @@ end
 # definicja, ktore kroki mamy wykonac
 # bierze siec neuronowa i zwraca jej wynik
 function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormParams::Dict)
-    StateForLearning = deepcopy(Microgrid.State)
-    # StateForLearning = @pipe deepcopy(Microgrid.State) |> NormaliseState!(_, dictNormParams)
+    # StateForLearning = deepcopy(Microgrid.State)
+    StateForLearning = @pipe deepcopy(Microgrid.State) |> NormaliseState!(_, dictNormParams)
     μ_policy = Microgrid.Brain.policy_net(StateForLearning)[1]    # wektor p-w na bazie sieci aktora
     MyMicrogrid.Brain.cPolicyOutputLayerType == "sigmoid" ? iσFixed = 0.01 : iσFixed = 8.0
     if bσFixed
