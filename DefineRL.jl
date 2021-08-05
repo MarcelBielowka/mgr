@@ -65,7 +65,7 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001)
     #println("μ_policy: $μ_policy")
     #println(typeof(μ_policy))
     μ_hat = MyMicrogrid.Brain.policy_net(x)
-    MyMicrogrid.Brain.cPolicyOutputLayerType == "sigmoid" ? iσFixed = 0.01 : iσFixed = 8.0
+    MyMicrogrid.Brain.cPolicyOutputLayerType == "sigmoid" ? iσFixed = 0.01 : iσFixed = 1.0
     Policy = Distributions.Normal.(μ_hat, iσFixed)
     #println("Policy: $Policy")
     iScoreFunction = -Distributions.logpdf.(Policy, Actions)
@@ -191,7 +191,7 @@ function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormPa
     # StateForLearning = deepcopy(Microgrid.State)
     StateForLearning = @pipe deepcopy(Microgrid.State) |> NormaliseState!(_, dictNormParams)
     μ_policy = Microgrid.Brain.policy_net(StateForLearning)[1]    # wektor p-w na bazie sieci aktora
-    MyMicrogrid.Brain.cPolicyOutputLayerType == "sigmoid" ? iσFixed = 0.01 : iσFixed = 8.0
+    MyMicrogrid.Brain.cPolicyOutputLayerType == "sigmoid" ? iσFixed = 0.01 : iσFixed = 1.0
     if bσFixed
         Policy = Distributions.Normal(μ_policy, iσFixed)
     else
