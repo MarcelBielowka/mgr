@@ -176,7 +176,7 @@ function CalculateReward(Microgrid::Microgrid, State::Vector,
         iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i55Quantile[1]
     end
 
-    return iReward + iMicrogridReward
+    return (iReward + iMicrogridReward) *0.001 # the reward is rescaled as per Ji et al
 end
 
 # update pamieci
