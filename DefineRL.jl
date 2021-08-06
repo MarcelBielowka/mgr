@@ -1,54 +1,51 @@
 using Distributions, Dates, DataFrames
 using Flux, Pipe
 
-function GetState(Microgrid::Microgrid, iLookAhead::Int, iTimeStep::Int)
-    iTotalProduction = Microgrid.dfTotalProduction.TotalProduction[iTimeStep:iTimeStep + iLookAhead,]
-    iTotalConsumption = Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep:iTimeStep + iLookAhead,]
+function GetState(Microgrid::Microgrid, iLookBack::Int, iTimeStep::Int)
+    iTotalProduction = Microgrid.dfTotalProduction.TotalProduction[iTimeStep-iLookBack:iTimeStep]
+    iTotalConsumption = Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep-iLookBack:iTimeStep]
     iProductionConsumptionMismatch = iTotalProduction .- iTotalConsumption
-    iHour = Dates.hour(Microgrid.dfTotalProduction.date[iTimeStep])
-    iHours = @pipe Flux.onehot(iHour, collect(0:23)) |> collect(_) |> Int.(_)
+    iDayAheadPrices = Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-iLookBack:iTimeStep]
 
-    if iHour !=23
-        Microgrid.State = [
-            abs.(iProductionConsumptionMismatch)
-            iProductionConsumptionMismatch[1] < 0
-            Microgrid.EnergyStorage.iCurrentCharge
-            ]
-    else
-        Microgrid.State = [
-            abs.(iProductionConsumptionMismatch)
-            iProductionConsumptionMismatch[1] < 0
-            Microgrid.EnergyStorage.iCurrentCharge
-            ]
-    end
+    Microgrid.State = [
+        iProductionConsumptionMismatch
+        iDayAheadPrices
+        Microgrid.EnergyStorage.iCurrentCharge
+    ]
 end
 
 function GetParamsForNormalisation(Microgrid::Microgrid)
     iOverallConsMismatch = Microgrid.dfTotalProduction.TotalProduction - Microgrid.dfTotalConsumption.TotalConsumption
+    iOverallPriceLevels = Microgrid.DayAheadPricesHandler.dfDayAheadPrices
     return Dict(
     #    "ProductionScalingParams" => extrema(Microgrid.dfTotalProduction.TotalProduction),
     #    "ConsumptionScalingParams" => extrema(Microgrid.dfTotalConsumption.TotalConsumption),
         "ConsMismatchParams" => extrema(iOverallConsMismatch),
+        "PriceParams" => extrema(iOverallPriceLevels),
         "ChargeParams" => (0, Microgrid.EnergyStorage.iMaxCapacity)
     )
 end
 
-function NormaliseState!(State::Vector, Params::Dict)
+function NormaliseState!(State::Vector, Params::Dict, iLookBack::Int)
     #(iProdMin, iProdMax) = Params["ProductionScalingParams"]
     #(iConsMin, iConsMax) = Params["ConsumptionScalingParams"]
     (iMismatchMin, iMismatchMax) = Params["ConsMismatchParams"]
+    (iPriceMin, iPriceMax) = Params["PriceParams"]
     (iChargeMin, iChargeMax) = Params["ChargeParams"]
-    for i in 1:(length(State)-2)
+    for i in 1:1:iLookBack
         State[i] = (State[i] - iMismatchMin) / (iMismatchMax - iMismatchMin)
+    end
+    for i in (iLookBack+1):1:(2*iLookBack)
+        State[i] = (State[i] - iPriceMin) / (iPriceMax - iPriceMin)
     end
     # State[length(State)] = (State[length(State)] - iChargeMin) / (iChargeMax - iChargeMin)
     return State
 end
 
-function restart!(Microgrid::Microgrid, iLookAhead::Int, iInitTimeStep::Int)
+function restart!(Microgrid::Microgrid, iLookBack::Int, iInitTimeStep::Int)
     Microgrid.Reward = 0
     Microgrid.EnergyStorage.iCurrentCharge = 0
-    GetState(Microgrid, iLookAhead, iInitTimeStep)
+    GetState(Microgrid, iLookBack, iInitTimeStep)
 end
 
 function GetReward(Microgrid::Microgrid, iTimeStep::Int)
@@ -85,7 +82,7 @@ function CriticLoss(x, y; ξ = 0.5)
     return ξ*Flux.mse(MyMicrogrid.Brain.value_net(x), y)
 end
 
-function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
+function Replay!(Microgrid::Microgrid, dictNormParams::Dict, iLookBack::Int)
     # println("Start learning")
     x = zeros(Float64, length(Microgrid.State), Microgrid.Brain.batch_size)
     Actions = zeros(Float64, 1, Microgrid.Brain.batch_size)
@@ -102,7 +99,7 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
         end
         iAdvantage = R - v
         # StateForLearning = deepcopy(State)
-        StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
+        StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams, iLookBack)
         x[:, i] .= StateForLearning
         A[:, i] .= iAdvantage
         Actions[:,i] .= ActualAction
@@ -165,14 +162,16 @@ function CalculateReward(Microgrid::Microgrid, State::Vector,
     #end
     iMicrogridVolume = deepcopy(ActualAction) * State[1]
     iGridVolume = State[1] - iMicrogridVolume
+    iGridPrice = Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep]
+    iReward = iGridVolume * iGridPrice
     #dictRewards = GetReward(Microgrid, iTimeStep)
-    if iGridVolume >= 0
+    #if iGridVolume >= 0
         #iReward = iGridVolume * dictRewards["iPriceSell"]
-        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iFirstDecile[1]
-    else
+    #    iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iFirstDecile[1]
+    #else
         #iReward = iGridVolume * dictRewards["iPriceBuy"]
-        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iLastDecile[1]
-    end
+    #    iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iLastDecile[1]
+    #end
 
     if iMicrogridVolume >= 0
         iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i45Quantile[1]
@@ -181,7 +180,7 @@ function CalculateReward(Microgrid::Microgrid, State::Vector,
     end
     iMicrogridReward = 0
 
-    return (iReward + iMicrogridReward) *0.001 # the reward is rescaled as per Ji et al
+    return (iReward + iMicrogridReward) * 0.001 # the reward is rescaled as per Ji et al
 end
 
 # update pamieci
@@ -192,9 +191,9 @@ end
 
 # definicja, ktore kroki mamy wykonac
 # bierze siec neuronowa i zwraca jej wynik
-function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormParams::Dict)
+function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormParams::Dict, iLookBack::Int)
     # StateForLearning = deepcopy(Microgrid.State)
-    StateForLearning = @pipe deepcopy(Microgrid.State) |> NormaliseState!(_, dictNormParams)
+    StateForLearning = @pipe deepcopy(Microgrid.State) |> NormaliseState!(_, dictNormParams, iLookBack)
     # μ_hat = Microgrid.Brain.policy_net(StateForLearning)[1]    # wektor p-w na bazie sieci aktora
     # MyMicrogrid.Brain.cPolicyOutputLayerType == "sigmoid" ? σ_hat  = 0.01 : σ_hat  = 1.0
     μ_hat, σ_hat = MyMicrogrid.Brain.policy_net(StateForLearning)
@@ -212,11 +211,11 @@ function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormPa
 end
 
 
-function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookAhead::Int,
+function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::Int,
     dictNormParams::Dict, bLearn::Bool, bLog::Bool)
     #Random.seed!(72945)
     CurrentState = deepcopy(Microgrid.State)
-    Policy, v = Forward(Microgrid, CurrentState, true, dictNormParams)
+    Policy, v = Forward(Microgrid, CurrentState, true, dictNormParams, iLookBack)
     Action = rand(Policy)
     ActionForPrint = Action * 100
     if bLog
@@ -232,10 +231,10 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookAhead::I
     iReward = CalculateReward(Microgrid, CurrentState,
         Action, ActualAction, iTimeStep, bLearn)
 
-    NextState = GetState(Microgrid, iLookAhead, iTimeStep + 1)
+    NextState = GetState(Microgrid, iLookBack, iTimeStep + 1)
     Microgrid.State = NextState
     Microgrid.Reward += iReward
-    _, v′ = Forward(Microgrid, NextState, true, dictNormParams)
+    _, v′ = Forward(Microgrid, NextState, true, dictNormParams, iLookBack)
     if iTimeStep + 1 == iHorizon
         bTerminal = true
     else
@@ -244,19 +243,19 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookAhead::I
     Remember!(Microgrid, (CurrentState, Action, ActualAction, iReward, NextState, v, v′, bTerminal))
 
     if (bLearn && length(Microgrid.Brain.memory) > Microgrid.Brain.min_memory_size)
-        Replay!(Microgrid, dictNormParams)
+        Replay!(Microgrid, dictNormParams, iLookBack)
     end
 
     return bTerminal, iReward
 
 end
 
-function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookAhead::Int,
+function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookBack::Int,
     iTimeStepStart::Int, iTimeStepEnd::Int, bLearn::Bool, bLog::Bool)
     println("############################")
     println("The run is starting. The parameters are:")
     println("Number of episodes $iNumberOfEpisodes")
-    println("Look ahead steps: $iLookAhead")
+    println("Look ahead steps: $iLookBack")
     println("Starting time step: $iTimeStepStart")
     println("Ending time step: $iTimeStepEnd")
     println("Learning: $bLearn")
@@ -266,7 +265,7 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookAhead::Int,
     iRewards = []
     iRewardsTimeStep = []
     dictParamsForNormalisation = GetParamsForNormalisation(Microgrid)
-    restart!(Microgrid,iLookAhead,iTimeStepStart)
+    restart!(Microgrid,iLookBack,iTimeStepStart)
     for iEpisode in 1:iNumberOfEpisodes
         if bLog
             println("Episode $iEpisode")
@@ -275,20 +274,20 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookAhead::Int,
             if bLog
                 println("Step $iTimeStep")
             end
-            bTerminal, iReward = Act!(Microgrid, iTimeStep, iTimeStepEnd, iLookAhead,
+            bTerminal, iReward = Act!(Microgrid, iTimeStep, iTimeStepEnd, iLookBack,
                 dictParamsForNormalisation, bLearn, bLog)
             push!(iRewardsTimeStep, iReward)
             if bTerminal
                 push!(iRewards, Microgrid.Reward)
                 push!(Microgrid.RewardHistory, Microgrid.Reward)
-                restart!(Microgrid,iLookAhead,iTimeStepStart)
+                restart!(Microgrid,iLookBack,iTimeStepStart)
             end
         end
     end
     println("############################")
     println("The below run has ended: ")
     println("Number of episodes $iNumberOfEpisodes")
-    println("Look ahead steps: $iLookAhead")
+    println("Look ahead steps: $iLookBack")
     println("Starting time step: $iTimeStepStart")
     println("Ending time step: $iTimeStepEnd")
     println("Learning: $bLearn")
@@ -310,22 +309,22 @@ function RunWrapper(DayAheadPricesHandler::DayAheadPricesHandler,
     WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
     MyWarehouse::Warehouse, MyHouseholds::⌂, cPolicyOutputLayerTypes::Vector{String},
     iEpisodes::Int, dRunStartTrain::Int, dRunEndTrain::Int,
-    dRunStartTest::Int, dRunEndTest::Int, iLookAheads::Vector, bLog::Bool;
+    dRunStartTest::Int, dRunEndTest::Int, iLookBacks::Vector, bLog::Bool;
     bTestMode::Bool = false)
 
     @assert (["identity", "sigmoid"] == cPolicyOutputLayerTypes) "The policy output layer type is not correct"
     FinalDict = Dict{}()
-    for cPolicyOutputLayerType in cPolicyOutputLayerTypes, iLookAhead in iLookAheads
-        println(iLookAhead)
+    for cPolicyOutputLayerType in cPolicyOutputLayerTypes, iLookBack in iLookBacks
+        println(iLookBack)
         MyMicrogrid = GetMicrogrid(DayAheadPricesHandler, WeatherDataHandler,
             MyWindPark, MyWarehouse, MyHouseholds,
-            cPolicyOutputLayerType, iLookAhead)
+            cPolicyOutputLayerType, iLookBack)
         if bTestMode
             MyMicrogrid.Brain.min_memory_size = 8
             MyMicrogrid.Brain.batch_size = 5
         end
 
-        TrainRun = Run!(MyMicrogrid, iEpisodes, iLookAhead, dRunStartTrain, dRunEndTrain, true, bLog)
+        TrainRun = Run!(MyMicrogrid, iEpisodes, iLookBack, dRunStartTrain, dRunEndTrain, true, bLog)
         iTrainRewardHistory = TrainRun[1]
         iTrainIntendedActions = deepcopy([MyMicrogrid.Brain.memory[i][2] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTrainActualActions = deepcopy([MyMicrogrid.Brain.memory[i][3] for i in 1:length(MyMicrogrid.Brain.memory)])
@@ -336,14 +335,14 @@ function RunWrapper(DayAheadPricesHandler::DayAheadPricesHandler,
         MyMicrogrid.Brain.memory = []
         MyMicrogrid.EnergyStorage.iCurrentCharge = 0
 
-        TestRun = Run!(MyMicrogrid, iEpisodes, iLookAhead, dRunStartTest, dRunEndTest, false, bLog)
+        TestRun = Run!(MyMicrogrid, iEpisodes, iLookBack, dRunStartTest, dRunEndTest, false, bLog)
         iTestRewardHistory = TestRun[1]
         iTestIntendedActions = deepcopy([MyMicrogrid.Brain.memory[i][2] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTestActualActions = deepcopy([MyMicrogrid.Brain.memory[i][3] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTestMismatch = deepcopy([MyMicrogrid.Brain.memory[i][1][1] for i in 1:length(MyMicrogrid.Brain.memory)])
         iTestBatteryCharge = deepcopy([MyMicrogrid.Brain.memory[i][1][length(MyMicrogrid.State)] for i in 1:length(MyMicrogrid.Brain.memory)])
 
-        push!(FinalDict, (cPolicyOutputLayerType, iLookAhead) => Dict(
+        push!(FinalDict, (cPolicyOutputLayerType, iLookBack) => Dict(
                 "MicrogridAfterTraining" => MicrogridAfterTraining,
                 "Microgrid" => deepcopy(MyMicrogrid),
                 "iTrainRewardHistory" => iTrainRewardHistory,
