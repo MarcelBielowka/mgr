@@ -315,9 +315,9 @@ end
 
 function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
-    MyWarehouse::Warehouse, MyHouseholds::⌂, cPolicyOutputLayerType::String, iLookAhead::Int)
+    MyWarehouse::Warehouse, MyHouseholds::⌂, cPolicyOutputLayerType::String, iLookBack::Int)
 
-    Brain = GetBrain(cPolicyOutputLayerType, iLookAhead + 3)
+    Brain = GetBrain(cPolicyOutputLayerType, 2*(iLookBack+1) + 1)
 
     dfTotalProduction = DataFrames.innerjoin(MyWindPark.dfWindParkProductionData,
         MyWarehouse.SolarPanels.dfSolarProductionData, on = :date)
