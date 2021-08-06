@@ -103,7 +103,7 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict)
         StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams)
         x[:, i] .= StateForLearning
         A[:, i] .= iAdvantage
-        Actions[:,i] .= Action
+        Actions[:,i] .= ActualAction
         y[:, i] .= R
     end
 
