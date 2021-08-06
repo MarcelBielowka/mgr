@@ -336,7 +336,7 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
 
     return Microgrid(
         Brain,
-        repeat([-Inf], (iLookAhead + 2)),
+        repeat([-Inf], (2*(iLookBack+1) + 1)),
         0.0,
         [],
         DayAheadPricesHandler,
