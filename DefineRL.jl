@@ -10,12 +10,14 @@ function GetState(Microgrid::Microgrid, iLookAhead::Int, iTimeStep::Int)
 
     if iHour !=23
         Microgrid.State = [
-            iProductionConsumptionMismatch
+            abs.(iProductionConsumptionMismatch)
+            iProductionConsumptionMismatch[1] < 0
             Microgrid.EnergyStorage.iCurrentCharge
             ]
     else
         Microgrid.State = [
-            iProductionConsumptionMismatch
+            abs.(iProductionConsumptionMismatch)
+            iProductionConsumptionMismatch[1] < 0
             Microgrid.EnergyStorage.iCurrentCharge
             ]
     end
@@ -36,7 +38,7 @@ function NormaliseState!(State::Vector, Params::Dict)
     #(iConsMin, iConsMax) = Params["ConsumptionScalingParams"]
     (iMismatchMin, iMismatchMax) = Params["ConsMismatchParams"]
     (iChargeMin, iChargeMax) = Params["ChargeParams"]
-    for i in 1:(length(State)-1)
+    for i in 1:(length(State)-2)
         State[i] = (State[i] - iMismatchMin) / (iMismatchMax - iMismatchMin)
     end
     # State[length(State)] = (State[length(State)] - iChargeMin) / (iChargeMax - iChargeMin)
