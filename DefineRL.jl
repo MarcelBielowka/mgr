@@ -32,10 +32,10 @@ function NormaliseState!(State::Vector, Params::Dict, iLookBack::Int)
     (iMismatchMin, iMismatchMax) = Params["ConsMismatchParams"]
     (iPriceMin, iPriceMax) = Params["PriceParams"]
     (iChargeMin, iChargeMax) = Params["ChargeParams"]
-    for i in 1:1:iLookBack
+    for i in 1:1:(iLookBack+1)
         State[i] = (State[i] - iMismatchMin) / (iMismatchMax - iMismatchMin)
     end
-    for i in (iLookBack+1):1:(2*iLookBack)
+    for i in (iLookBack+2):1:(2*(iLookBack+1))
         State[i] = (State[i] - iPriceMin) / (iPriceMax - iPriceMin)
     end
     # State[length(State)] = (State[length(State)] - iChargeMin) / (iChargeMax - iChargeMin)
