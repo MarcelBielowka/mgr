@@ -31,6 +31,7 @@ function ReadPrices(cFilePrices::String; DeliveryFilterStart = nothing, Delivery
     @assert all(DateVsHour .== 1)
     @assert !any(ismissing.(dfPriceDataRaw.Price))
 
+    dfPriceDataRaw = dfPriceDataRaw[2:nrow(dfPriceDataRaw),:]
     return dfPriceDataRaw
 end
 
