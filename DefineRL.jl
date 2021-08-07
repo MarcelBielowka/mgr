@@ -109,8 +109,8 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict, iLookBack::Int)
     Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,Actions,A)], ADAM(Microgrid.Brain.ηₚ))
     Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))
     #println("Actor parameters: ", Flux.params(Microgrid.Brain.policy_net))
-    println("Actor parameters: ", Flux.params(Microgrid.Brain.policy_net)[1][1:3])
-    println("Critic parameters: ", Flux.params(Microgrid.Brain.value_net)[1][1:3])
+    #println("Actor parameters: ", Flux.params(Microgrid.Brain.policy_net)[1][1:3])
+    #println("Critic parameters: ", Flux.params(Microgrid.Brain.value_net)[1][1:3])
 end
 
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookBack::Int, bLog::Bool)
