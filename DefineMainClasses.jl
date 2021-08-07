@@ -36,7 +36,8 @@ function GetDayAheadPricesHandler(cPowerPricesDataDir::String,
         DeliveryFilterEnd = DeliveryFilterEnd)
     dfQuantilesOfPrices = @pipe dfDayAheadPrices |>
 #        groupby(_, :DeliveryHour) |>
-        combine(_, :Price => (x -> quantile(x, 0.9)) => :iLastDecile,
+        combine(_, :Price => (x -> quantile(x, 0.5)) => :iMedian
+                    :Price => (x -> quantile(x, 0.9)) => :iLastDecile,
                     :Price => (x -> quantile(x, 0.1)) => :iFirstDecile,
                     :Price => (x -> quantile(x, 0.55)) => :i55Quantile,
                     :Price => (x -> quantile(x, 0.45)) => :i45Quantile)
@@ -317,7 +318,7 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
     MyWarehouse::Warehouse, MyHouseholds::⌂, cPolicyOutputLayerType::String, iLookBack::Int)
 
-    Brain = GetBrain(cPolicyOutputLayerType, 2*(iLookBack+1) + 1)
+    Brain = GetBrain(cPolicyOutputLayerType, (iLookBack+1) + 1)
 
     dfTotalProduction = DataFrames.innerjoin(MyWindPark.dfWindParkProductionData,
         MyWarehouse.SolarPanels.dfSolarProductionData, on = :date)
@@ -336,7 +337,7 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
 
     return Microgrid(
         Brain,
-        repeat([-Inf], (2*(iLookBack+1) + 1)),
+        repeat([-Inf], ((iLookBack+1) + 1)),
         0.0,
         [],
         DayAheadPricesHandler,
