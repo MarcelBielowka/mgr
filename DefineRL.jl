@@ -114,7 +114,7 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict, iLookBack::Int)
 end
 
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookBack::Int, bLog::Bool)
-    iConsumptionMismatch = Microgrid.State[iLookBack]
+    iConsumptionMismatch = Microgrid.State[iLookBack+1]
     #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
     #     iChargeDischargeVolume = deepcopy(Action) * iConsumptionMismatch
     #else
@@ -156,12 +156,12 @@ end
 function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     Action::Float64, ActualAction::Float64, iTimeStep::Int, bLearn::Bool)
     #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
-    #    iMicrogridVolume = deepcopy(ActualAction) * State[iLookBack]
+    #    iMicrogridVolume = deepcopy(ActualAction) * State[iLookBack+1]
     #else
     #    iMicrogridVolume = deepcopy(ActualAction)
     #end
-    iMicrogridVolume = deepcopy(ActualAction) * State[iLookBack]
-    iGridVolume = State[iLookBack] - iMicrogridVolume
+    iMicrogridVolume = deepcopy(ActualAction) * State[iLookBack+1]
+    iGridVolume = State[iLookBack+1] - iMicrogridVolume
     iGridPrice = Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep]
     iReward = iGridVolume * iGridPrice
     #dictRewards = GetReward(Microgrid, iTimeStep)
@@ -219,11 +219,11 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
     Action = rand(Policy)
     ActionForPrint = Action * 100
     if bLog
-        println("Time step $iTimeStep, intended action $ActionForPrint % of mismatch, prod-cons mismatch ", CurrentState[iLookBack])
+        println("Time step $iTimeStep, intended action $ActionForPrint % of mismatch, prod-cons mismatch ", CurrentState[iLookBack+1])
         #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
-        #    println("Time step $iTimeStep, intended action $ActionForPrint % of mismatch, prod-cons mismatch ", CurrentState[iLookBack])
+        #    println("Time step $iTimeStep, intended action $ActionForPrint % of mismatch, prod-cons mismatch ", CurrentState[iLookBack+1])
         #else
-        #    println("Time step $iTimeStep, intended action $Action kW, prod-cons mismatch ", CurrentState[iLookBack])
+        #    println("Time step $iTimeStep, intended action $Action kW, prod-cons mismatch ", CurrentState[iLookBack+1])
         #end
     end
 
