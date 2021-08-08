@@ -295,7 +295,7 @@ function GetBrain(cPolicyOutputLayerType, iDimState; β = 0.999, ηₚ = 0.0001,
     value_net = Chain(Dense(iDimState, 128, relu; init = Flux.glorot_uniform),
                     Dense(128, 52, relu; init = Flux.glorot_uniform),
                     Dense(52, 1, identity; init = Flux.glorot_uniform))
-    return Brain(β, 256, 10_000, 2_000, [], policy_net, value_net, ηₚ, ηᵥ, cPolicyOutputLayerType)
+    return Brain(β, 256, 12_000, 2_000, [], policy_net, value_net, ηₚ, ηᵥ, cPolicyOutputLayerType)
 end
 
 #########################################
