@@ -2,8 +2,8 @@ using Distributions, Dates, DataFrames
 using Flux, Pipe
 
 function GetState(Microgrid::Microgrid, iLookBack::Int, iTimeStep::Int)
-    iTotalProduction = Microgrid.dfTotalProduction.TotalProduction[iTimeStep-iLookBack:iTimeStep]
-    iTotalConsumption = Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep-iLookBack:iTimeStep]
+    iTotalProduction = Microgrid.dfTotalProduction.TotalProduction[iTimeStep:iTimeStep+iLookBack]
+    iTotalConsumption = Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep:iTimeStep+iLookBack]
     iProductionConsumptionMismatch = iTotalProduction .- iTotalConsumption
     # iDayAheadPrices = Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-iLookBack:iTimeStep]
 
@@ -115,7 +115,7 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict, iLookBack::Int)
 end
 
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookBack::Int, bLog::Bool)
-    iConsumptionMismatch = Microgrid.State[iLookBack+1]
+    iConsumptionMismatch = Microgrid.State[1]
     #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
     #     iChargeDischargeVolume = deepcopy(Action) * iConsumptionMismatch
     #else
@@ -166,7 +166,7 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     #end
     # iMicrogridVolume = deepcopy(ActualAction) * State[iLookBack+1]
     iMicrogridVolume = deepcopy(ActualAction)
-    iGridVolume = State[iLookBack+1] - iMicrogridVolume
+    iGridVolume = State[1] - iMicrogridVolume
     # iGridPrice = Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iMedian[1]
     # iReward = iGridVolume * iGridPrice
     #dictRewards = GetReward(Microgrid, iTimeStep)
@@ -226,7 +226,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
     Action = rand(Policy)
     ActionForPrint = Action * 100
     if bLog
-        println("Time step $iTimeStep, intended action $Action kW, prod-cons mismatch ", CurrentState[iLookBack+1])
+        println("Time step $iTimeStep, intended action $Action kW, prod-cons mismatch ", CurrentState[1])
         # println("Time step $iTimeStep, intended action $ActionForPrint % of mismatch, prod-cons mismatch ", CurrentState[iLookBack+1])
         #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
         #    println("Time step $iTimeStep, intended action $ActionForPrint % of mismatch, prod-cons mismatch ", CurrentState[iLookBack+1])
