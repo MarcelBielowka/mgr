@@ -271,7 +271,7 @@ function GetBrain(cPolicyOutputLayerType, iDimState; β = 0.999, ηₚ = 0.0001,
     if cPolicyOutputLayerType == "sigmoid"
         policy_net = Chain(Dense(iDimState, 200, relu),
                      Dense(200,200,relu),
-                     Dense(200,200,relu),
+                     # Dense(200,200,relu),
                      Dense(200,2,sigmoid))
         #policy_net = Chain(
         #    Dense(iDimState, 1, sigmoid; bias = false)
@@ -279,8 +279,8 @@ function GetBrain(cPolicyOutputLayerType, iDimState; β = 0.999, ηₚ = 0.0001,
     else
         policy_net = Chain(Dense(iDimState, 200, relu),
                      Dense(200,200,relu),
-                     Dense(200,200,relu),
-                    Dense(200,2))
+                     # Dense(200,200,relu),
+                     Dense(200,2))
         #policy_net = Chain(
         #    Dense(iDimState, 2, identity; bias = false)
         #)
@@ -288,12 +288,12 @@ function GetBrain(cPolicyOutputLayerType, iDimState; β = 0.999, ηₚ = 0.0001,
     #policy_net = Chain(
     #    Dense((iLookAhead + 1), 1, identity)
     #)
-    #value_net = Chain(
-    #    Dense(iDimState, 1, identity; bias = false)
-    #)
-    value_net = Chain(Dense(iDimState, 128, relu; init = Flux.glorot_uniform),
-                    Dense(128, 52, relu; init = Flux.glorot_uniform),
-                    Dense(52, 1, identity; init = Flux.glorot_uniform))
+    value_net = Chain(
+        Dense(iDimState, 1, identity; bias = false)
+    )
+    #value_net = Chain(Dense(iDimState, 128, relu; init = Flux.glorot_uniform),
+    #                Dense(128, 52, relu; init = Flux.glorot_uniform),
+    #                Dense(52, 1, identity; init = Flux.glorot_uniform))
     return Brain(β, 256, 100_000, 20_000, [], policy_net, value_net, ηₚ, ηᵥ, cPolicyOutputLayerType)
 end
 
