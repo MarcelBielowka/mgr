@@ -73,10 +73,10 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001)
     iScoreFunction = -Distributions.logpdf.(Policy, Actions)
     #println("iScoreFunction: $iScoreFunction")
     iLoss = sum(iScoreFunction .* A) / size(A,1)
-    # iEntropy = sum(Distributions.entropy.(Policy))
+    iEntropy = sum(Distributions.entropy.(Policy))
     println("Actor loss function: $iLoss")
-    # return iLoss - ι*iEntropy
-    return iLoss
+    return iLoss - ι*iEntropy
+    # return iLoss
 end
 
 function CriticLoss(x, y; ξ = 0.5)
@@ -99,8 +99,8 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict, iLookBack::Int)
             R = Reward + Microgrid.Brain.β * v′
         end
         iAdvantage = R - v
-        StateForLearning = deepcopy(State)
-        # StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams, iLookBack)
+        # StateForLearning = deepcopy(State)
+        StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams, iLookBack)
         x[:, i] .= StateForLearning
         A[:, i] .= iAdvantage
         Actions[:,i] .= ActualAction
@@ -197,8 +197,8 @@ end
 # definicja, ktore kroki mamy wykonac
 # bierze siec neuronowa i zwraca jej wynik
 function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormParams::Dict, iLookBack::Int)
-    StateForLearning = deepcopy(Microgrid.State)
-    # StateForLearning = @pipe deepcopy(Microgrid.State) |> NormaliseState!(_, dictNormParams, iLookBack)
+    # StateForLearning = deepcopy(Microgrid.State)
+    StateForLearning = @pipe deepcopy(Microgrid.State) |> NormaliseState!(_, dictNormParams, iLookBack)
     # μ_hat = Microgrid.Brain.policy_net(StateForLearning)[1]    # wektor p-w na bazie sieci aktora
     # MyMicrogrid.Brain.cPolicyOutputLayerType == "sigmoid" ? σ_hat  = 0.01 : σ_hat  = 1.0
     PolicyParameters = MyMicrogrid.Brain.policy_net(StateForLearning)
