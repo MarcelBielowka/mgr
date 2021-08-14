@@ -272,7 +272,7 @@ function GetBrain(cPolicyOutputLayerType, iDimState; β = 0.999, ηₚ = 0.0001,
     if cPolicyOutputLayerType == "sigmoid"
         policy_net = Chain(Dense(iDimState, 200, relu),
                      Dense(200,200,relu),
-                     #Dense(200,200,relu),
+                     Dense(200,200,relu),
                      Dense(200,2,sigmoid))
     else
         policy_net = Chain(Dense(iDimState, 200, relu),
