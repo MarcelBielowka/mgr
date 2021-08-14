@@ -205,7 +205,7 @@ function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormPa
     μ_hat = PolicyParameters[1,:]
     σ_hat = deepcopy(PolicyParameters[2,:])
     σ_hat = softplus.(σ_hat) .+ 1e-1
-    Policy = Distributions.Normal.(μ_hat, σ_hat)
+    Policy = Distributions.Normal.(μ_hat, σ_hat)[1]
     #MyMicrogrid.Brain.cPolicyOutputLayerType == "sigmoid" ? iσFixed = 0.01 : iσFixed = 1.0
     #if bσFixed
     #    Policy = Distributions.Normal(μ_policy, iσFixed)
