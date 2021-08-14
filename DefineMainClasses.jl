@@ -269,21 +269,22 @@ function GetBrain(cPolicyOutputLayerType, iDimState; β = 0.999, ηₚ = 0.0001,
     @assert any(["identity", "sigmoid"] .== cPolicyOutputLayerType) "The policy output layer type is not correct"
 
     if cPolicyOutputLayerType == "sigmoid"
-        policy_net = Chain(Dense(iDimState, 200, relu),
-                     Dense(200,200,relu),
-                     # Dense(200,200,relu),
-                     Dense(200,2,sigmoid))
+        #policy_net = Chain(Dense(iDimState, 200, relu),
+        #             Dense(200,200,relu),
+        #             # Dense(200,200,relu),
+        #             Dense(200,2,sigmoid))
         #policy_net = Chain(
         #    Dense(iDimState, 1, sigmoid; bias = false)
         #)
+        policy_net = nothing
     else
-        policy_net = Chain(Dense(iDimState, 200, relu),
-                     Dense(200,200,relu),
-                     # Dense(200,200,relu),
-                     Dense(200,2))
-        #policy_net = Chain(
-        #    Dense(iDimState, 2, identity; bias = false)
-        #)
+        #policy_net = Chain(Dense(iDimState, 200, relu),
+        #             Dense(200,200,relu),
+        #             # Dense(200,200,relu),
+        #             Dense(200,2))
+        policy_net = Chain(
+            Dense(iDimState, 2, identity; bias = false)
+        )
     end
     #policy_net = Chain(
     #    Dense((iLookAhead + 1), 1, identity)
