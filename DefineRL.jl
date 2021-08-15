@@ -74,10 +74,10 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001)
     iScoreFunction = -Distributions.logpdf.(Policy, Actions)
     #println("iScoreFunction: $iScoreFunction")
     iLoss = sum(iScoreFunction .* A) / size(A,1)
-    # iEntropy = sum(Distributions.entropy.(Policy))
+    iEntropy = sum(Distributions.entropy.(Policy))
     println("Actor loss function: $iLoss")
-    # return iLoss - ι*iEntropy
-    return iLoss
+    return iLoss - ι*iEntropy
+    # return iLoss
 end
 
 function CriticLoss(x, y; ξ = 0.5)
@@ -104,7 +104,7 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict, iLookBack::Int)
         StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams, iLookBack)
         x[:, i] .= StateForLearning
         A[:, i] .= iAdvantage
-        Actions[:,i] .= ActualAction
+        Actions[:,i] .= Action
         y[:, i] .= R
     end
 
