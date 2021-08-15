@@ -74,7 +74,7 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001)
     #println("iScoreFunction: $iScoreFunction")
     iLoss = sum(iScoreFunction .* A) / size(A,1)
     #iEntropy = sum(Distributions.entropy.(Policy))
-    #println("Actor loss function: $iLoss")
+    println("Actor loss function: $iLoss")
     #return iLoss - ι*iEntropy
     return iLoss
 end
@@ -167,16 +167,16 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     iMicrogridVolume = deepcopy(ActualAction) * State[iLookBack+1]
     # iMicrogridVolume = deepcopy(ActualAction)
     iGridVolume = State[iLookBack+1] - iMicrogridVolume
-    # iGridPrice = Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iMedian[1]
-    # iReward = iGridVolume * iGridPrice
+    iGridPrice = Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iMedian[1]
+    iReward = iGridVolume * iGridPrice
     #dictRewards = GetReward(Microgrid, iTimeStep)
-    if iGridVolume >= 0
-        #iReward = iGridVolume * dictRewards["iPriceSell"]
-        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i45Quantile[1]
-    else
+    #if iGridVolume >= 0
+    #    #iReward = iGridVolume * dictRewards["iPriceSell"]
+    #    iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i45Quantile[1]
+    #else
         #iReward = iGridVolume * dictRewards["iPriceBuy"]
-        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i55Quantile[1]
-    end
+    #    iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i55Quantile[1]
+    #end
 
     if iMicrogridVolume >= 0
         iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i45Quantile[1]
