@@ -39,6 +39,8 @@ function GetDayAheadPricesHandler(cPowerPricesDataDir::String,
         combine(_, :Price => (x -> quantile(x, 0.5)) => :iMedian,
                     :Price => (x -> quantile(x, 0.9)) => :iLastDecile,
                     :Price => (x -> quantile(x, 0.1)) => :iFirstDecile,
+                    :Price => (x -> quantile(x, 0.7)) => :i70Quantile,
+                    :Price => (x -> quantile(x, 0.3)) => :i30Quantile,
                     :Price => (x -> quantile(x, 0.55)) => :i55Quantile,
                     :Price => (x -> quantile(x, 0.45)) => :i45Quantile)
 
