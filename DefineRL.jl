@@ -103,7 +103,7 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict, iLookBack::Int)
         # StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams, iLookBack)
         x[:, i] .= StateForLearning
         A[:, i] .= iAdvantage
-        Actions[:,i] .= ActualAction
+        Actions[:,i] .= Action
         y[:, i] .= R
     end
 
@@ -172,10 +172,10 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     #dictRewards = GetReward(Microgrid, iTimeStep)
     if iGridVolume >= 0
         #iReward = iGridVolume * dictRewards["iPriceSell"]
-        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i45Quantile[1]
+        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Quantile[1]
     else
         #iReward = iGridVolume * dictRewards["iPriceBuy"]
-        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i55Quantile[1]
+        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i70Quantile[1]
     end
 
     if iMicrogridVolume >= 0
@@ -185,7 +185,7 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     end
     iMicrogridReward = 0
 
-    return (iReward + iMicrogridReward) #* 0.001 # the reward is rescaled as per Ji et al
+    return (iReward + iMicrogridReward) * 0.001 # the reward is rescaled as per Ji et al
 end
 
 # update pamieci
