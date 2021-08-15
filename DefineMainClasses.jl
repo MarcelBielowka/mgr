@@ -277,10 +277,10 @@ function GetBrain(cPolicyOutputLayerType, iDimState; β = 0.999, ηₚ = 0.0001,
                      Dense(200,200,relu),
                      Dense(200,2,sigmoid))
     else
-        policy_net = Chain(Dense(iDimState, 200, relu),
-                     Dense(200,200,relu),
+        policy_net = Chain(Dense(iDimState, 50, relu),
+                     Dense(50,50,relu),
                      #Dense(200,200,relu),
-                     Dense(200,2))
+                     Dense(50,2))
         #policy_net = Chain(
         #    Dense(iDimState, 2, identity; bias = false)
         #)
