@@ -59,13 +59,13 @@ function GetReward(Microgrid::Microgrid, iTimeStep::Int)
     )
 end
 
-function ActorLoss(x, Actions, A; ι::Float64 = 0.001)
+function ActorLoss(x, Actions, A; ι::Float64 = 0.0001)
     #println("μ_policy: $μ_policy")
     #println(typeof(μ_policy))
     PolicyParameters = MyMicrogrid.Brain.policy_net(x)
     μ_hat = PolicyParameters[1,:]
     σ_hat = deepcopy(PolicyParameters[2,:])
-    σ_hat = softplus.(σ_hat) .+ 1e-1
+    σ_hat = softplus.(σ_hat) .+ 1e-3
     # μ_hat = MyMicrogrid.Brain.policy_net(x)
     #MyMicrogrid.Brain.cPolicyOutputLayerType == "sigmoid" ? σ_hat = 0.01 : σ_hat = 1.0
     Policy = Distributions.Normal.(μ_hat, σ_hat)
@@ -167,16 +167,16 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     iMicrogridVolume = deepcopy(ActualAction) * State[iLookBack+1]
     # iMicrogridVolume = deepcopy(ActualAction)
     iGridVolume = State[iLookBack+1] - iMicrogridVolume
-    iGridPrice = Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iMedian[1]
-    iReward = iGridVolume * iGridPrice
+    #iGridPrice = Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iMedian[1]
+    #iReward = iGridVolume * iGridPrice
     #dictRewards = GetReward(Microgrid, iTimeStep)
-    #if iGridVolume >= 0
-    #    #iReward = iGridVolume * dictRewards["iPriceSell"]
-    #    iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i45Quantile[1]
-    #else
-        #iReward = iGridVolume * dictRewards["iPriceBuy"]
-    #    iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i55Quantile[1]
-    #end
+    if iGridVolume >= 0
+        #iReward = iGridVolume * dictRewards["iPriceSell"]
+        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i45Quantile[1]
+    else
+    #iReward = iGridVolume * dictRewards["iPriceBuy"]
+        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i55Quantile[1]
+    end
 
     if iMicrogridVolume >= 0
         iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i45Quantile[1]
@@ -204,7 +204,7 @@ function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormPa
     PolicyParameters = MyMicrogrid.Brain.policy_net(StateForLearning)
     μ_hat = PolicyParameters[1,:]
     σ_hat = deepcopy(PolicyParameters[2,:])
-    σ_hat = softplus.(σ_hat) .+ 1e-1
+    σ_hat = softplus.(σ_hat) .+ 1e-3
     println("Policy params: $μ_hat, $σ_hat")
     Policy = Distributions.Normal.(μ_hat, σ_hat)
     #MyMicrogrid.Brain.cPolicyOutputLayerType == "sigmoid" ? iσFixed = 0.01 : iσFixed = 1.0
