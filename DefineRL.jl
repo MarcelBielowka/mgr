@@ -73,10 +73,10 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001)
     iScoreFunction = -Distributions.logpdf.(Policy, Actions)
     #println("iScoreFunction: $iScoreFunction")
     iLoss = sum(iScoreFunction .* A) / size(A,1)
-    #iEntropy = sum(Distributions.entropy.(Policy))
+    iEntropy = sum(Distributions.entropy.(Policy))
     println("Actor loss function: $iLoss")
-    #return iLoss - ι*iEntropy
-    return iLoss
+    return iLoss - ι*iEntropy
+    # return iLoss
 end
 
 function CriticLoss(x, y; ξ = 0.5)
@@ -205,6 +205,7 @@ function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormPa
     μ_hat = PolicyParameters[1,:]
     σ_hat = deepcopy(PolicyParameters[2,:])
     σ_hat = softplus.(σ_hat) .+ 1e-1
+    println("Policy params: $μ_hat, $σ_hat")
     Policy = Distributions.Normal.(μ_hat, σ_hat)
     #MyMicrogrid.Brain.cPolicyOutputLayerType == "sigmoid" ? iσFixed = 0.01 : iσFixed = 1.0
     #if bσFixed
