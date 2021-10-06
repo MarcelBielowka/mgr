@@ -276,7 +276,11 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookBack::Int,
     dictParamsForNormalisation = GetParamsForNormalisation(Microgrid)
     restart!(Microgrid,iLookBack,iTimeStepStart)
     for iEpisode in 1:iNumberOfEpisodes
-        if (Microgrid.Brain.policy_net(Microgrid.State)[1] < 100)
+        TestState = @pipe deepcopy(Microgrid.State) |> NormaliseState!(_, dictParamsForNormalisation, iLookBack)
+        TestValue = abs(Microgrid.Brain.policy_net(TestState)[1])
+        println("TestState: $TestState")
+        println("TestValue: $TestValue")
+        if TestValue < 100
             if bLog
                 println("Episode $iEpisode")
             end
