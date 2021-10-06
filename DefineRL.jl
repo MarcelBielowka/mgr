@@ -59,7 +59,7 @@ function GetReward(Microgrid::Microgrid, iTimeStep::Int)
     )
 end
 
-function ActorLoss(x, Actions, A; ι::Float64 = 0.0001)
+function ActorLoss(x, Actions, A; ι::Float64 = 0.001)
     #println("μ_policy: $μ_policy")
     #println(typeof(μ_policy))
     PolicyParameters = MyMicrogrid.Brain.policy_net(x)
@@ -276,21 +276,26 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookBack::Int,
     dictParamsForNormalisation = GetParamsForNormalisation(Microgrid)
     restart!(Microgrid,iLookBack,iTimeStepStart)
     for iEpisode in 1:iNumberOfEpisodes
-        if bLog
-            println("Episode $iEpisode")
-        end
-        for iTimeStep in iTimeStepStart:1:(iTimeStepEnd-1)
+        if (Microgrid.Brain.policy_net(Microgrid.State)[1] < 100)
             if bLog
-                println("Step $iTimeStep")
+                println("Episode $iEpisode")
             end
-            bTerminal, iReward = Act!(Microgrid, iTimeStep, iTimeStepEnd, iLookBack,
-                dictParamsForNormalisation, bLearn, bLog)
-            push!(iRewardsTimeStep, iReward)
-            if bTerminal
-                push!(iRewards, Microgrid.Reward)
-                push!(Microgrid.RewardHistory, Microgrid.Reward)
-                restart!(Microgrid,iLookBack,iTimeStepStart)
+            for iTimeStep in iTimeStepStart:1:(iTimeStepEnd-1)
+                if bLog
+                    println("Step $iTimeStep")
+                end
+                bTerminal, iReward = Act!(Microgrid, iTimeStep, iTimeStepEnd, iLookBack,
+                    dictParamsForNormalisation, bLearn, bLog)
+                push!(iRewardsTimeStep, iReward)
+                if bTerminal
+                    push!(iRewards, Microgrid.Reward)
+                    push!(Microgrid.RewardHistory, Microgrid.Reward)
+                    restart!(Microgrid,iLookBack,iTimeStepStart)
+                end
             end
+        else
+            println("Mean of policy distribution exceeded 100. Learning is stopped after episode $iEpisode")
+            iEpisode = iNumberOfEpisodes
         end
     end
     println("############################")
