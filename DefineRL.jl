@@ -72,11 +72,11 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001)
     #println("Policy: $Policy")
     iScoreFunction = -Distributions.logpdf.(Policy, Actions)
     #println("iScoreFunction: $iScoreFunction")
-    iLoss = sum(iScoreFunction .* A) / size(A,1)
-    iEntropy = sum(Distributions.entropy.(Policy))
+    iLoss = sum(iScoreFunction .* A)
+    #iEntropy = sum(Distributions.entropy.(Policy))
     println("Actor loss function: $iLoss")
-    return iLoss - ι*iEntropy
-    # return iLoss
+    # return iLoss - ι*iEntropy
+    return iLoss
 end
 
 function CriticLoss(x, y; ξ = 0.5)
