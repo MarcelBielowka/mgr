@@ -114,6 +114,20 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict, iLookBack::Int)
     #println("Critic parameters: ", Flux.params(Microgrid.Brain.value_net)[1][1:3])
 end
 
+function Learn!(Microgrid::Microgrid, step::Tuple, dictNormParams::Dict)
+    State, Action, ActualAction, Reward, NextState, v, v′, bTerminal = step
+    if bTerminal
+        R = Reward
+    else
+        R = Reward + Microgrid.Brain.β * v′
+    end
+    x = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams, iLookBack) # in usual circumstances that's StateForLearning
+    A = R - v
+    y = R
+    Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,Action,A)], ADAM(Microgrid.Brain.ηₚ))
+    Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))
+end
+
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookBack::Int, bLog::Bool)
     iConsumptionMismatch = Microgrid.State[iLookBack+1]
     #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
