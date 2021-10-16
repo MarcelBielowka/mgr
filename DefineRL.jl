@@ -263,14 +263,17 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
     else
         bTerminal = false
     end
-    Remember!(Microgrid, (CurrentState, Action, ActualAction, iReward, NextState, v, v′, bTerminal))
+    step = (CurrentState, Action, ActualAction, iReward, NextState, v, v′, bTerminal)
+    Remember!(Microgrid, step)
 
-    if (bLearn && length(Microgrid.Brain.memory) > Microgrid.Brain.min_memory_size)
-        Replay!(Microgrid, dictNormParams, iLookBack)
+    if bLearn
+        Learn!(Microgrid, step, dictNormParams)
     end
 
+    #if (bLearn && length(Microgrid.Brain.memory) > Microgrid.Brain.min_memory_size)
+    #    Replay!(Microgrid, dictNormParams, iLookBack)
+    #end
     return bTerminal, iReward
-
 end
 
 function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookBack::Int,
