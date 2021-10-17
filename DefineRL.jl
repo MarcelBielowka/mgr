@@ -117,15 +117,15 @@ end
 function Learn!(Microgrid::Microgrid, step::Tuple, dictNormParams::Dict, iLookBack::Int)
     State, Action, ActualAction, Reward, NextState, v, v′, bTerminal = step
     if bTerminal
-        R = Reward
+        R = Reward  #TD target
     else
-        R = Reward + Microgrid.Brain.β * v′
+        R = Reward + Microgrid.Brain.β * v′ #TD target
     end
     x = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams, iLookBack) # in usual circumstances that's StateForLearning
-    A = R - v
+    A = R - v                               # TD error
     y = R
-    Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,Action,A)], ADAM(Microgrid.Brain.ηₚ))
-    Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))
+    Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,Action,A)], ADAM(Microgrid.Brain.ηₚ)) # Actor learns based on TD error
+    Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))        # Critic learns based on TD target
 end
 
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookBack::Int, bLog::Bool)
