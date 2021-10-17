@@ -114,7 +114,7 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict, iLookBack::Int)
     #println("Critic parameters: ", Flux.params(Microgrid.Brain.value_net)[1][1:3])
 end
 
-function Learn!(Microgrid::Microgrid, step::Tuple, dictNormParams::Dict)
+function Learn!(Microgrid::Microgrid, step::Tuple, dictNormParams::Dict, iLookBack::Int)
     State, Action, ActualAction, Reward, NextState, v, v′, bTerminal = step
     if bTerminal
         R = Reward
@@ -267,7 +267,8 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
     Remember!(Microgrid, step)
 
     if bLearn
-        Learn!(Microgrid, step, dictNormParams)
+        Learn!(Microgrid, step, dictNormParams, iLookBack)
+        println("Learning")
     end
 
     #if (bLearn && length(Microgrid.Brain.memory) > Microgrid.Brain.min_memory_size)
