@@ -73,7 +73,7 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001)
     #println("Policy: $Policy")
     iScoreFunction = -Distributions.logpdf.(Policy, Actions)
     #println("iScoreFunction: $iScoreFunction")
-    iLoss = iScoreFunction .* A
+    iLoss = sum(iScoreFunction .* A)
     #iEntropy = sum(Distributions.entropy.(Policy))
     println("Actor loss function: $iLoss")
     # return iLoss - ι*iEntropy
@@ -211,7 +211,8 @@ end
 
 # definicja, ktore kroki mamy wykonac
 # bierze siec neuronowa i zwraca jej wynik
-function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormParams::Dict, iLookBack::Int)
+function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormParams::Dict, iLookBack::Int,
+        bPrintPolicyParams::Bool)
     # StateForLearning = deepcopy(Microgrid.State)
     StateForLearning = @pipe deepcopy(Microgrid.State) |> NormaliseState!(_, dictNormParams, iLookBack)
     μ_hat = Microgrid.Brain.policy_net(StateForLearning)    # wektor p-w na bazie sieci aktora
@@ -220,7 +221,9 @@ function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormPa
     # μ_hat = PolicyParameters[1,:]
     # σ_hat = deepcopy(PolicyParameters[2,:])
     # σ_hat = softplus.(σ_hat) .+ 1e-3
-    println("Policy params: $μ_hat, $σ_hat")
+    if bPrintPolicyParams
+        println("Policy params: $μ_hat, $σ_hat")
+    end
     Policy = Distributions.Normal.(μ_hat, σ_hat)
     #MyMicrogrid.Brain.cPolicyOutputLayerType == "sigmoid" ? iσFixed = 0.01 : iσFixed = 1.0
     #if bσFixed
@@ -238,7 +241,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
     dictNormParams::Dict, bLearn::Bool, bLog::Bool)
     #Random.seed!(72945)
     CurrentState = deepcopy(Microgrid.State)
-    Policy, v = Forward(Microgrid, CurrentState, true, dictNormParams, iLookBack)
+    Policy, v = Forward(Microgrid, CurrentState, true, dictNormParams, iLookBack, true)
     Action = rand(Policy)
     ActionForPrint = Action * 100
     if bLog
@@ -258,7 +261,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
     NextState = GetState(Microgrid, iLookBack, iTimeStep + 1)
     Microgrid.State = NextState
     Microgrid.Reward += iReward
-    _, v′ = Forward(Microgrid, NextState, true, dictNormParams, iLookBack)
+    _, v′ = Forward(Microgrid, NextState, true, dictNormParams, iLookBack, false)
     if iTimeStep + 1 == iHorizon
         bTerminal = true
     else
