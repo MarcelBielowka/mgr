@@ -194,9 +194,9 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     end
 
     if iMicrogridVolume >= 0
-        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i45Centile[1]
+        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Centile[1]
     else
-        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i55Centile[1]
+        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i70Centile[1]
     end
     iMicrogridReward = 0
 
