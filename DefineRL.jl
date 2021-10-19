@@ -125,7 +125,7 @@ function Learn!(Microgrid::Microgrid, step::Tuple, dictNormParams::Dict, iLookBa
     x = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams, iLookBack) # in usual circumstances that's StateForLearning
     A = R - v                               # TD error
     y = R
-    Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,ActualAction,A)], ADAM(Microgrid.Brain.ηₚ)) # Actor learns based on TD error
+    Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,Action,A)], ADAM(Microgrid.Brain.ηₚ)) # Actor learns based on TD error
     Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))        # Critic learns based on TD target
 end
 
