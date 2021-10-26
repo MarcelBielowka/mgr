@@ -267,7 +267,8 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
     else
         bTerminal = false
     end
-    step = (CurrentState, Action, ActualAction, iReward, NextState, v, v′, bTerminal)
+    step = (deepcopy(CurrentState), deepcopy(Action), deepcopy(ActualAction),
+        deepcopy(iReward), deepcopy(NextState), deepcopy(v), deepcopy(v′), deepcopy(bTerminal))
     Remember!(Microgrid, step)
 
     if bLearn
