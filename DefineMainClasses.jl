@@ -278,9 +278,9 @@ function GetBrain(cPolicyOutputLayerType, iDimState; β = 0.999, ηₚ = 0.0001,
         policy_net = nothing
     else
         policy_net = Chain(Dense(iDimState, 200, relu),
-                     #Dense(200,200,relu),
                      Dense(200,200,relu),
-                    Dense(200,1))
+                     Dense(200,200,relu),
+                    Dense(200,1, identity))
         #policy_net = Chain(
         #    Dense(iDimState, 2, identity)
         #)
@@ -292,6 +292,7 @@ function GetBrain(cPolicyOutputLayerType, iDimState; β = 0.999, ηₚ = 0.0001,
     #    Dense(iDimState, 1, identity; bias = false)
     #)
     value_net = Chain(Dense(iDimState, 128, relu),
+                    Dense(128, 128, relu),
                     Dense(128, 52, relu),
                     Dense(52, 1, identity))
     return Brain(β, 64, 12_000, 2_000, [], policy_net, value_net, ηₚ, ηᵥ, cPolicyOutputLayerType)
