@@ -267,7 +267,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
     _, v′ = Forward(Microgrid, NextState, true, dictNormParams, iLookBack, false)
     if iTimeStep + 1 == iHorizon
         bTerminal = true
-        v′ = 0
+        # v′ = 0
     else
         bTerminal = false
     end
