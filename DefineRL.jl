@@ -81,7 +81,7 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001)
 end
 
 function CriticLoss(x, y; ξ = 0.5)
-    return Flux.mse(MyMicrogrid.Brain.value_net(x), y)
+    return ξ*Flux.mse(MyMicrogrid.Brain.value_net(x), y)
 end
 
 function Replay!(Microgrid::Microgrid, dictNormParams::Dict, iLookBack::Int)
