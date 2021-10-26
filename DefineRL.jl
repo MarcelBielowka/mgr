@@ -117,11 +117,12 @@ end
 
 function Learn!(Microgrid::Microgrid, step::Tuple, dictNormParams::Dict, iLookBack::Int)
     State, Action, ActualAction, Reward, NextState, v, v′, bTerminal = step
-    if bTerminal
-        R = Reward  #TD target
-    else
-        R = Reward + Microgrid.Brain.β * v′ #TD target
-    end
+#    if bTerminal
+#        R = Reward  #TD target
+#    else
+#        R = Reward + Microgrid.Brain.β * v′ #TD target
+#    end
+    R = Reward + Microgrid.Brain.β * v′ #TD target
     x = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams, iLookBack) # in usual circumstances that's StateForLearning
     A = R - v                               # TD error
     y = R
