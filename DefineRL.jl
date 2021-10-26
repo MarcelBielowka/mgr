@@ -81,7 +81,9 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001)
 end
 
 function CriticLoss(x, y; ξ = 0.5)
-    return ξ*Flux.mse(MyMicrogrid.Brain.value_net(x), y)
+    iCriticLoss = ξ*Flux.mse(MyMicrogrid.Brain.value_net(x), y)
+    println("Critic loss: $iCriticLoss")
+    return iCriticLoss
 end
 
 function Replay!(Microgrid::Microgrid, dictNormParams::Dict, iLookBack::Int)
@@ -152,7 +154,7 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookB
         ActualAction = iCharge / iConsumptionMismatch
         # ActualAction = iCharge
         if bLog
-            println("Actual charge of battery: $iCharge")
+            println("Actual charge of battery: ", round(iCharge; digits = 2))
         end
     else
         iMaxPossibleDischarge = max(Microgrid.EnergyStorage.iDischargeRate,
@@ -167,7 +169,7 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookB
         ActualAction = iDischarge / iConsumptionMismatch
         # ActualAction = iDischarge
         if bLog
-            println("Actual discharge of battery: $iDischarge")
+            println("Actual discharge of battery: ", round(iDischarge; digits = 2))
         end
     end
     return Action, ActualAction
@@ -244,10 +246,10 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
     CurrentState = deepcopy(Microgrid.State)
     Policy, v = Forward(Microgrid, CurrentState, true, dictNormParams, iLookBack, true)
     Action = rand(Policy)
-    ActionForPrint = Action * 100
+    ActionForPrint = round(Action * 100; digits = 2)
     if bLog
         # println("Time step $iTimeStep, intended action $Action kW, prod-cons mismatch ", CurrentState[iLookBack+1])
-        println("Time step $iTimeStep, intended action $ActionForPrint % of mismatch, prod-cons mismatch ", CurrentState[1])
+        println("Intended action $ActionForPrint % of mismatch, prod-cons mismatch ", round(CurrentState[1]; digits = 2))
         #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
         #    println("Time step $iTimeStep, intended action $ActionForPrint % of mismatch, prod-cons mismatch ", CurrentState[iLookBack+1])
         #else
@@ -274,7 +276,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
 
     if bLearn
         Learn!(Microgrid, step, dictNormParams, iLookBack)
-        println("Learning")
+        #println("Learning")
     end
 
     #if (bLearn && length(Microgrid.Brain.memory) > Microgrid.Brain.min_memory_size)
@@ -310,7 +312,7 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookBack::Int,
             end
             for iTimeStep in iTimeStepStart:1:(iTimeStepEnd-1)
                 if bLog
-                    println("Step $iTimeStep")
+                    println("\nStep $iTimeStep")
                 end
                 bTerminal, iReward = Act!(Microgrid, iTimeStep, iTimeStepEnd, iLookBack,
                     dictParamsForNormalisation, bLearn, bLog)
