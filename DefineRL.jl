@@ -184,9 +184,10 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     #else
     #    iMicrogridVolume = deepcopy(ActualAction)
     #end
-    iMicrogridVolume = deepcopy(ActualAction) * State[1]
+    # iMicrogridVolume = deepcopy(ActualAction) * State[1]
     # iMicrogridVolume = deepcopy(ActualAction)
-    iGridVolume = State[1] - iMicrogridVolume
+    # iGridVolume = State[1] - iMicrogridVolume
+    iGridVolume = State[1] - ActualAction * Microgrid.EnergyStorage.iMaxCapacity
     #iGridPrice = Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iMedian[1]
     #iReward = iGridVolume * iGridPrice
     #dictRewards = GetReward(Microgrid, iTimeStep)
@@ -198,11 +199,11 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
         iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i70Centile[1]
     end
 
-    if iMicrogridVolume >= 0
-        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Centile[1]
-    else
-        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i70Centile[1]
-    end
+    #if iMicrogridVolume >= 0
+    #    iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Centile[1]
+    #else
+    #    iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i70Centile[1]
+    #end
     iMicrogridReward = 0
 
     return (iReward + iMicrogridReward) * 0.001 # the reward is rescaled as per Ji et al
@@ -251,7 +252,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
     ActionForPrint = round(Action * 100; digits = 2)
     if bLog
         # println("Time step $iTimeStep, intended action $Action kW, prod-cons mismatch ", CurrentState[iLookBack+1])
-        println("Intended action $ActionForPrint % of mismatch, prod-cons mismatch ", round(CurrentState[1]; digits = 2))
+        println("Intended action $ActionForPrint % of storage capacity, prod-cons mismatch ", round(CurrentState[1]; digits = 2))
         #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
         #    println("Time step $iTimeStep, intended action $ActionForPrint % of mismatch, prod-cons mismatch ", CurrentState[iLookBack+1])
         #else
