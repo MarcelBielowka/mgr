@@ -133,25 +133,26 @@ function Learn!(Microgrid::Microgrid, step::Tuple, dictNormParams::Dict, iLookBa
 end
 
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookBack::Int, bLog::Bool)
-    iConsumptionMismatch = Microgrid.State[1]
+    # iConsumptionMismatch = Microgrid.State[1]
     #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
     #     iChargeDischargeVolume = deepcopy(Action) * iConsumptionMismatch
     #else
     #    iChargeDischargeVolume = deepcopy(Action)
     #end
-    iChargeDischargeVolume = deepcopy(Action) * iConsumptionMismatch
+    iChargeDischargeVolume = deepcopy(Action) * Microgrid.EnergyStorage.iMaxCapacity
     # iChargeDischargeVolume = deepcopy(Action)
     if iChargeDischargeVolume >= 0
         iMaxPossibleCharge = min(Microgrid.EnergyStorage.iChargeRate,
             Microgrid.EnergyStorage.iMaxCapacity - Microgrid.EnergyStorage.iCurrentCharge * Microgrid.EnergyStorage.iMaxCapacity)
         iCharge = min(iMaxPossibleCharge, iChargeDischargeVolume)
-        Microgrid.EnergyStorage.iCurrentCharge += iCharge / Microgrid.EnergyStorage.iMaxCapacity
+        iChargeNormalised = iCharge / Microgrid.EnergyStorage.iMaxCapacity
+        Microgrid.EnergyStorage.iCurrentCharge += iChargeNormalised
         #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
         #    ActualAction = iCharge / iConsumptionMismatch
         #else
         #    ActualAction = iCharge
         #end
-        ActualAction = iCharge / iConsumptionMismatch
+        ActualAction = iChargeNormalised
         # ActualAction = iCharge
         if bLog
             println("Actual charge of battery: ", round(iCharge; digits = 2))
@@ -160,13 +161,14 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookB
         iMaxPossibleDischarge = max(Microgrid.EnergyStorage.iDischargeRate,
             -Microgrid.EnergyStorage.iCurrentCharge * Microgrid.EnergyStorage.iMaxCapacity)
         iDischarge = max(iMaxPossibleDischarge, iChargeDischargeVolume)
-        Microgrid.EnergyStorage.iCurrentCharge += iDischarge / Microgrid.EnergyStorage.iMaxCapacity
+        iDischargeNormalised = iDischarge / Microgrid.EnergyStorage.iMaxCapacity
+        Microgrid.EnergyStorage.iCurrentCharge += iDischargeNormalised
         #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
         #    ActualAction = iDischarge / iConsumptionMismatch
         #else
         #    ActualAction = iDischarge
         #end
-        ActualAction = iDischarge / iConsumptionMismatch
+        ActualAction = iDischargeNormalised
         # ActualAction = iDischarge
         if bLog
             println("Actual discharge of battery: ", round(iDischarge; digits = 2))
