@@ -281,15 +281,14 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
         deepcopy(iReward), deepcopy(NextState), deepcopy(v), deepcopy(v′), deepcopy(bTerminal))
     Remember!(Microgrid, step)
 
-    if bLearn
+    #if bLearn
         #Learn!(Microgrid, step, dictNormParams, iLookBack)
-        Replay!(Microgrid, dictNormParams, iLookBack)
         #println("Learning")
-    end
-
-    #if (bLearn && length(Microgrid.Brain.memory) > Microgrid.Brain.min_memory_size)
-    #    Replay!(Microgrid, dictNormParams, iLookBack)
     #end
+
+    if (bLearn && length(Microgrid.Brain.memory) > Microgrid.Brain.min_memory_size)
+        Replay!(Microgrid, dictNormParams, iLookBack)
+    end
     return bTerminal, iReward
 end
 
