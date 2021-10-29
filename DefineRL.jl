@@ -282,7 +282,8 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
     Remember!(Microgrid, step)
 
     if bLearn
-        Learn!(Microgrid, step, dictNormParams, iLookBack)
+        #Learn!(Microgrid, step, dictNormParams, iLookBack)
+        Replay!(Microgrid, dictNormParams, iLookBack)
         #println("Learning")
     end
 
