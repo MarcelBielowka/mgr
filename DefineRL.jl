@@ -111,6 +111,7 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict, iLookBack::Int)
         y[:, i] .= R
     end
 
+    println("Abecadlo")
     Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,Actions,A)], ADAM(Microgrid.Brain.ηₚ))
     Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))
     #println("Actor parameters: ", Flux.params(Microgrid.Brain.policy_net))
@@ -281,14 +282,14 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
         deepcopy(iReward), deepcopy(NextState), deepcopy(v), deepcopy(v′), deepcopy(bTerminal))
     Remember!(Microgrid, step)
 
-    #if bLearn
-        #Learn!(Microgrid, step, dictNormParams, iLookBack)
-        #println("Learning")
-    #end
-
-    if (bLearn && length(Microgrid.Brain.memory) > Microgrid.Brain.min_memory_size)
-        Replay!(Microgrid, dictNormParams, iLookBack)
+    if bLearn
+        Learn!(Microgrid, step, dictNormParams, iLookBack)
+        # println("Learning")
     end
+
+    #if (bLearn && length(Microgrid.Brain.memory) > Microgrid.Brain.min_memory_size)
+    #    Replay!(Microgrid, dictNormParams, iLookBack)
+    #end
     return bTerminal, iReward
 end
 
