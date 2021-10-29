@@ -96,11 +96,12 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict, iLookBack::Int)
         enumerate |> collect
     for (i, step) in iter
         State, Action, ActualAction, Reward, NextState, v, v′, bTerminal = step
-        if bTerminal
-            R = Reward
-        else
-            R = Reward + Microgrid.Brain.β * v′
-        end
+        #if bTerminal
+        #    R = Reward
+        #else
+        #    R = Reward + Microgrid.Brain.β * v′
+        #end
+        R = Reward + Microgrid.Brain.β * v′
         iAdvantage = R - v
         # StateForLearning = deepcopy(State)
         StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams, iLookBack)
