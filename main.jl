@@ -32,8 +32,8 @@ dPLHolidayCalendar = Dates.Date.(["2019-01-01", "2019-04-22", "2019-05-01", "201
 iWarehouseNumberOfSimulations = 100
 iWarehouseSimWindow = 40
 iMicrogridPrice = 200.0
-cWeatherPricesDataWindowStart = "2016-01-01"
-cWeatherPricesDataWindowEnd = "2016-12-31"
+cWeatherPricesDataWindowStart = "2019-01-01"
+cWeatherPricesDataWindowEnd = "2019-12-31"
 
 #########################################
 ##### Setup for parallelisation  ########
@@ -59,7 +59,7 @@ Distributed.nworkers()
 DayAheadPowerPrices = GetDayAheadPricesHandler(cPowerPricesDataDir,
     cWeatherPricesDataWindowStart,
     cWeatherPricesDataWindowEnd)
-    
+
 ####
 # Weather data
 ####
