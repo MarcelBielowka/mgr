@@ -24,7 +24,7 @@ include("DefineRL.jl")
 #########################################
 Random.seed!(72945)
 cHouseholdsDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
-cPowerPricesDataDir = "C://Users//Marcel//Desktop//mgr//data//POLPX_DA_20170101_20201014.csv"
+cPowerPricesDataDir = "C://Users//Marcel//Desktop//mgr//data//POLPX_DA_all.csv"
 cWindTempDataDir = "C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv"
 cIrrDataDir = "C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv"
 dUKHolidayCalendar = Dates.Date.(["2013-01-01", "2013-03-29", "2013-04-01", "2013-05-06", "2013-05-27", "2013-08-26", "2013-12-25", "2013-12-26"])
@@ -32,8 +32,8 @@ dPLHolidayCalendar = Dates.Date.(["2019-01-01", "2019-04-22", "2019-05-01", "201
 iWarehouseNumberOfSimulations = 100
 iWarehouseSimWindow = 40
 iMicrogridPrice = 200.0
-cWeatherPricesDataWindowStart = "2019-01-01"
-cWeatherPricesDataWindowEnd = "2019-12-31"
+cWeatherPricesDataWindowStart = "2016-01-01"
+cWeatherPricesDataWindowEnd = "2016-12-31"
 
 #########################################
 ##### Setup for parallelisation  ########
@@ -59,7 +59,7 @@ Distributed.nworkers()
 DayAheadPowerPrices = GetDayAheadPricesHandler(cPowerPricesDataDir,
     cWeatherPricesDataWindowStart,
     cWeatherPricesDataWindowEnd)
-
+    
 ####
 # Weather data
 ####
