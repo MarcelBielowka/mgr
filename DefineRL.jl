@@ -2,25 +2,26 @@ using Distributions, Dates, DataFrames
 using Flux, Pipe
 
 function GetState(Microgrid::Microgrid, iLookBack::Int, iTimeStep::Int)
-    iTotalProduction = Microgrid.dfTotalProduction.TotalProduction[iTimeStep:iTimeStep+iLookBack]
-    iTotalConsumption = Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep:iTimeStep+iLookBack]
+    iTotalProduction = Microgrid.dfTotalProduction.TotalProduction[iTimeStep-iLookBack:iTimeStep]
+    iTotalConsumption = Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep-iLookBack:iTimeStep]
     iProductionConsumptionMismatch = iTotalProduction .- iTotalConsumption
-    # iDayAheadPrices = Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-iLookBack:iTimeStep]
+    iDayAheadPrices = Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-iLookBack:iTimeStep]
 
     Microgrid.State = [
         iProductionConsumptionMismatch
+        iDayAheadPrices
         Microgrid.EnergyStorage.iCurrentCharge
     ]
 end
 
 function GetParamsForNormalisation(Microgrid::Microgrid)
     iOverallConsMismatch = Microgrid.dfTotalProduction.TotalProduction - Microgrid.dfTotalConsumption.TotalConsumption
-    # iOverallPriceLevels = Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price
+    iOverallPriceLevels = Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price
     return Dict(
     #    "ProductionScalingParams" => extrema(Microgrid.dfTotalProduction.TotalProduction),
     #    "ConsumptionScalingParams" => extrema(Microgrid.dfTotalConsumption.TotalConsumption),
         "ConsMismatchParams" => extrema(iOverallConsMismatch),
-        # "PriceParams" => extrema(iOverallPriceLevels),
+        "PriceParams" => extrema(iOverallPriceLevels),
         "ChargeParams" => (0, Microgrid.EnergyStorage.iMaxCapacity)
     )
 end
@@ -29,14 +30,14 @@ function NormaliseState!(State::Vector, Params::Dict, iLookBack::Int)
     #(iProdMin, iProdMax) = Params["ProductionScalingParams"]
     #(iConsMin, iConsMax) = Params["ConsumptionScalingParams"]
     (iMismatchMin, iMismatchMax) = Params["ConsMismatchParams"]
-    # (iPriceMin, iPriceMax) = Params["PriceParams"]
+    (iPriceMin, iPriceMax) = Params["PriceParams"]
     (iChargeMin, iChargeMax) = Params["ChargeParams"]
     for i in 1:1:(iLookBack+1)
         State[i] = (State[i] - iMismatchMin) / (iMismatchMax - iMismatchMin)
     end
-    #for i in (iLookBack+2):1:(2*(iLookBack+1))
-    #    State[i] = (State[i] - iPriceMin) / (iPriceMax - iPriceMin)
-    #end
+    for i in (iLookBack+2):1:(2*(iLookBack+1))
+        State[i] = (State[i] - iPriceMin) / (iPriceMax - iPriceMin)
+    end
     # State[length(State)] = (State[length(State)] - iChargeMin) / (iChargeMax - iChargeMin)
     return State
 end
@@ -189,17 +190,18 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     # iMicrogridVolume = deepcopy(ActualAction) * State[1]
     # iMicrogridVolume = deepcopy(ActualAction)
     # iGridVolume = State[1] - iMicrogridVolume
-    iGridVolume = State[1] - ActualAction * Microgrid.EnergyStorage.iMaxCapacity
+    iGridVolume = State[iLookBack+1] - ActualAction * Microgrid.EnergyStorage.iMaxCapacity
+    iGridPrice = Microgrid.DayAheadPricesHandler.dfDayAheadPrices[iTimeStep]
     #iGridPrice = Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iMedian[1]
     #iReward = iGridVolume * iGridPrice
     #dictRewards = GetReward(Microgrid, iTimeStep)
-    if iGridVolume >= 0
+    #if iGridVolume >= 0
         #iReward = iGridVolume * dictRewards["iPriceSell"]
-        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Centile[1]
-    else
+    #    iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Centile[1]
+    #else
     #iReward = iGridVolume * dictRewards["iPriceBuy"]
-        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i70Centile[1]
-    end
+    #    iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i70Centile[1]
+    #end
 
     #if iMicrogridVolume >= 0
     #    iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Centile[1]
@@ -256,7 +258,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
         # println("Time step $iTimeStep, intended action $Action kW, prod-cons mismatch ", CurrentState[iLookBack+1])
         println("Currently free storage capacity: ", Microgrid.State[length(Microgrid.State)] * Microgrid.EnergyStorage.iMaxCapacity)
         println("Intended action $ActionForPrint % of storage capacity")
-        println("Current prod-cons mismatch ", round(CurrentState[1]; digits = 2))
+        println("Current prod-cons mismatch ", round(CurrentState[iLookBack + 1]; digits = 2))
         #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
         #    println("Time step $iTimeStep, intended action $ActionForPrint % of mismatch, prod-cons mismatch ", CurrentState[iLookBack+1])
         #else
