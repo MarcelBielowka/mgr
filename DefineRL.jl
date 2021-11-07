@@ -77,9 +77,10 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001)
     #println("iScoreFunction: $iScoreFunction")
     iLoss = sum(iScoreFunction .* A)
     iEntropy = sum(Distributions.entropy.(Policy))
-    println("Actor loss function: ", iLoss - ι*iEntropy)
-    return iLoss - ι*iEntropy
-    # return iLoss
+    # println("Actor loss function: ", iLoss - ι*iEntropy)
+    # return iLoss - ι*iEntropy
+    println("Actor loss function: ", iLoss)
+    return iLoss
 end
 
 function CriticLoss(x, y; ξ = 0.5)
@@ -156,8 +157,9 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookB
         #else
         #    ActualAction = iCharge
         #end
-        ActualAction = iChargeNormalised
+        # ActualAction = iChargeNormalised
         # ActualAction = iCharge
+        ActualAction = iCharge / iConsumptionMismatch
         if bLog
             println("Actual charge of battery: ", round(iCharge; digits = 2))
         end
@@ -172,8 +174,9 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookB
         #else
         #    ActualAction = iDischarge
         #end
-        ActualAction = iDischargeNormalised
+        # ActualAction = iDischargeNormalised
         # ActualAction = iDischarge
+        ActualAction = iDischarge / iConsumptionMismatch
         if bLog
             println("Actual discharge of battery: ", round(iDischarge; digits = 2))
         end
