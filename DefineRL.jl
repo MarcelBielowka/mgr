@@ -137,13 +137,13 @@ function Learn!(Microgrid::Microgrid, step::Tuple, dictNormParams::Dict, iLookBa
 end
 
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookBack::Int, bLog::Bool)
-    # iConsumptionMismatch = Microgrid.State[1]
+    iConsumptionMismatch = Microgrid.State[iLookBack+1]
     #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
     #     iChargeDischargeVolume = deepcopy(Action) * iConsumptionMismatch
     #else
     #    iChargeDischargeVolume = deepcopy(Action)
     #end
-    iChargeDischargeVolume = deepcopy(Action) * Microgrid.EnergyStorage.iMaxCapacity
+    iChargeDischargeVolume = deepcopy(Action) * iConsumptionMismatch
     # iChargeDischargeVolume = deepcopy(Action)
     if iChargeDischargeVolume >= 0
         iMaxPossibleCharge = min(Microgrid.EnergyStorage.iChargeRate,
