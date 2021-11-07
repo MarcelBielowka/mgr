@@ -66,8 +66,8 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001)
     PolicyParameters = MyMicrogrid.Brain.policy_net(x)
     μ_hat = PolicyParameters[1,:]
     σ_hat = deepcopy(PolicyParameters[2,:])
-    # σ_hat = softplus.(σ_hat) .+ 1e-3
-    σ_hat = abs.(σ_hat) .+ 1e-3
+    σ_hat = softplus.(σ_hat) .+ 1e-3
+    # σ_hat = abs.(σ_hat) .+ 1e-3
     #μ_hat = MyMicrogrid.Brain.policy_net(x)
     #σ_hat = 0.1
     #MyMicrogrid.Brain.cPolicyOutputLayerType == "sigmoid" ? σ_hat = 0.01 : σ_hat = 1.0
@@ -199,20 +199,21 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     if iGridVolume >= 0
     #   iReward = iGridVolume * dictRewards["iPriceSell"]
     #   iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Centile[1]
-        ρ = 0.7
+        ρ = 0.1
     else
     #    iReward = iGridVolume * dictRewards["iPriceBuy"]
     #    iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i70Centile[1]
-        ρ = 1
+        ρ = 10
     end
     iGridPrice = ρ * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep]
     iReward = iGridVolume * iGridPrice
 
-    if iMicrogridVolume >= 0
-        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i40Centile[1]
-    else
-        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i60Centile[1]
-    end
+    iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep]
+    #if iMicrogridVolume >= 0
+    #    iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i40Centile[1]
+    #else
+    #    iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i60Centile[1]
+    #end
 
     return (iReward + iMicrogridReward) * 0.001 # the reward is rescaled as per Ji et al
 end
@@ -234,8 +235,8 @@ function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormPa
     PolicyParameters = MyMicrogrid.Brain.policy_net(StateForLearning)
     μ_hat = PolicyParameters[1,:]
     σ_hat = deepcopy(PolicyParameters[2,:])
-    # σ_hat = softplus.(σ_hat) .+ 1e-3
-    σ_hat = abs.(σ_hat) .+ 1e-3
+    σ_hat = softplus.(σ_hat) .+ 1e-3
+    # σ_hat = abs.(σ_hat) .+ 1e-3
     if bPrintPolicyParams
         println("Policy params: $μ_hat, $σ_hat")
     end
