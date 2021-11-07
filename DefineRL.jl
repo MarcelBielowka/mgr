@@ -191,8 +191,10 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     # iMicrogridVolume = deepcopy(ActualAction)
     # iGridVolume = State[1] - iMicrogridVolume
     iGridVolume = State[iLookBack+1] - ActualAction * Microgrid.EnergyStorage.iMaxCapacity
+    iMicrogridVolume = State[iLookBack+1] - iGridVolume
     iGridPrice = Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep]
     iReward = iGridVolume * iGridPrice
+    iMicrogridReward = iMicrogridVolume * 250
     #iGridPrice = Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iMedian[1]
     #iReward = iGridVolume * iGridPrice
     #dictRewards = GetReward(Microgrid, iTimeStep)
@@ -209,7 +211,6 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     #else
     #    iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i70Centile[1]
     #end
-    iMicrogridReward = 0
 
     return (iReward + iMicrogridReward) * 0.001 # the reward is rescaled as per Ji et al
 end
