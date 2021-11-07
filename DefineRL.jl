@@ -195,7 +195,7 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     iMicrogridVolume = State[iLookBack+1] - iGridVolume
     iGridPrice = Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep]
     iReward = iGridVolume * iGridPrice
-    iMicrogridReward = iMicrogridVolume * 250
+    # iMicrogridReward = Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Centile[1]
     #iGridPrice = Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iMedian[1]
     #iReward = iGridVolume * iGridPrice
     #dictRewards = GetReward(Microgrid, iTimeStep)
@@ -207,11 +207,11 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     #    iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i70Centile[1]
     #end
 
-    #if iMicrogridVolume >= 0
-    #    iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Centile[1]
-    #else
-    #    iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i70Centile[1]
-    #end
+    if iMicrogridVolume >= 0
+        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i40Centile[1]
+    else
+        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i60Centile[1]
+    end
 
     return (iReward + iMicrogridReward) * 0.001 # the reward is rescaled as per Ji et al
 end
