@@ -197,23 +197,27 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     #iGridPrice = Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iMedian[1]
     #dictRewards = GetReward(Microgrid, iTimeStep)
     if iGridVolume >= 0
-    #   iReward = iGridVolume * dictRewards["iPriceSell"]
-    #   iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Centile[1]
-        ρ = 0.1
+       #iReward = iGridVolume * dictRewards["iPriceSell"]
+       # iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Centile[1]
+       iReward = iGridVolume * 30
+       #ρ = 0.1
     else
-    #    iReward = iGridVolume * dictRewards["iPriceBuy"]
-    #    iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i70Centile[1]
-        ρ = 10
+        #iReward = iGridVolume * dictRewards["iPriceBuy"]
+        # iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i70Centile[1]
+        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep]
+        #ρ = 10
     end
-    iGridPrice = ρ * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep]
-    iReward = iGridVolume * iGridPrice
+    #iGridPrice = ρ * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep]
+    #iReward = iGridVolume * iGridPrice
 
-    iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep]
-    #if iMicrogridVolume >= 0
-    #    iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i40Centile[1]
-    #else
-    #    iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i60Centile[1]
-    #end
+    #iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep]
+    if iMicrogridVolume >= 0
+        #iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i40Centile[1]
+        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep] * 0.4
+    else
+        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep] * 0.7
+        # iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i60Centile[1]
+    end
 
     return (iReward + iMicrogridReward) * 0.001 # the reward is rescaled as per Ji et al
 end
@@ -222,7 +226,7 @@ end
 function Remember!(Microgrid::Microgrid, step::Tuple)
     length(Microgrid.Brain.memory) == Microgrid.Brain.memory_size && deleteat!(Microgrid.Brain.memory,1)
     push!(Microgrid.Brain.memory, step)
-end
+end#
 
 # definicja, ktore kroki mamy wykonac
 # bierze siec neuronowa i zwraca jej wynik
