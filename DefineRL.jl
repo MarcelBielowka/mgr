@@ -317,7 +317,7 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookBack::Int,
         TestValue = abs(Microgrid.Brain.policy_net(TestState)[1])
         println("TestState: $TestState")
         println("TestValue: $TestValue")
-        if TestValue < 100000
+        if TestValue < 1000
             if bLog
                 println("Episode $iEpisode")
             end
