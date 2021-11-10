@@ -264,7 +264,7 @@ mutable struct Brain
     cPolicyOutputLayerType::String
 end
 
-function GetBrain(cPolicyOutputLayerType, iDimState; β = 1, ηₚ = 0.0001, ηᵥ = 0.0001)
+function GetBrain(cPolicyOutputLayerType, iDimState; β = 0.999, ηₚ = 0.0001, ηᵥ = 0.0001)
     @assert any(["identity", "sigmoid"] .== cPolicyOutputLayerType) "The policy output layer type is not correct"
 
     if cPolicyOutputLayerType == "sigmoid"
@@ -289,7 +289,7 @@ function GetBrain(cPolicyOutputLayerType, iDimState; β = 1, ηₚ = 0.0001, η�
     #    Dense((iLookAhead + 1), 1, identity)
     #)
     value_net = Chain(
-        Dense(iDimState, 1, identity; bias = false)
+        Dense(iDimState, 1, identity)
     )
     #value_net = Chain(Dense(iDimState, 128, relu),
                     #Dense(128, 128, relu),
