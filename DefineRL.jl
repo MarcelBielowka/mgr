@@ -59,7 +59,7 @@ function GetReward(Microgrid::Microgrid, iTimeStep::Int)
     )
 end
 
-function ActorLoss(x, Actions, A; ι::Float64 = 0.001)
+function ActorLoss(x, Actions, A; ι::Float64 = 0.01)
     #println("μ_policy: $μ_policy")
     #println(typeof(μ_policy))
     PolicyParameters = MyMicrogrid.Brain.policy_net(x)
@@ -74,10 +74,11 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001)
     iScoreFunction = -Distributions.logpdf.(Policy, Actions)
     #println("iScoreFunction: $iScoreFunction")
     iLoss = sum(iScoreFunction .* A)
-    #iEntropy = sum(Distributions.entropy.(Policy))
-    println("Actor loss function: $iLoss")
-    # return iLoss - ι*iEntropy
-    return iLoss
+    iEntropy = sum(Distributions.entropy.(Policy))
+    # println("Actor loss function: $iLoss")
+    println("Actor loss function: ", iLoss - ι*iEntropy)
+    return iLoss - ι*iEntropy
+    # return iLoss
 end
 
 function CriticLoss(x, y; ξ = 0.5)
