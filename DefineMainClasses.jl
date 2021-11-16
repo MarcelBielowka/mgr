@@ -282,7 +282,7 @@ function GetBrain(cPolicyOutputLayerType, iDimState; β = 0.999, ηₚ = 0.0001,
                      Dense(200,200,relu),
                     Dense(200,1, sigmoid))
         #policy_net = Chain(
-        #    Dense(iDimState, 2, identity)
+        #    Dense(iDimState, 1, identity)
         #)
     end
     #policy_net = Chain(
@@ -292,7 +292,7 @@ function GetBrain(cPolicyOutputLayerType, iDimState; β = 0.999, ηₚ = 0.0001,
     #    Dense(iDimState, 1, identity; bias = false)
     #)
     value_net = Chain(Dense(iDimState, 128, relu),
-                    #Dense(128, 128, relu),
+                #Dense(128, 128, relu),
                     Dense(128, 52, relu),
                     Dense(52, 1, identity))
     return Brain(β, 64, 1_200_000, 2_000, [], policy_net, value_net, ηₚ, ηᵥ, cPolicyOutputLayerType)
@@ -318,7 +318,7 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
     MyWarehouse::Warehouse, MyHouseholds::⌂, cPolicyOutputLayerType::String, iLookBack::Int)
 
-    Brain = GetBrain(cPolicyOutputLayerType, (iLookBack+1) + 1)
+    Brain = GetBrain(cPolicyOutputLayerType, 2*(iLookBack+1) + 1)
 
     dfTotalProduction = DataFrames.innerjoin(MyWindPark.dfWindParkProductionData,
         MyWarehouse.SolarPanels.dfSolarProductionData, on = :date)
@@ -337,7 +337,7 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
 
     return Microgrid(
         Brain,
-        repeat([-Inf], ((iLookBack+1) + 1)),
+        repeat([-Inf], 2*(iLookBack+1) + 1),
         0.0,
         [],
         DayAheadPricesHandler,

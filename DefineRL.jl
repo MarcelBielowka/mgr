@@ -2,25 +2,26 @@ using Distributions, Dates, DataFrames
 using Flux, Pipe
 
 function GetState(Microgrid::Microgrid, iLookBack::Int, iTimeStep::Int)
-    iTotalProduction = Microgrid.dfTotalProduction.TotalProduction[iTimeStep:iTimeStep+iLookBack]
-    iTotalConsumption = Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep:iTimeStep+iLookBack]
+    iTotalProduction = Microgrid.dfTotalProduction.TotalProduction[iTimeStep-iLookBack:iTimeStep]
+    iTotalConsumption = Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep-iLookBack:iTimeStep]
     iProductionConsumptionMismatch = iTotalProduction .- iTotalConsumption
-    # iDayAheadPrices = Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-iLookBack:iTimeStep]
+    iDayAheadPrices = Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-iLookBack:iTimeStep]
 
     Microgrid.State = [
         iProductionConsumptionMismatch
+        iDayAheadPrices
         Microgrid.EnergyStorage.iCurrentCharge
     ]
 end
 
 function GetParamsForNormalisation(Microgrid::Microgrid)
     iOverallConsMismatch = Microgrid.dfTotalProduction.TotalProduction - Microgrid.dfTotalConsumption.TotalConsumption
-    # iOverallPriceLevels = Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price
+    iOverallPriceLevels = Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price
     return Dict(
     #    "ProductionScalingParams" => extrema(Microgrid.dfTotalProduction.TotalProduction),
     #    "ConsumptionScalingParams" => extrema(Microgrid.dfTotalConsumption.TotalConsumption),
         "ConsMismatchParams" => extrema(iOverallConsMismatch),
-        # "PriceParams" => extrema(iOverallPriceLevels),
+        "PriceParams" => extrema(iOverallPriceLevels),
         "ChargeParams" => (0, Microgrid.EnergyStorage.iMaxCapacity)
     )
 end
@@ -29,14 +30,14 @@ function NormaliseState!(State::Vector, Params::Dict, iLookBack::Int)
     #(iProdMin, iProdMax) = Params["ProductionScalingParams"]
     #(iConsMin, iConsMax) = Params["ConsumptionScalingParams"]
     (iMismatchMin, iMismatchMax) = Params["ConsMismatchParams"]
-    # (iPriceMin, iPriceMax) = Params["PriceParams"]
+    (iPriceMin, iPriceMax) = Params["PriceParams"]
     (iChargeMin, iChargeMax) = Params["ChargeParams"]
     for i in 1:1:(iLookBack+1)
         State[i] = (State[i] - iMismatchMin) / (iMismatchMax - iMismatchMin)
     end
-    #for i in (iLookBack+2):1:(2*(iLookBack+1))
-    #    State[i] = (State[i] - iPriceMin) / (iPriceMax - iPriceMin)
-    #end
+    for i in (iLookBack+2):1:(2*(iLookBack+1))
+        State[i] = (State[i] - iPriceMin) / (iPriceMax - iPriceMin)
+    end
     # State[length(State)] = (State[length(State)] - iChargeMin) / (iChargeMax - iChargeMin)
     return State
 end
@@ -62,10 +63,11 @@ end
 function ActorLoss(x, Actions, A; ι::Float64 = 0.001)
     #println("μ_policy: $μ_policy")
     #println(typeof(μ_policy))
-    #PolicyParameters = MyMicrogrid.Brain.policy_net(x)
-    #μ_hat = PolicyParameters[1,:]
-    #σ_hat = deepcopy(PolicyParameters[2,:])
-    #σ_hat = softplus.(σ_hat) .+ 1e-3
+    # PolicyParameters = MyMicrogrid.Brain.policy_net(x)
+    # μ_hat = PolicyParameters[1,:]
+    # σ_hat = deepcopy(PolicyParameters[2,:])
+    # σ_hat = softplus.(σ_hat) .+ 1e-3
+    # σ_hat = abs.(σ_hat) .+ 1e-3
     μ_hat = MyMicrogrid.Brain.policy_net(x)
     σ_hat = 0.1
     #MyMicrogrid.Brain.cPolicyOutputLayerType == "sigmoid" ? σ_hat = 0.01 : σ_hat = 1.0
@@ -74,9 +76,10 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001)
     iScoreFunction = -Distributions.logpdf.(Policy, Actions)
     #println("iScoreFunction: $iScoreFunction")
     iLoss = sum(iScoreFunction .* A)
-    #iEntropy = sum(Distributions.entropy.(Policy))
-    println("Actor loss function: $iLoss")
+    iEntropy = sum(Distributions.entropy.(Policy))
+    # println("Actor loss function: ", iLoss - ι*iEntropy)
     # return iLoss - ι*iEntropy
+    println("Actor loss function: ", iLoss)
     return iLoss
 end
 
@@ -96,11 +99,12 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict, iLookBack::Int)
         enumerate |> collect
     for (i, step) in iter
         State, Action, ActualAction, Reward, NextState, v, v′, bTerminal = step
-        if bTerminal
-            R = Reward
-        else
-            R = Reward + Microgrid.Brain.β * v′
-        end
+        #if bTerminal
+        #    R = Reward
+        #else
+        #    R = Reward + Microgrid.Brain.β * v′
+        #end
+        R = Reward + Microgrid.Brain.β * v′
         iAdvantage = R - v
         # StateForLearning = deepcopy(State)
         StateForLearning = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams, iLookBack)
@@ -110,6 +114,7 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict, iLookBack::Int)
         y[:, i] .= R
     end
 
+    println("Abecadlo")
     Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,Actions,A)], ADAM(Microgrid.Brain.ηₚ))
     Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))
     #println("Actor parameters: ", Flux.params(Microgrid.Brain.policy_net))
@@ -133,7 +138,7 @@ function Learn!(Microgrid::Microgrid, step::Tuple, dictNormParams::Dict, iLookBa
 end
 
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookBack::Int, bLog::Bool)
-    iConsumptionMismatch = Microgrid.State[1]
+    iConsumptionMismatch = Microgrid.State[iLookBack+1]
     #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
     #     iChargeDischargeVolume = deepcopy(Action) * iConsumptionMismatch
     #else
@@ -145,14 +150,16 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookB
         iMaxPossibleCharge = min(Microgrid.EnergyStorage.iChargeRate,
             Microgrid.EnergyStorage.iMaxCapacity - Microgrid.EnergyStorage.iCurrentCharge * Microgrid.EnergyStorage.iMaxCapacity)
         iCharge = min(iMaxPossibleCharge, iChargeDischargeVolume)
-        Microgrid.EnergyStorage.iCurrentCharge += iCharge / Microgrid.EnergyStorage.iMaxCapacity
+        iChargeNormalised = iCharge / Microgrid.EnergyStorage.iMaxCapacity
+        Microgrid.EnergyStorage.iCurrentCharge += iChargeNormalised
         #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
         #    ActualAction = iCharge / iConsumptionMismatch
         #else
         #    ActualAction = iCharge
         #end
-        ActualAction = iCharge / iConsumptionMismatch
+        # ActualAction = iChargeNormalised
         # ActualAction = iCharge
+        ActualAction = iCharge / iConsumptionMismatch
         if bLog
             println("Actual charge of battery: ", round(iCharge; digits = 2))
         end
@@ -160,14 +167,16 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookB
         iMaxPossibleDischarge = max(Microgrid.EnergyStorage.iDischargeRate,
             -Microgrid.EnergyStorage.iCurrentCharge * Microgrid.EnergyStorage.iMaxCapacity)
         iDischarge = max(iMaxPossibleDischarge, iChargeDischargeVolume)
-        Microgrid.EnergyStorage.iCurrentCharge += iDischarge / Microgrid.EnergyStorage.iMaxCapacity
+        iDischargeNormalised = iDischarge / Microgrid.EnergyStorage.iMaxCapacity
+        Microgrid.EnergyStorage.iCurrentCharge += iDischargeNormalised
         #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
         #    ActualAction = iDischarge / iConsumptionMismatch
         #else
         #    ActualAction = iDischarge
         #end
-        ActualAction = iDischarge / iConsumptionMismatch
+        # ActualAction = iDischargeNormalised
         # ActualAction = iDischarge
+        ActualAction = iDischarge / iConsumptionMismatch
         if bLog
             println("Actual discharge of battery: ", round(iDischarge; digits = 2))
         end
@@ -182,26 +191,36 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     #else
     #    iMicrogridVolume = deepcopy(ActualAction)
     #end
-    iMicrogridVolume = deepcopy(ActualAction) * State[1]
+    # iMicrogridVolume = deepcopy(ActualAction) * State[1]
     # iMicrogridVolume = deepcopy(ActualAction)
-    iGridVolume = State[1] - iMicrogridVolume
+    # iGridVolume = State[1] - iMicrogridVolume
+    iGridVolume = State[iLookBack+1] - ActualAction * Microgrid.EnergyStorage.iMaxCapacity
+    iMicrogridVolume = State[iLookBack+1] - iGridVolume
+    # iMicrogridReward = Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Centile[1]
     #iGridPrice = Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iMedian[1]
-    #iReward = iGridVolume * iGridPrice
     #dictRewards = GetReward(Microgrid, iTimeStep)
     if iGridVolume >= 0
-        #iReward = iGridVolume * dictRewards["iPriceSell"]
-        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Centile[1]
+       #iReward = iGridVolume * dictRewards["iPriceSell"]
+       # iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Centile[1]
+       iReward = iGridVolume * 30
+       #ρ = 0.1
     else
-    #iReward = iGridVolume * dictRewards["iPriceBuy"]
-        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i70Centile[1]
+        #iReward = iGridVolume * dictRewards["iPriceBuy"]
+        # iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i70Centile[1]
+        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep]
+        #ρ = 10
     end
+    #iGridPrice = ρ * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep]
+    #iReward = iGridVolume * iGridPrice
 
+    #iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep]
     if iMicrogridVolume >= 0
-        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i50Centile[1]
+        #iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i40Centile[1]
+        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep] * 0.4
     else
-        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i50Centile[1]
+        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep] * 0.7
+        # iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i60Centile[1]
     end
-    iMicrogridReward = 0
 
     return (iReward + iMicrogridReward) * 0.001 # the reward is rescaled as per Ji et al
 end
@@ -210,7 +229,7 @@ end
 function Remember!(Microgrid::Microgrid, step::Tuple)
     length(Microgrid.Brain.memory) == Microgrid.Brain.memory_size && deleteat!(Microgrid.Brain.memory,1)
     push!(Microgrid.Brain.memory, step)
-end
+end#
 
 # definicja, ktore kroki mamy wykonac
 # bierze siec neuronowa i zwraca jej wynik
@@ -224,6 +243,7 @@ function Forward(Microgrid::Microgrid, state::Vector, bσFixed::Bool, dictNormPa
     # μ_hat = PolicyParameters[1,:]
     # σ_hat = deepcopy(PolicyParameters[2,:])
     # σ_hat = softplus.(σ_hat) .+ 1e-3
+    # σ_hat = abs.(σ_hat) .+ 1e-3
     if bPrintPolicyParams
         println("Policy params: $μ_hat, $σ_hat")
     end
@@ -249,7 +269,9 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
     ActionForPrint = round(Action * 100; digits = 2)
     if bLog
         # println("Time step $iTimeStep, intended action $Action kW, prod-cons mismatch ", CurrentState[iLookBack+1])
-        println("Intended action $ActionForPrint % of mismatch, prod-cons mismatch ", round(CurrentState[1]; digits = 2))
+        println("Currently free storage capacity: ", Microgrid.State[length(Microgrid.State)] * Microgrid.EnergyStorage.iMaxCapacity)
+        println("Intended action $ActionForPrint % of storage capacity")
+        println("Current prod-cons mismatch ", round(CurrentState[iLookBack + 1]; digits = 2))
         #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
         #    println("Time step $iTimeStep, intended action $ActionForPrint % of mismatch, prod-cons mismatch ", CurrentState[iLookBack+1])
         #else
@@ -277,7 +299,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
 
     if bLearn
         Learn!(Microgrid, step, dictNormParams, iLookBack)
-        #println("Learning")
+        # println("Learning")
     end
 
     #if (bLearn && length(Microgrid.Brain.memory) > Microgrid.Brain.min_memory_size)
