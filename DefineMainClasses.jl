@@ -215,7 +215,7 @@ end
 #########################################
 mutable struct ⌂
     dfEnergyConsumption::DataFrame
-    dictEnergyConsumption::Dict
+    dictHouseholdsData::Dict
     iNumberOfHouseholds::Int
     EnergyStorage::EnergyStorage
 end
@@ -231,13 +231,13 @@ function Get_⌂(cHouseholdsDir::String,
 
     dictHouseholdsData = GetHouseholdsData(cHouseholdsDir, dOriginalHolidayCalendar,
         dDestinationHolidayCalendar, cStartDate, cEndDate)
-    dictProfileWeighted = dictHouseholdsData["HouseholdProfilesWeighted"]
+    # dictProfileWeighted = dictHouseholdsData["HouseholdProfilesWeighted"]
     dfProfileWeighted = dictHouseholdsData["dfHouseholdProfilesWeighted"]
     dfProfileWeighted.ProfileWeighted .= dfProfileWeighted.ProfileWeighted .* iNumberOfHouseholds
 
     return ⌂(
         dfProfileWeighted,
-        dictProfileWeighted,
+        dictHouseholdsData,
         iNumberOfHouseholds,
         GetEnergyStorage(iStorageMaxCapacity,
                          iStorageChargeRate,
