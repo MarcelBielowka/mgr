@@ -264,7 +264,7 @@ mutable struct Brain
     cPolicyOutputLayerType::String
 end
 
-function GetBrain(cPolicyOutputLayerType, iDimState; β = 0.999, ηₚ = 0.0001, ηᵥ = 0.0001)
+function GetBrain(cPolicyOutputLayerType, iDimState, iβ, ηₚ, ηᵥ)
     @assert any(["identity", "sigmoid"] .== cPolicyOutputLayerType) "The policy output layer type is not correct"
 
     if cPolicyOutputLayerType == "sigmoid"
@@ -316,9 +316,13 @@ end
 
 function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
-    MyWarehouse::Warehouse, MyHouseholds::⌂, cPolicyOutputLayerType::String, iLookBack::Int)
+    MyWarehouse::Warehouse, MyHouseholds::⌂,
+    cPolicyOutputLayerType::String, iLookBack::Int,
+    iLearningRateActor::Float64, iLearningRateCritic::Float64,
+    iβ::Float64, iGridPriceQuantile::Int, iMicrogridPriceQuantile::Int)
 
-    Brain = GetBrain(cPolicyOutputLayerType, (iLookBack+1) + 1)
+    Brain = GetBrain(cPolicyOutputLayerType, (iLookBack+1) + 1,
+        iβ, iLearningRateActor, iLearningRateCritic)
 
     dfTotalProduction = DataFrames.innerjoin(MyWindPark.dfWindParkProductionData,
         MyWarehouse.SolarPanels.dfSolarProductionData, on = :date)
