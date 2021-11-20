@@ -318,8 +318,7 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
     MyWarehouse::Warehouse, MyHouseholds::⌂,
     cPolicyOutputLayerType::String, iLookBack::Int,
-    iLearningRateActor::Float64, iLearningRateCritic::Float64,
-    iβ::Float64, iGridPriceQuantile::Int, iMicrogridPriceQuantile::Int)
+    iLearningRateActor::Float64, iLearningRateCritic::Float64, iβ::Float64)
 
     Brain = GetBrain(cPolicyOutputLayerType, (iLookBack+1) + 1,
         iβ, iLearningRateActor, iLearningRateCritic)
