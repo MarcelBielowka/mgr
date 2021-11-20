@@ -176,7 +176,8 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookB
 end
 
 function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
-    Action::Float64, ActualAction::Float64, iTimeStep::Int, bLearn::Bool)
+    Action::Float64, ActualAction::Float64, iTimeStep::Int,
+    iQuantileGrid::Int, iQuantileMicrogrid::Int, bLearn::Bool)
     #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
     #    iMicrogridVolume = deepcopy(ActualAction) * State[iLookBack+1]
     #else
@@ -241,6 +242,7 @@ end
 
 
 function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::Int,
+    iQuantileGrid::Int, iQuantileMicrogrid::Int,
     dictNormParams::Dict, bLearn::Bool, bLog::Bool)
     #Random.seed!(72945)
     CurrentState = deepcopy(Microgrid.State)
@@ -259,7 +261,8 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
 
     Action, ActualAction = ChargeOrDischargeBattery!(Microgrid, Action, iLookBack, bLog)
     iReward = CalculateReward(Microgrid, CurrentState, iLookBack,
-        Action, ActualAction, iTimeStep, bLearn)
+        Action, ActualAction, iTimeStep,
+        iQuantileGrid, iQuantileMicrogrid, bLearn)
 
     NextState = GetState(Microgrid, iLookBack, iTimeStep + 1)
     Microgrid.State = NextState
@@ -287,6 +290,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
 end
 
 function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookBack::Int,
+    iQuantileGrid::Int, iQuantileMicrogrid::Int,
     iTimeStepStart::Int, iTimeStepEnd::Int, bLearn::Bool, bLog::Bool)
     println("############################")
     println("The run is starting. The parameters are:")
@@ -316,6 +320,7 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookBack::Int,
                     println("\nStep $iTimeStep")
                 end
                 bTerminal, iReward = Act!(Microgrid, iTimeStep, iTimeStepEnd, iLookBack,
+                    iQuantileGrid, iQuantileMicrogrid,
                     dictParamsForNormalisation, bLearn, bLog)
                 push!(iRewardsTimeStep, iReward)
                 if bTerminal
