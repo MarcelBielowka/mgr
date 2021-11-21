@@ -35,7 +35,7 @@ function GetDayAheadPricesHandler(cPowerPricesDataDir::String,
         DeliveryFilterStart = DeliveryFilterStart,
         DeliveryFilterEnd = DeliveryFilterEnd)
     dfQuantilesOfPrices = DataFrames.DataFrame(
-        iQuantileName = 0.1:0.1:0.9,
+        iQuantileName = 10:10:90,
         iQuantilePrice = [quantile(dfDayAheadPrices.Price, q) for q in 0.1:0.1:0.9]
     )
 
