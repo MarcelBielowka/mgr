@@ -187,35 +187,31 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     # iMicrogridVolume = deepcopy(ActualAction)
     iGridVolume = State[1] - iMicrogridVolume
     iGridPriceBuy = filter(row -> row.iQuantileName == iQuantileGrid,
-        Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices).iQuantilePrice
+        Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices).iQuantilePrice[1]
     iGridPriceSell = filter(row -> row.iQuantileName == 100 - iQuantileGrid,
-        Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices).iQuantilePrice
+        Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices).iQuantilePrice[1]
     iMicrogridPriceBuy = filter(row -> row.iQuantileName == iQuantileMicrogrid,
-        Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices).iQuantilePrice
+        Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices).iQuantilePrice[1]
     iMicrogridPriceSell = filter(row -> row.iQuantileName == 100 - iQuantileMicrogrid,
-        Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices).iQuantilePrice
+        Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices).iQuantilePrice[1]
     #iGridPrice = Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iMedian[1]
     #iReward = iGridVolume * iGridPrice
     #dictRewards = GetReward(Microgrid, iTimeStep)
     # Ensure the buy price (when grid volumes are < 0) is higher than sell price
     if iGridVolume >= 0
         #iReward = iGridVolume * dictRewards["iPriceSell"]
-        iReward = iGridVolume *
-            Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iGridPriceSell
+        iReward = iGridVolume * iGridPriceSell
     else
     #iReward = iGridVolume * dictRewards["iPriceBuy"]
-        iReward = iGridVolume *
-            Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iGridPriceBuy
+        iReward = iGridVolume * iGridPriceBuy
     end
 
     if iMicrogridVolume >= 0
-        iMicrogridReward = iMicrogridVolume *
-            Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iMicrogridPriceSell
+        iMicrogridReward = iMicrogridVolume * iMicrogridPriceSell
     else
-        iMicrogridReward = iMicrogridVolume *
-            Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iMicrogridPriceBuy
+        iMicrogridReward = iMicrogridVolume * iMicrogridPriceBuy
     end
-    iMicrogridReward = 0
+    # iMicrogridReward = 0
 
     return (iReward + iMicrogridReward) * 0.001 # the reward is rescaled as per Ji et al
 end
