@@ -294,7 +294,7 @@ function GetBrain(cPolicyOutputLayerType, iDimState, iβ, ηₚ, ηᵥ)
                     #Dense(128, 128, relu),
                     Dense(128, 52, relu),
                     Dense(52, 1, identity))
-    return Brain(β, 64, 1_200_000, 2_000, [], policy_net, value_net, ηₚ, ηᵥ, cPolicyOutputLayerType)
+    return Brain(iβ, 64, 1_200_000, 2_000, [], policy_net, value_net, ηₚ, ηᵥ, cPolicyOutputLayerType)
 end
 
 #########################################
