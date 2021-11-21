@@ -200,16 +200,20 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     # Ensure the buy price (when grid volumes are < 0) is higher than sell price
     if iGridVolume >= 0
         #iReward = iGridVolume * dictRewards["iPriceSell"]
-        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Centile[1]
+        iReward = iGridVolume *
+            Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iGridPriceSell
     else
     #iReward = iGridVolume * dictRewards["iPriceBuy"]
-        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i70Centile[1]
+        iReward = iGridVolume *
+            Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iGridPriceBuy
     end
 
     if iMicrogridVolume >= 0
-        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i50Centile[1]
+        iMicrogridReward = iMicrogridVolume *
+            Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iMicrogridPriceSell
     else
-        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i50Centile[1]
+        iMicrogridReward = iMicrogridVolume *
+            Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iMicrogridPriceBuy
     end
     iMicrogridReward = 0
 
