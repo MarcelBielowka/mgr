@@ -308,6 +308,8 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookBack::Int,
     println("Starting time step: $iTimeStepStart")
     println("Ending time step: $iTimeStepEnd")
     println("Learning: $bLearn")
+    println("Quantile grid: $iQuantileGrid")
+    println("Quantile microgrid: $iQuantileMicrogrid")
     println("MG's brain type: ", Microgrid.Brain.cPolicyOutputLayerType)
     println("############################")
     Random.seed!(72945)
@@ -350,6 +352,8 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookBack::Int,
     println("Starting time step: $iTimeStepStart")
     println("Ending time step: $iTimeStepEnd")
     println("Learning: $bLearn")
+    println("Quantile grid: $iQuantileGrid")
+    println("Quantile microgrid: $iQuantileMicrogrid")
     println("MG's brain type: ", Microgrid.Brain.cPolicyOutputLayerType)
     println("############################")
     return iRewards, iRewardsTimeStep
@@ -419,4 +423,60 @@ function RunWrapper(DayAheadPricesHandler::DayAheadPricesHandler,
         )
     end
     return FinalDict
+end
+
+function FineTuneLearningParameters(DayAheadPricesHandler::DayAheadPricesHandler,
+    WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
+    MyWarehouse::Warehouse, MyHouseholds::⌂,
+    iEpisodes::Int, dRunStartTrain::Int, dRunEndTrain::Int,
+    dRunStartTest::Int, dRunEndTest::Int, iLookBacks::Vector,
+    iQuantileGrid::Int, iQuantileMicrogrid::Int,
+    iβFrom::Float64, iβTo::Float64, iβStep::Int64
+    iActorLearningRateFrom::Float64, iActorLearningRateTo::Float64,
+    iActorLearningRateStep::Float64
+    iCriticLearningRateFrom::Float64, iCriticLearningRateTo::Float64,
+    iCriticLearningRateStep::Float64,
+    bLog::Bool)
+
+    dictOutputTuning = Dict{}()
+
+    for iActorLearningRate in iActorLearningRateFrom:iActorLearningRateStep:iActorLearningRateTo
+        for iCriticLearningRate in iCriticLearningRateFrom:iCriticLearningRateStep:iCriticLearningRateTo
+            for iβ in iβFrom:iβStep:iβTo
+                MyMicrogrid = GetMicrogrid(DayAheadPowerPrices, Weather,
+                    MyWindPark, MyWarehouse, Households, "identity", 1,
+                    iActorLearningRate, iCriticLearningRate, iβ)
+                RandomMicrogrid = deepcopy(MyMicrogrid)
+
+                # initial result
+                InitialTestResult = Run!(RandomMicrogrid,
+                    iEpisodes, iLookBacks, iQuantileGrid, iQuantileMicrogrid,
+                    dRunStartTest, dRunEndTest, false, false)
+
+                # training
+                TrainResult = Run!(MyMicrogrid,
+                    iEpisodes, iLookBacks, iQuantileGrid, iQuantileMicrogrid,
+                    dRunStartTrain, dRunEndTrain, true, true)
+
+                # evaluation
+                FinalMicrogrid = deepcopy(MyMicrogrid)
+                FinalMicrogrid.Brain.memory = []
+                FinalMicrogrid.RewardHistory = []
+                ResultAfterTraining = Run!(FinalMicrogrid,
+                    iEpisodes, iLookBacks, iQuantileGrid, iQuantileMicrogrid,
+                    dRunStartTest, dRunEndTest, false, false)
+
+                push!(dictOutputTuning,
+                    (iActorLearningRate, iCriticLearningRate, iβ) => Dict(
+                        "RandomMicrogrid" => RandomMicrogrid,
+                        "MyMicrogrid" => MyMicrogrid,
+                        "FinalMicrogrid" => FinalMicrogrid,
+                        "InitialTestResult" => InitialTestResult,
+                        "TrainResult" => TrainResult,
+                        "ResultAfterTraining" => ResultAfterTraining
+                        )
+                    )
+            end
+        end
+    end
 end
