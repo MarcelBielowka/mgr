@@ -12,7 +12,7 @@ function GetState(Microgrid::Microgrid, iLookBack::Int, iTimeStep::Int)
         Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-24]
         Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-48]
         Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-168]
-        min(Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-1:iTimeStep-24])
+        minimum(Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-24:iTimeStep-1])
         ifelse(Microgrid.DayAheadPricesHandler.dfDayAheadPrices.DeliveryDayOfWeek[iTimeStep] == 6, 1, 0)
         ifelse(Microgrid.DayAheadPricesHandler.dfDayAheadPrices.DeliveryDayOfWeek[iTimeStep] == 7, 1, 0)
         ifelse(Microgrid.DayAheadPricesHandler.dfDayAheadPrices.DeliveryDayOfWeek[iTimeStep] == 1, 1, 0)
@@ -36,13 +36,10 @@ function NormaliseState!(State::Vector, Params::Dict, iLookBack::Int)
     #(iProdMin, iProdMax) = Params["ProductionScalingParams"]
     #(iConsMin, iConsMax) = Params["ConsumptionScalingParams"]
     (iMismatchMin, iMismatchMax) = Params["ConsMismatchParams"]
-    (iPriceMin, iPriceMax) = Params["PriceParams"]
+    # (iPriceMin, iPriceMax) = Params["PriceParams"]
     (iChargeMin, iChargeMax) = Params["ChargeParams"]
     for i in 1:1:(iLookBack+1)
         State[i] = (State[i] - iMismatchMin) / (iMismatchMax - iMismatchMin)
-    end
-    for i in (iLookBack+2):1:(2*(iLookBack+1))
-        State[i] = (State[i] - iPriceMin) / (iPriceMax - iPriceMin)
     end
     # State[length(State)] = (State[length(State)] - iChargeMin) / (iChargeMax - iChargeMin)
     return State
@@ -208,12 +205,12 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     if iGridVolume >= 0
        #iReward = iGridVolume * dictRewards["iPriceSell"]
        # iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Centile[1]
-       iReward = iGridVolume * 30
+       iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep] * 0.8
        #ρ = 0.1
     else
         #iReward = iGridVolume * dictRewards["iPriceBuy"]
         # iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i70Centile[1]
-        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep]
+        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep] * 1.2
         #ρ = 10
     end
     #iGridPrice = ρ * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep]
@@ -222,9 +219,9 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     #iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep]
     if iMicrogridVolume >= 0
         #iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i40Centile[1]
-        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep] * 0.4
+        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep]
     else
-        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep] * 0.7
+        iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep]
         # iMicrogridReward = iMicrogridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i60Centile[1]
     end
 
