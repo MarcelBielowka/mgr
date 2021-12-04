@@ -5,11 +5,17 @@ function GetState(Microgrid::Microgrid, iLookBack::Int, iTimeStep::Int)
     iTotalProduction = Microgrid.dfTotalProduction.TotalProduction[iTimeStep-iLookBack:iTimeStep]
     iTotalConsumption = Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep-iLookBack:iTimeStep]
     iProductionConsumptionMismatch = iTotalProduction .- iTotalConsumption
-    iDayAheadPrices = Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-iLookBack:iTimeStep]
+    # iDayAheadPrices = Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-iLookBack:iTimeStep]
 
     Microgrid.State = [
         iProductionConsumptionMismatch
-        iDayAheadPrices
+        Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-24]
+        Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-48]
+        Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-168]
+        min(Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-1:iTimeStep-24])
+        ifelse(Microgrid.DayAheadPricesHandler.dfDayAheadPrices.DeliveryDayOfWeek[iTimeStep] == 6, 1, 0)
+        ifelse(Microgrid.DayAheadPricesHandler.dfDayAheadPrices.DeliveryDayOfWeek[iTimeStep] == 7, 1, 0)
+        ifelse(Microgrid.DayAheadPricesHandler.dfDayAheadPrices.DeliveryDayOfWeek[iTimeStep] == 1, 1, 0)
         Microgrid.EnergyStorage.iCurrentCharge
     ]
 end
