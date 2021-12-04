@@ -425,15 +425,18 @@ function RunWrapper(DayAheadPricesHandler::DayAheadPricesHandler,
     return FinalDict
 end
 
+
+
+# to samo dla kwantyli, wiatrakow i baterii, LookBackow
 function FineTuneLearningParameters(DayAheadPricesHandler::DayAheadPricesHandler,
     WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
     MyWarehouse::Warehouse, MyHouseholds::⌂,
     iEpisodes::Int, dRunStartTrain::Int, dRunEndTrain::Int,
     dRunStartTest::Int, dRunEndTest::Int, iLookBacks::Vector,
     iQuantileGrid::Int, iQuantileMicrogrid::Int,
-    iβFrom::Float64, iβTo::Float64, iβStep::Int64
+    iβFrom::Float64, iβTo::Float64, iβStep::Int64,
     iActorLearningRateFrom::Float64, iActorLearningRateTo::Float64,
-    iActorLearningRateStep::Float64
+    iActorLearningRateStep::Float64,
     iCriticLearningRateFrom::Float64, iCriticLearningRateTo::Float64,
     iCriticLearningRateStep::Float64,
     bLog::Bool)
