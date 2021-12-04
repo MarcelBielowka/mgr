@@ -9,10 +9,10 @@ function GetState(Microgrid::Microgrid, iLookBack::Int, iTimeStep::Int)
 
     Microgrid.State = [
         iProductionConsumptionMismatch
-        Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-24]
-        Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-48]
-        Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-168]
-        minimum(Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-24:iTimeStep-1])
+        Microgrid.DayAheadPricesHandler.dfDayAheadPrices.TransformedPrice[iTimeStep-24]
+        Microgrid.DayAheadPricesHandler.dfDayAheadPrices.TransformedPrice[iTimeStep-48]
+        Microgrid.DayAheadPricesHandler.dfDayAheadPrices.TransformedPrice[iTimeStep-168]
+        minimum(Microgrid.DayAheadPricesHandler.dfDayAheadPrices.TransformedPrice[iTimeStep-24:iTimeStep-1])
         ifelse(Microgrid.DayAheadPricesHandler.dfDayAheadPrices.DeliveryDayOfWeek[iTimeStep] == 6, 1, 0)
         ifelse(Microgrid.DayAheadPricesHandler.dfDayAheadPrices.DeliveryDayOfWeek[iTimeStep] == 7, 1, 0)
         ifelse(Microgrid.DayAheadPricesHandler.dfDayAheadPrices.DeliveryDayOfWeek[iTimeStep] == 1, 1, 0)
