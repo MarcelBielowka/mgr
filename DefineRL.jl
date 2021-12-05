@@ -26,7 +26,7 @@ function GetParamsForNormalisation(Microgrid::Microgrid)
     return Dict(
     #    "ProductionScalingParams" => extrema(Microgrid.dfTotalProduction.TotalProduction),
     #    "ConsumptionScalingParams" => extrema(Microgrid.dfTotalConsumption.TotalConsumption),
-        "ConsMismatchParams" => mean((iOverallConsMismatch), std(iOverallConsMismatch)),
+        "ConsMismatchParams" => (mean(iOverallConsMismatch), std(iOverallConsMismatch)),
         "PriceParams" => extrema(iOverallPriceLevels),
         "ChargeParams" => (0, Microgrid.EnergyStorage.iMaxCapacity)
     )
