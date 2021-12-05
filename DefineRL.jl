@@ -271,7 +271,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
     #Random.seed!(72945)
     iProductionConsumptionMismatch =
         Microgrid.dfTotalProduction.TotalProduction[iTimeStep] -
-        Microgrid.dfTotalProduction.TotalConsumption[iTimeStep]
+        Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep]
     CurrentState = deepcopy(Microgrid.State)
     Policy, v = Forward(Microgrid, CurrentState, true, dictNormParams, iLookBack, true)
     Action = rand(Policy)
