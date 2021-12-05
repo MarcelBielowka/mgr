@@ -2,13 +2,15 @@ using Distributions, Dates, DataFrames
 using Flux, Pipe
 
 function GetState(Microgrid::Microgrid, iLookBack::Int, iTimeStep::Int)
-    iTotalProduction = Microgrid.dfTotalProduction.TotalProduction[iTimeStep-iLookBack:iTimeStep]
-    iTotalConsumption = Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep-iLookBack:iTimeStep]
+    iTotalProduction = Microgrid.dfTotalProduction.TotalProduction
+    iTotalConsumption = Microgrid.dfTotalConsumption.TotalConsumption
     iProductionConsumptionMismatch = iTotalProduction .- iTotalConsumption
     # iDayAheadPrices = Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-iLookBack:iTimeStep]
 
     Microgrid.State = [
-        iProductionConsumptionMismatch
+        iProductionConsumptionMismatch[iTimeStep-24]
+        iProductionConsumptionMismatch[iTimeStep-48]
+        iProductionConsumptionMismatch[iTimeStep-168]
         Microgrid.DayAheadPricesHandler.dfDayAheadPrices.TransformedPrice[iTimeStep-24]
         Microgrid.DayAheadPricesHandler.dfDayAheadPrices.TransformedPrice[iTimeStep-48]
         Microgrid.DayAheadPricesHandler.dfDayAheadPrices.TransformedPrice[iTimeStep-168]
