@@ -26,7 +26,7 @@ function GetParamsForNormalisation(Microgrid::Microgrid)
     return Dict(
     #    "ProductionScalingParams" => extrema(Microgrid.dfTotalProduction.TotalProduction),
     #    "ConsumptionScalingParams" => extrema(Microgrid.dfTotalConsumption.TotalConsumption),
-        "ConsMismatchParams" => extrema(iOverallConsMismatch),
+        "ConsMismatchParams" => mean((iOverallConsMismatch), std(iOverallConsMismatch)),
         "PriceParams" => extrema(iOverallPriceLevels),
         "ChargeParams" => (0, Microgrid.EnergyStorage.iMaxCapacity)
     )
@@ -35,11 +35,11 @@ end
 function NormaliseState!(State::Vector, Params::Dict, iLookBack::Int)
     #(iProdMin, iProdMax) = Params["ProductionScalingParams"]
     #(iConsMin, iConsMax) = Params["ConsumptionScalingParams"]
-    (iMismatchMin, iMismatchMax) = Params["ConsMismatchParams"]
+    (iMismatchMean, iMismatchStd) = Params["ConsMismatchParams"]
     # (iPriceMin, iPriceMax) = Params["PriceParams"]
     (iChargeMin, iChargeMax) = Params["ChargeParams"]
     for i in 1:1:(iLookBack+1)
-        State[i] = (State[i] - iMismatchMin) / (iMismatchMax - iMismatchMin)
+        State[i] = (State[i] - iMismatchMean) / iMismatchStd
     end
     # State[length(State)] = (State[length(State)] - iChargeMin) / (iChargeMax - iChargeMin)
     return State
