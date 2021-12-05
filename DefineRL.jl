@@ -205,12 +205,12 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     if iGridVolume >= 0
        #iReward = iGridVolume * dictRewards["iPriceSell"]
        # iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Centile[1]
-       iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep] * 0.8
+       iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep] * 0.5
        #ρ = 0.1
     else
         #iReward = iGridVolume * dictRewards["iPriceBuy"]
         # iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i70Centile[1]
-        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep] * 1.2
+        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep] * 1.5
         #ρ = 10
     end
     #iGridPrice = ρ * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep]
