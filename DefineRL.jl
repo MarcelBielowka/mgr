@@ -2,8 +2,8 @@ using Distributions, Dates, DataFrames
 using Flux, Pipe
 
 function GetState(Microgrid::Microgrid, iLookBack::Int, iTimeStep::Int)
-    iTotalProduction = Microgrid.dfTotalProduction.TotalProduction[iTimeStep-iLookBack:iTimeStep]
-    iTotalConsumption = Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep-iLookBack:iTimeStep]
+    iTotalProduction = Microgrid.dfTotalProduction.TotalProduction[iTimeStep-iLookBack:iTimeStep-1]
+    iTotalConsumption = Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep-iLookBack:iTimeStep-1]
     iProductionConsumptionMismatch = iTotalProduction .- iTotalConsumption
     # iDayAheadPrices = Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep-iLookBack:iTimeStep]
 
@@ -140,8 +140,9 @@ function Learn!(Microgrid::Microgrid, step::Tuple, dictNormParams::Dict, iLookBa
     Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))        # Critic learns based on TD target
 end
 
-function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookBack::Int, bLog::Bool)
-    iConsumptionMismatch = Microgrid.State[iLookBack+1]
+function ChargeOrDischargeBattery!(Microgrid::Microgrid, iConsumptionMismatch::Float64,
+    Action::Float64, iLookBack::Int, bLog::Bool)
+    # iConsumptionMismatch = Microgrid.State[iLookBack+1]
     #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
     #     iChargeDischargeVolume = deepcopy(Action) * iConsumptionMismatch
     #else
@@ -187,7 +188,7 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookB
     return Action, ActualAction
 end
 
-function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
+function CalculateReward(Microgrid::Microgrid, iConsumptionMismatch::Float64, iLookBack::Int,
     Action::Float64, ActualAction::Float64, iTimeStep::Int, bLearn::Bool)
     #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
     #    iMicrogridVolume = deepcopy(ActualAction) * State[iLookBack+1]
@@ -197,8 +198,8 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     # iMicrogridVolume = deepcopy(ActualAction) * State[1]
     # iMicrogridVolume = deepcopy(ActualAction)
     # iGridVolume = State[1] - iMicrogridVolume
-    iMicrogridVolume = State[iLookBack+1] * ActualAction
-    iGridVolume = State[iLookBack+1] - iMicrogridVolume
+    iMicrogridVolume = iConsumptionMismatch * ActualAction
+    iGridVolume = iConsumptionMismatch * (1 - ActualAction)
     # iMicrogridReward = Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Centile[1]
     #iGridPrice = Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iMedian[1]
     #dictRewards = GetReward(Microgrid, iTimeStep)
@@ -266,6 +267,8 @@ end
 function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::Int,
     dictNormParams::Dict, bLearn::Bool, bLog::Bool)
     #Random.seed!(72945)
+    iProductionConsumptionMismatch = Microgrid.dfTotalProduction.TotalProduction[iTimeStep] -
+        Microgrid.dfTotalConsumption.TotalConsumption[iTimeStep]
     CurrentState = deepcopy(Microgrid.State)
     Policy, v = Forward(Microgrid, CurrentState, true, dictNormParams, iLookBack, true)
     Action = rand(Policy)
@@ -282,8 +285,8 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
         #end
     end
 
-    Action, ActualAction = ChargeOrDischargeBattery!(Microgrid, Action, iLookBack, bLog)
-    iReward = CalculateReward(Microgrid, CurrentState, iLookBack,
+    Action, ActualAction = ChargeOrDischargeBattery!(Microgrid, iProductionConsumptionMismatch, Action, iLookBack, bLog)
+    iReward = CalculateReward(Microgrid, iProductionConsumptionMismatch, iLookBack,
         Action, ActualAction, iTimeStep, bLearn)
 
     NextState = GetState(Microgrid, iLookBack, iTimeStep + 1)
