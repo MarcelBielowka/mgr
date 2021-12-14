@@ -527,3 +527,5 @@ function FineTuneTheMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
         end
     end
 end
+
+a = 5
