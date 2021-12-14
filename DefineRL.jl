@@ -190,7 +190,8 @@ function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookB
 end
 
 function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
-    Action::Float64, ActualAction::Float64, iTimeStep::Int, bLearn::Bool)
+    Action::Float64, ActualAction::Float64, iGridLongVolumeCoefficient::Float64,
+    iTimeStep::Int, bLearn::Bool)
     #if Microgrid.Brain.cPolicyOutputLayerType == "sigmoid"
     #    iMicrogridVolume = deepcopy(ActualAction) * State[iLookBack+1]
     #else
@@ -201,18 +202,19 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     # iGridVolume = State[1] - iMicrogridVolume
     iMicrogridVolume = State[iLookBack+1] * ActualAction
     iGridVolume = State[iLookBack+1] - iMicrogridVolume
+    iGridShortVolumeCoefficient = 2 - iGridLongVolumeCoefficient
     # iMicrogridReward = Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Centile[1]
     #iGridPrice = Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iMedian[1]
     #dictRewards = GetReward(Microgrid, iTimeStep)
     if iGridVolume >= 0
        #iReward = iGridVolume * dictRewards["iPriceSell"]
        # iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Centile[1]
-       iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep] * 0.5
+       iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep] * iGridLongVolumeCoefficient
        #ρ = 0.1
     else
         #iReward = iGridVolume * dictRewards["iPriceBuy"]
         # iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i70Centile[1]
-        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep] * 1.5
+        iReward = iGridVolume * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep] * iGridShortVolumeCoefficient
         #ρ = 10
     end
     #iGridPrice = ρ * Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price[iTimeStep]
@@ -266,6 +268,7 @@ end
 
 
 function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::Int,
+    iGridLongVolumeCoefficient::Float64,
     dictNormParams::Dict, bLearn::Bool, bLog::Bool)
     #Random.seed!(72945)
     CurrentState = deepcopy(Microgrid.State)
@@ -286,7 +289,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
 
     Action, ActualAction = ChargeOrDischargeBattery!(Microgrid, Action, iLookBack, bLog)
     iReward = CalculateReward(Microgrid, CurrentState, iLookBack,
-        Action, ActualAction, iTimeStep, bLearn)
+        Action, ActualAction, iGridLongVolumeCoefficient, iTimeStep, bLearn)
 
     NextState = GetState(Microgrid, iLookBack, iTimeStep + 1)
     Microgrid.State = NextState
@@ -314,6 +317,7 @@ function Act!(Microgrid::Microgrid, iTimeStep::Int, iHorizon::Int, iLookBack::In
 end
 
 function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookBack::Int,
+    iGridLongVolumeCoefficient::Float64,
     iTimeStepStart::Int, iTimeStepEnd::Int, bLearn::Bool, bLog::Bool)
     println("############################")
     println("The run is starting. The parameters are:")
@@ -343,6 +347,7 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookBack::Int,
                     println("\nStep $iTimeStep")
                 end
                 bTerminal, iReward = Act!(Microgrid, iTimeStep, iTimeStepEnd, iLookBack,
+                    iGridLongVolumeCoefficient,
                     dictParamsForNormalisation, bLearn, bLog)
                 push!(iRewardsTimeStep, iReward)
                 if bTerminal
