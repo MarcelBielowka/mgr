@@ -438,3 +438,92 @@ function RunWrapper(DayAheadPricesHandler::DayAheadPricesHandler,
     end
     return FinalDict
 end
+
+function FineTuneTheMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
+    WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
+    MyWarehouse::Warehouse, MyHouseholds::⌂,
+    iEpisodes::Int,
+    dRunStartTrain::Int, dRunEndTrain::Int,
+    dRunStartTest::Int, dRunEndTest::Int,
+    iLookBack::Int, iGridLongVolumeCoefficient::Float64,
+    iβ::Float64, iActorLearningRate::Float64, iCriticLearningRate::Float64,
+    iHiddenLayerNeuronsActor::Int, iHiddenLayerNeuronsCritic::Int)
+
+    ### Some input validation ###
+    if iEpisodes < 10
+        println("Number of episodes cannot be lower than 10")
+        return nothing
+    end
+
+    if iLookBack < 0
+        println("Number of look backs cannot be lower than 0")
+        return nothing
+    end
+
+    if (iGridLongVolumeCoefficient < 0 || iGridLongVolumeCoefficient > 2)
+        println("Grid long volume coefficient must be within 0 and 2, preferably within 0 and 1")
+        return nothing
+    end
+
+    if (iHiddenLayerNeuronsActor < 10 || iHiddenLayerNeuronsCritic < 10)
+        println("Hidden layers must have more than 10 neurons")
+        return nothing
+    end
+
+    if (iHiddenLayerNeuronsCritic % 2) != 0
+        println("The number of hidden layers of the critic must be dividable by 2")
+        return nothing
+    end
+
+    if (iActorLearningRate < 0 || iCriticLearningRate < 0)
+        println("Leargning rates can't be negative")
+        return nothing
+    end
+
+    if (iActorLearningRate < 0.5 || iCriticLearningRate < 0.5)
+        println("Leargning rates can't exceed 0.5")
+        return nothing
+    end
+
+    dictOutputTuning = Dict{}()
+
+    for iActorLearningRate in iActorLearningRateFrom:iActorLearningRateStep:iActorLearningRateTo
+        for iCriticLearningRate in iCriticLearningRateFrom:iCriticLearningRateStep:iCriticLearningRateTo
+            for iβ in iβFrom:iβStep:iβTo
+                MyMicrogrid = GetMicrogrid(DayAheadPowerPrices, Weather,
+                    MyWindPark, MyWarehouse, Households, "identity", 1,
+                    iActorLearningRate, iCriticLearningRate, iβ)
+                RandomMicrogrid = deepcopy(MyMicrogrid)
+
+                # initial result
+                InitialTestResult = Run!(RandomMicrogrid,
+                    iEpisodes, iLookBacks, iQuantileGrid, iQuantileMicrogrid,
+                    dRunStartTest, dRunEndTest, false, false)
+
+                # training
+                TrainResult = Run!(MyMicrogrid,
+                    iEpisodes, iLookBacks, iQuantileGrid, iQuantileMicrogrid,
+                    dRunStartTrain, dRunEndTrain, true, true)
+
+                # evaluation
+                FinalMicrogrid = deepcopy(MyMicrogrid)
+                FinalMicrogrid.Brain.memory = []
+                FinalMicrogrid.RewardHistory = []
+                ResultAfterTraining = Run!(FinalMicrogrid,
+                    iEpisodes, iLookBacks, iQuantileGrid, iQuantileMicrogrid,
+                    dRunStartTest, dRunEndTest, false, false)
+
+                push!(dictOutputTuning,
+                    (iActorLearningRate, iCriticLearningRate, iβ) => Dict(
+                        "RandomMicrogrid" => RandomMicrogrid,
+                        "MyMicrogrid" => MyMicrogrid,
+                        "FinalMicrogrid" => FinalMicrogrid,
+                        "InitialTestResult" => InitialTestResult,
+                        "TrainResult" => TrainResult,
+                        "ResultAfterTraining" => ResultAfterTraining
+                        )
+                    )
+            end
+        end
+    end
+end
