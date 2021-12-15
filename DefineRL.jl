@@ -442,13 +442,13 @@ end
 function FineTuneTheMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
     MyWarehouse::Warehouse, MyHouseholds::⌂,
-    cPolicyOutputLayerType::String, iEpisodes::Int64,
+    cPolicyOutputLayerType::Vector{String}, iEpisodes::Int64,
     dRunStartTrain::Int64, dRunEndTrain::Int64,
     dRunStartTest::Int64, dRunEndTest::Int64,
-    iLookBack::Int64, iGridLongVolumeCoefficient::Float64,
-    iβ::Float64,
-    iActorLearningRate::Float64, iCriticLearningRate::Float64,
-    iHiddenLayerNeuronsActor::Int64, iHiddenLayerNeuronsCritic::Int64)
+    iLookBack::Vector{Int64}, iGridLongVolumeCoefficient::Vector{Float64},
+    iβ::Vector{Float64},
+    iActorLearningRate::Vector{Float64}, iCriticLearningRate::Vector{Float64},
+    iHiddenLayerNeuronsActor::Vector{Int64}, iHiddenLayerNeuronsCritic::Vector{Int64})
 
     ### Some input validation ###
     if iEpisodes < 10
