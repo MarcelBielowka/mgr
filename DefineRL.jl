@@ -441,7 +441,7 @@ end
 
 function FineTuneTheMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
-    MyWarehouse::Warehouse, MyHouseholds::⌂,
+    MyWarehouse::Warehouse, MyHouseholds::⌂, cPolicyOutputLayerType::String,
     iEpisodes::Int,
     dRunStartTrain::Int, dRunEndTrain::Int,
     dRunStartTest::Int, dRunEndTest::Int,
@@ -485,45 +485,51 @@ function FineTuneTheMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
         return nothing
     end
 
+    RawMicrogrids = GetMicrogrid.(DayAheadPowerPrices, Weather,
+        MyWindPark, MyWarehouse, Households, "identity", iLookBack,
+        iHiddenLayerNeuronsActor, iHiddenLayerNeuronsCritic,
+        iActorLearningRate, iCriticLearningRate, iβ)
     dictOutputTuning = Dict{}()
 
-    for iActorLearningRate in iActorLearningRateFrom:iActorLearningRateStep:iActorLearningRateTo
-        for iCriticLearningRate in iCriticLearningRateFrom:iCriticLearningRateStep:iCriticLearningRateTo
-            for iβ in iβFrom:iβStep:iβTo
-                MyMicrogrid = GetMicrogrid(DayAheadPowerPrices, Weather,
-                    MyWindPark, MyWarehouse, Households, "identity", 1,
-                    iActorLearningRate, iCriticLearningRate, iβ)
-                RandomMicrogrid = deepcopy(MyMicrogrid)
+    return RawMicrogrids
+
+#    for iActorLearningRate in iActorLearningRateFrom:iActorLearningRateStep:iActorLearningRateTo
+#        for iCriticLearningRate in iCriticLearningRateFrom:iCriticLearningRateStep:iCriticLearningRateTo
+#            for iβ in iβFrom:iβStep:iβTo
+#                MyMicrogrid = GetMicrogrid(DayAheadPowerPrices, Weather,
+#                    MyWindPark, MyWarehouse, Households, "identity", 1,
+#                    iActorLearningRate, iCriticLearningRate, iβ)
+#                RandomMicrogrid = deepcopy(MyMicrogrid)
 
                 # initial result
-                InitialTestResult = Run!(RandomMicrogrid,
-                    iEpisodes, iLookBacks, iQuantileGrid, iQuantileMicrogrid,
-                    dRunStartTest, dRunEndTest, false, false)
+#                InitialTestResult = Run!(RandomMicrogrid,
+#                    iEpisodes, iLookBacks, iQuantileGrid, iQuantileMicrogrid,
+#                    dRunStartTest, dRunEndTest, false, false)
 
                 # training
-                TrainResult = Run!(MyMicrogrid,
-                    iEpisodes, iLookBacks, iQuantileGrid, iQuantileMicrogrid,
-                    dRunStartTrain, dRunEndTrain, true, true)
+#                TrainResult = Run!(MyMicrogrid,
+#                    iEpisodes, iLookBacks, iQuantileGrid, iQuantileMicrogrid,
+#                    dRunStartTrain, dRunEndTrain, true, true)
 
                 # evaluation
-                FinalMicrogrid = deepcopy(MyMicrogrid)
-                FinalMicrogrid.Brain.memory = []
-                FinalMicrogrid.RewardHistory = []
-                ResultAfterTraining = Run!(FinalMicrogrid,
-                    iEpisodes, iLookBacks, iQuantileGrid, iQuantileMicrogrid,
-                    dRunStartTest, dRunEndTest, false, false)
+#                FinalMicrogrid = deepcopy(MyMicrogrid)
+#                FinalMicrogrid.Brain.memory = []
+#                FinalMicrogrid.RewardHistory = []
+#                ResultAfterTraining = Run!(FinalMicrogrid,
+#                    iEpisodes, iLookBacks, iQuantileGrid, iQuantileMicrogrid,
+#                    dRunStartTest, dRunEndTest, false, false)
 
-                push!(dictOutputTuning,
-                    (iActorLearningRate, iCriticLearningRate, iβ) => Dict(
-                        "RandomMicrogrid" => RandomMicrogrid,
-                        "MyMicrogrid" => MyMicrogrid,
-                        "FinalMicrogrid" => FinalMicrogrid,
-                        "InitialTestResult" => InitialTestResult,
-                        "TrainResult" => TrainResult,
-                        "ResultAfterTraining" => ResultAfterTraining
-                        )
-                    )
-            end
-        end
-    end
+#                push!(dictOutputTuning,
+#                    (iActorLearningRate, iCriticLearningRate, iβ) => Dict(
+#                        "RandomMicrogrid" => RandomMicrogrid,
+#                        "MyMicrogrid" => MyMicrogrid,
+#                        "FinalMicrogrid" => FinalMicrogrid,
+#                        "InitialTestResult" => InitialTestResult,
+#                        "TrainResult" => TrainResult,
+#                        "ResultAfterTraining" => ResultAfterTraining
+#                        )
+#                    )
+#            end
+#        end
+#    end
 end
