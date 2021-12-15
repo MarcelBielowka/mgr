@@ -492,7 +492,7 @@ function FineTuneTheMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     for cCurrentPolicyOutputLayerType in cPolicyOutputLayerType,
         iCurrentLookBack in iLookBack,
         iCurrentβ in iβ,
-        iCurrentGridCoefficient in iGridLongVolumeCoefficient
+        iCurrentGridCoefficient in iGridLongVolumeCoefficient,
         iCurrentActorLearningRate in iActorLearningRate,
         iCurrentCriticLearningRate in iCriticLearningRate,
         iCurrentHiddenLayerNeuronsActor in iHiddenLayerNeuronsActor,
