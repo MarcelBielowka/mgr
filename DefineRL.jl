@@ -481,15 +481,30 @@ function FineTuneTheMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
         return nothing
     end
 
-    if (any(iActorLearningRate .< 0.5) || any(iCriticLearningRate .< 0.5))
+    if (any(iActorLearningRate .> 0.5) || any(iCriticLearningRate .> 0.5))
         println("Leargning rates can't exceed 0.5")
         return nothing
     end
 
-    RawMicrogrids = GetMicrogrid.(DayAheadPowerPrices, Weather,
-        MyWindPark, MyWarehouse, Households, cPolicyOutputLayerType, iLookBack,
-        iHiddenLayerNeuronsActor, iHiddenLayerNeuronsCritic,
-        iActorLearningRate, iCriticLearningRate, iβ)
+    RawMicrogrids = Vector{Microgrid}()
+
+    for cCurrentPolicyOutputLayerType in cPolicyOutputLayerType, 
+        iCurrentLookBack in iLookBack, iCurrentβ in iβ,
+        iCurrentActorLearningRate in iActorLearningRate,
+        iCurrentCriticLearningRate in iCriticLearningRate,
+        iCurrentHiddenLayerNeuronsActor in iHiddenLayerNeuronsActor,
+        iCurrentHiddenLayerNeuronsCritic in iHiddenLayerNeuronsCritic
+
+        CurrentMicrogrid = GetMicrogrid(DayAheadPowerPrices, Weather,
+            MyWindPark, MyWarehouse, Households,
+            cCurrentPolicyOutputLayerType, iCurrentLookBack,
+            iCurrentHiddenLayerNeuronsActor, iCurrentHiddenLayerNeuronsCritic,
+            iCurrentActorLearningRate, iCurrentCriticLearningRate,
+            iCurrentβ)
+
+            push!(RawMicrogrids, CurrentMicrogrid)
+    end
+
     dictOutputTuning = Dict{}()
 
     return RawMicrogrids
