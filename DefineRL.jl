@@ -133,15 +133,16 @@ function Learn!(Microgrid::Microgrid, step::Tuple, dictNormParams::Dict, iLookBa
     y = R
 
     # Get estimate of y and the score function
-    μ_hat = MyMicrogrid.Brain.policy_net(x)
+    μ_hat = Microgrid.Brain.policy_net(x)
     σ_hat = 0.1
     Policy = Distributions.Normal.(μ_hat, σ_hat)
     iScoreFunction = -Distributions.logpdf.(Policy, Action)
-    ŷ = MyMicrogrid.Brain.value_net(x)
+    ŷ = Microgrid.Brain.value_net(x)
 
     # train
     Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(iScoreFunction,A)], ADAM(Microgrid.Brain.ηₚ)) # Actor learns based on TD error
     Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(ŷ,y)], ADAM(Microgrid.Brain.ηᵥ))        # Critic learns based on TD target
+    println("Abecadlo")
 end
 
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookBack::Int, bLog::Bool)
