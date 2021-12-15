@@ -140,8 +140,23 @@ function Learn!(Microgrid::Microgrid, step::Tuple, dictNormParams::Dict, iLookBa
     ŷ = Microgrid.Brain.value_net(x)
 
     # train
-    Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(iScoreFunction,A)], ADAM(Microgrid.Brain.ηₚ)) # Actor learns based on TD error
-    Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(ŷ,y)], ADAM(Microgrid.Brain.ηᵥ))        # Critic learns based on TD target
+    # Actor learns based on TD error
+    Flux.train!(
+        (iScoreFunction, A) -> ActorLoss(
+            (@pipe Distributions.Normal.(Microgrid.Brain.policy_net(x), 0.1) |> -Distributions.logpdf(_, Action)), A
+        ),
+        Flux.params(Microgrid.Brain.policy_net),
+        [(x, Action, A)],
+        ADAM(Microgrid.Brain.ηₚ)
+    )
+
+    # Critic learns based on TD target
+    Flux.train!(
+        (x,y) -> CriticLoss(Microgrid.Brain.value_net(x), y),
+        Flux.params(Microgrid.Brain.value_net),
+        [(x,y)],
+        ADAM(Microgrid.Brain.ηᵥ)
+    )
     println("Abecadlo")
 end
 
