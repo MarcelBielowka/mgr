@@ -88,8 +88,8 @@ function ActorLoss(x, Actions, A; ι::Float64 = 0.001)
     return iLoss
 end
 
-function CriticLoss(x, y; ξ = 0.5)
-    iCriticLoss = ξ*Flux.mse(MyMicrogrid.Brain.value_net(x), y)
+function CriticLoss(ŷ, y; ξ = 0.5)
+    iCriticLoss = ξ*Flux.mse(ŷ, y)
     println("Critic loss: $iCriticLoss")
     return iCriticLoss
 end
@@ -119,7 +119,6 @@ function Replay!(Microgrid::Microgrid, dictNormParams::Dict, iLookBack::Int)
         y[:, i] .= R
     end
 
-    println("Abecadlo")
     Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,Actions,A)], ADAM(Microgrid.Brain.ηₚ))
     Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))
     #println("Actor parameters: ", Flux.params(Microgrid.Brain.policy_net))
@@ -138,8 +137,9 @@ function Learn!(Microgrid::Microgrid, step::Tuple, dictNormParams::Dict, iLookBa
     x = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams, iLookBack) # in usual circumstances that's StateForLearning
     A = R - v                               # TD error
     y = R
+    ŷ = MyMicrogrid.Brain.value_net(x)
     Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,Action,A)], ADAM(Microgrid.Brain.ηₚ)) # Actor learns based on TD error
-    Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(x,y)], ADAM(Microgrid.Brain.ηᵥ))        # Critic learns based on TD target
+    Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(ŷ,y)], ADAM(Microgrid.Brain.ηᵥ))        # Critic learns based on TD target
 end
 
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookBack::Int, bLog::Bool)
