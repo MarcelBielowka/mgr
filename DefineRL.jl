@@ -487,9 +487,11 @@ function FineTuneTheMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     end
 
     RawMicrogrids = Vector{Microgrid}()
+    dictOutputTuning = Dict{}()
 
-    for cCurrentPolicyOutputLayerType in cPolicyOutputLayerType, 
-        iCurrentLookBack in iLookBack, iCurrentβ in iβ,
+    for cCurrentPolicyOutputLayerType in cPolicyOutputLayerType,
+        iCurrentLookBack in iLookBack,
+        iCurrentβ in iβ,
         iCurrentActorLearningRate in iActorLearningRate,
         iCurrentCriticLearningRate in iCriticLearningRate,
         iCurrentHiddenLayerNeuronsActor in iHiddenLayerNeuronsActor,
@@ -505,9 +507,38 @@ function FineTuneTheMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
             push!(RawMicrogrids, CurrentMicrogrid)
     end
 
-    dictOutputTuning = Dict{}()
+    for i in 1:length(RawMicrogrids),
+        iCurrentGridCoefficient in iGridLongVolumeCoefficient
+        iCurrentLookBack in iLookBack
 
-    return RawMicrogrids
+        MyMicrogrid = deepcopy(RawMicrogrids[i])
+        RandomMicrogrid = deepcopy(RawMicrogrids[i])
+
+        # initial result
+        InitialTestResult = Run!(RandomMicrogrid,
+            iEpisodes, iCurrentLookBack,
+            iCurrentGridCoefficient,
+            dRunStartTest, dRunEndTest, false, false)
+
+        TrainResult = Run!(MyMicrogrid,
+            iEpisodes, iCurrentLookBack,
+            iCurrentGridCoefficient,
+            dRunStartTrain, dRunEndTrain, false, false)
+
+        FinalMicrogrid = deepcopy(MyMicrogrid)
+        FinalMicrogrid.Brain.memory = []
+        FinalMicrogrid.RewardHistory = []
+
+        ResultAfterTraining = Run!(FinalMicrogrid,
+            iEpisodes, iCurrentLookBack,
+            iCurrentGridCoefficient,
+            dRunStartTest, dRunEndTest, false, false)
+
+        push!(dictOutputTuning,
+            (iCurrentLookBack, iCurrentGridCoefficient,
+                ) => )
+
+    end
 
 #    for iActorLearningRate in iActorLearningRateFrom:iActorLearningRateStep:iActorLearningRateTo
 #        for iCriticLearningRate in iCriticLearningRateFrom:iCriticLearningRateStep:iCriticLearningRateTo
