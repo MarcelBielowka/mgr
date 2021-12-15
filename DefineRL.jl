@@ -65,20 +65,12 @@ function GetReward(Microgrid::Microgrid, iTimeStep::Int)
     )
 end
 
-function ActorLoss(x, Actions, A; ι::Float64 = 0.001)
-    #println("μ_policy: $μ_policy")
-    #println(typeof(μ_policy))
-    # PolicyParameters = MyMicrogrid.Brain.policy_net(x)
-    # μ_hat = PolicyParameters[1,:]
-    # σ_hat = deepcopy(PolicyParameters[2,:])
-    # σ_hat = softplus.(σ_hat) .+ 1e-3
-    # σ_hat = abs.(σ_hat) .+ 1e-3
-    μ_hat = MyMicrogrid.Brain.policy_net(x)
-    σ_hat = 0.1
-    #MyMicrogrid.Brain.cPolicyOutputLayerType == "sigmoid" ? σ_hat = 0.01 : σ_hat = 1.0
-    Policy = Distributions.Normal.(μ_hat, σ_hat)
+function ActorLoss(iScoreFunction, A; ι::Float64 = 0.001)
+    #μ_hat = MyMicrogrid.Brain.policy_net(x)
+    #σ_hat = 0.1
+    #Policy = Distributions.Normal.(μ_hat, σ_hat)
     #println("Policy: $Policy")
-    iScoreFunction = -Distributions.logpdf.(Policy, Actions)
+    #iScoreFunction = -Distributions.logpdf.(Policy, Actions)
     #println("iScoreFunction: $iScoreFunction")
     iLoss = sum(iScoreFunction .* A)
     iEntropy = sum(Distributions.entropy.(Policy))
@@ -133,12 +125,22 @@ function Learn!(Microgrid::Microgrid, step::Tuple, dictNormParams::Dict, iLookBa
 #    else
 #        R = Reward + Microgrid.Brain.β * v′ #TD target
 #    end
+
+    # calculate basic metrics
     R = Reward + Microgrid.Brain.β * v′ #TD target
     x = @pipe deepcopy(State) |> NormaliseState!(_, dictNormParams, iLookBack) # in usual circumstances that's StateForLearning
     A = R - v                               # TD error
     y = R
+
+    # Get estimate of y and the score function
+    μ_hat = MyMicrogrid.Brain.policy_net(x)
+    σ_hat = 0.1
+    Policy = Distributions.Normal.(μ_hat, σ_hat)
+    iScoreFunction = -Distributions.logpdf.(Policy, Actions)
     ŷ = MyMicrogrid.Brain.value_net(x)
-    Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(x,Action,A)], ADAM(Microgrid.Brain.ηₚ)) # Actor learns based on TD error
+
+    # train
+    Flux.train!(ActorLoss, Flux.params(Microgrid.Brain.policy_net), [(iScoreFunction,A)], ADAM(Microgrid.Brain.ηₚ)) # Actor learns based on TD error
     Flux.train!(CriticLoss, Flux.params(Microgrid.Brain.value_net), [(ŷ,y)], ADAM(Microgrid.Brain.ηᵥ))        # Critic learns based on TD target
 end
 
