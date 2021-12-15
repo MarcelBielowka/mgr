@@ -441,13 +441,14 @@ end
 
 function FineTuneTheMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
-    MyWarehouse::Warehouse, MyHouseholds::⌂, cPolicyOutputLayerType::String,
-    iEpisodes::Int,
-    dRunStartTrain::Int, dRunEndTrain::Int,
-    dRunStartTest::Int, dRunEndTest::Int,
-    iLookBack::Int, iGridLongVolumeCoefficient::Float64,
-    iβ::Float64, iActorLearningRate::Float64, iCriticLearningRate::Float64,
-    iHiddenLayerNeuronsActor::Int, iHiddenLayerNeuronsCritic::Int)
+    MyWarehouse::Warehouse, MyHouseholds::⌂,
+    cPolicyOutputLayerType::Vector{String}, iEpisodes::Int64,
+    dRunStartTrain::Int64, dRunEndTrain::Int64,
+    dRunStartTest::Int64, dRunEndTest::Int64,
+    iLookBack::Vector{Int64}, iGridLongVolumeCoefficient::Vector{Float64},
+    iβ::Vector{Float64},
+    iActorLearningRate::Vector{Float64}, iCriticLearningRate::Vector{Float64},
+    iHiddenLayerNeuronsActor::Vector{Int64}, iHiddenLayerNeuronsCritic::Vector{Int64})
 
     ### Some input validation ###
     if iEpisodes < 10
@@ -455,38 +456,38 @@ function FineTuneTheMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
         return nothing
     end
 
-    if iLookBack < 0
+    if any(iLookBack .< 0)
         println("Number of look backs cannot be lower than 0")
         return nothing
     end
 
-    if (iGridLongVolumeCoefficient < 0 || iGridLongVolumeCoefficient > 2)
+    if (any(iGridLongVolumeCoefficient .< 0) || any(iGridLongVolumeCoefficient .> 2))
         println("Grid long volume coefficient must be within 0 and 2, preferably within 0 and 1")
         return nothing
     end
 
-    if (iHiddenLayerNeuronsActor < 10 || iHiddenLayerNeuronsCritic < 10)
+    if (any(iHiddenLayerNeuronsActor .< 10) || any(iHiddenLayerNeuronsCritic .< 10))
         println("Hidden layers must have more than 10 neurons")
         return nothing
     end
 
-    if (iHiddenLayerNeuronsCritic % 2) != 0
+    if (any.(iHiddenLayerNeuronsCritic % 2) != 0)
         println("The number of hidden layers of the critic must be dividable by 2")
         return nothing
     end
 
-    if (iActorLearningRate < 0 || iCriticLearningRate < 0)
+    if (any(iActorLearningRate .< 0) || any(iCriticLearningRate .< 0))
         println("Leargning rates can't be negative")
         return nothing
     end
 
-    if (iActorLearningRate < 0.5 || iCriticLearningRate < 0.5)
+    if (any(iActorLearningRate .< 0.5) || any(iCriticLearningRate .< 0.5))
         println("Leargning rates can't exceed 0.5")
         return nothing
     end
 
     RawMicrogrids = GetMicrogrid.(DayAheadPowerPrices, Weather,
-        MyWindPark, MyWarehouse, Households, "identity", iLookBack,
+        MyWindPark, MyWarehouse, Households, cPolicyOutputLayerType, iLookBack,
         iHiddenLayerNeuronsActor, iHiddenLayerNeuronsCritic,
         iActorLearningRate, iCriticLearningRate, iβ)
     dictOutputTuning = Dict{}()
