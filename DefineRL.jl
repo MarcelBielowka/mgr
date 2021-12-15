@@ -73,7 +73,7 @@ function ActorLoss(iScoreFunction, A; ι::Float64 = 0.001)
     #iScoreFunction = -Distributions.logpdf.(Policy, Actions)
     #println("iScoreFunction: $iScoreFunction")
     iLoss = sum(iScoreFunction .* A)
-    iEntropy = sum(Distributions.entropy.(Policy))
+    # iEntropy = sum(Distributions.entropy.(Policy))
     # println("Actor loss function: ", iLoss - ι*iEntropy)
     # return iLoss - ι*iEntropy
     println("Actor loss function: ", iLoss)
@@ -136,7 +136,7 @@ function Learn!(Microgrid::Microgrid, step::Tuple, dictNormParams::Dict, iLookBa
     μ_hat = MyMicrogrid.Brain.policy_net(x)
     σ_hat = 0.1
     Policy = Distributions.Normal.(μ_hat, σ_hat)
-    iScoreFunction = -Distributions.logpdf.(Policy, Actions)
+    iScoreFunction = -Distributions.logpdf.(Policy, Action)
     ŷ = MyMicrogrid.Brain.value_net(x)
 
     # train
