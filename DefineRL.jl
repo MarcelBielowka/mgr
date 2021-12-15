@@ -517,7 +517,7 @@ function FineTuneTheMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
         TrainResult = Run!(MyMicrogrid,
             iEpisodes, iCurrentLookBack,
             iCurrentGridCoefficient,
-            dRunStartTrain, dRunEndTrain, false, false)
+            dRunStartTrain, dRunEndTrain, true, true)
 
         FinalMicrogrid = deepcopy(MyMicrogrid)
         FinalMicrogrid.Brain.memory = []
@@ -545,5 +545,7 @@ function FineTuneTheMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
                 )
             )
     end
+
+    return dictOutputTuning
 
 end
