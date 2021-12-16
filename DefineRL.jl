@@ -550,9 +550,16 @@ function FineTuneTheMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
             dRunStartTest, dRunEndTest, false, false)
 
         push!(dictOutputTuning, (
-            cCurrentPolicyOutputLayerType, iCurrentLookBack, iCurrentβ,
-                iCurrentGridCoefficient, iCurrentActorLearningRate, iCurrentCriticLearningRate,
-                iCurrentHiddenLayerNeuronsActor, iCurrentHiddenLayerNeuronsCritic
+            Dict(
+                "cPolicyOutputLayerType" => cCurrentPolicyOutputLayerType,
+                "iLookBack" => iCurrentLookBack,
+                "iβ" => iCurrentβ,
+                "iGridCoefficient" => iCurrentGridCoefficient,
+                "iActorLearningRate" => iCurrentActorLearningRate,
+                "iCriticLearningRate" => iCurrentCriticLearningRate,
+                "iHiddenLayerNeuronsActor" => iCurrentHiddenLayerNeuronsActor,
+                "iHiddenLayerNeuronsCritic" => iCurrentHiddenLayerNeuronsCritic
+                )
             ) => (
                 Dict(
                     "RandomMicrogrid" => RandomMicrogrid,
