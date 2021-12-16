@@ -215,7 +215,7 @@ end
 #########################################
 mutable struct ⌂
     dfEnergyConsumption::DataFrame
-    dictCompleteHouseholdsData::Dict
+    dictHouseholdsData::Dict
     iNumberOfHouseholds::Int
     EnergyStorage::EnergyStorage
 end
@@ -264,7 +264,9 @@ mutable struct Brain
     cPolicyOutputLayerType::String
 end
 
-function GetBrain(cPolicyOutputLayerType, iDimState; β = 0.999, ηₚ = 0.0001, ηᵥ = 0.0001)
+function GetBrain(cPolicyOutputLayerType::String, iDimState::Int,
+        iHiddenLayerNeuronsActor::Int, iHiddenLayerNeuronsCritic::Int,
+        iβ::Float64, ηₚ::Float64, ηᵥ::Float64)
     @assert any(["identity", "sigmoid"] .== cPolicyOutputLayerType) "The policy output layer type is not correct"
 
     if cPolicyOutputLayerType == "sigmoid"
@@ -277,12 +279,12 @@ function GetBrain(cPolicyOutputLayerType, iDimState; β = 0.999, ηₚ = 0.0001,
         #)
         policy_net = nothing
     else
-        policy_net = Chain(Dense(iDimState, 200, relu),
-                     Dense(200,200,relu),
-                     Dense(200,200,relu),
-                    Dense(200,1, sigmoid))
+        policy_net = Chain(Dense(iDimState, iHiddenLayerNeuronsActor, relu),
+                     Dense(iHiddenLayerNeuronsActor,iHiddenLayerNeuronsActor,relu),
+                     Dense(iHiddenLayerNeuronsActor,iHiddenLayerNeuronsActor,relu),
+                    Dense(iHiddenLayerNeuronsActor,1, sigmoid))
         #policy_net = Chain(
-        #    Dense(iDimState, 2, identity)
+        #    Dense(iDimState, 1, identity)
         #)
     end
     #policy_net = Chain(
@@ -291,11 +293,11 @@ function GetBrain(cPolicyOutputLayerType, iDimState; β = 0.999, ηₚ = 0.0001,
     #value_net = Chain(
     #    Dense(iDimState, 1, identity; bias = false)
     #)
-    value_net = Chain(Dense(iDimState, 128, relu),
-                    #Dense(128, 128, relu),
-                    Dense(128, 52, relu),
-                    Dense(52, 1, identity))
-    return Brain(β, 64, 1_200_000, 2_000, [], policy_net, value_net, ηₚ, ηᵥ, cPolicyOutputLayerType)
+    value_net = Chain(Dense(iDimState, iHiddenLayerNeuronsCritic, relu),
+                #Dense(128, 128, relu),
+                    Dense(iHiddenLayerNeuronsCritic, Int(iHiddenLayerNeuronsCritic/2), relu),
+                    Dense(Int(iHiddenLayerNeuronsCritic/2), 1, identity))
+    return Brain(iβ, 64, 1_200_000, 2_000, [], policy_net, value_net, ηₚ, ηᵥ, cPolicyOutputLayerType)
 end
 
 #########################################
@@ -316,9 +318,13 @@ end
 
 function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
-    MyWarehouse::Warehouse, MyHouseholds::⌂, cPolicyOutputLayerType::String, iLookBack::Int)
+    MyWarehouse::Warehouse, MyHouseholds::⌂, cPolicyOutputLayerType::String, iLookBack::Int,
+    iHiddenLayerNeuronsActor::Int, iHiddenLayerNeuronsCritic::Int,
+    iLearningRateActor::Float64, iLearningRateCritic::Float64, iβ::Float64)
 
-    Brain = GetBrain(cPolicyOutputLayerType, (iLookBack+1) + 1)
+    Brain = GetBrain(cPolicyOutputLayerType, iLookBack+9,
+         iHiddenLayerNeuronsActor, iHiddenLayerNeuronsCritic,
+         iβ, iLearningRateActor, iLearningRateCritic)
 
     dfTotalProduction = DataFrames.innerjoin(MyWindPark.dfWindParkProductionData,
         MyWarehouse.SolarPanels.dfSolarProductionData, on = :date)
@@ -337,7 +343,7 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
 
     return Microgrid(
         Brain,
-        repeat([-Inf], ((iLookBack+1) + 1)),
+        repeat([-Inf], iLookBack+9),
         0.0,
         [],
         DayAheadPricesHandler,

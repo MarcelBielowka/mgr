@@ -380,8 +380,8 @@ function RunPlots(FinalHouseholdData, month, day; silhouettes = true)
         legend = :none,
         ylim = [0,5],
         title = "Original data and profiles for month $month and day $day")
-    @df FinalHouseholdData["FinalClusteringOutput"][(month,day)] StatsPlots.plot!(:Hour,
-        cols(2:ncol(FinalHouseholdData["FinalClusteringOutput"][(1,1)])),
+    @df FinalHouseholdData["HouseholdProfiles"][(month,day)] StatsPlots.plot!(:Hour,
+        cols(2:ncol(FinalHouseholdData["HouseholdProfiles"][(1,1)])),
         color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
 
     PlotPCA = @df FinalHouseholdData["PCAOutput"][(month,day)] StatsPlots.scatter(:PC1, :PC2,
