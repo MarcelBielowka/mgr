@@ -5,7 +5,8 @@
 #    MyWindPark, MyWarehouse, Households, "identity", 0)
 # so far the winning formula - Nov, 2-step look ahead
 MyMicrogrid = GetMicrogrid(DayAheadPowerPrices, Weather,
-    MyWindPark, MyWarehouse, Households, "identity", 2)
+    MyWindPark, MyWarehouse, Households, "identity", 2,
+    0.0001, 0.001, 0.99)
 RandomMicrogrid = deepcopy(MyMicrogrid)
 #MyMicrogrid = GetMicrogrid(DayAheadPowerPrices, Weather,
 #     MyWindPark, MyWarehouse, Households, "sigmoid", 2)
@@ -29,8 +30,8 @@ MyMicrogrid.Brain
 a = 2
 MyMicrogrid.EnergyStorage
 RandomMicrogrid.Brain.memory
-InitialTestResult = Run!(RandomMicrogrid, 100, 2, dRunStartTest, dRunEndTest, false, false)
-@time TrainResult = Run!(MyMicrogrid, 100, 2, dRunStartTrain, dRunEndTrain, true, true)
+InitialTestResult = Run!(RandomMicrogrid, 1, 2, 70, 50, dRunStartTest, dRunEndTest, false, false)
+@time TrainResult = Run!(MyMicrogrid, 1, 2, 70, 50, dRunStartTrain, dRunEndTrain, true, true)
 iLookBack = 2
 iEpisodes = length(MyMicrogrid.RewardHistory)
 plot(MyMicrogrid.RewardHistory, legend = :none, title = "Learning history, look forward = $iLookBack, $iEpisodes episodes")
