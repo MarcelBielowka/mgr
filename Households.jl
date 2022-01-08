@@ -365,8 +365,8 @@ function RunPlots(FinalHouseholdData, month, day; silhouettes = true)
             color = [RGB(192/255, 0, 0) RGB(146/255, 0, 0) RGB(100/255, 0, 0) RGB(54/255, 0, 0) RGB(8/255, 0, 0)],
             xlabel = "Number of clusters",
             ylabel = "Average silhouette score",
-            legendtitle = "Test Day",
-            title = "Average sillhouette score")
+            # title = "Average sillhouette score",
+            legendtitle = "Test Day")
     else
         PlotSillhouettes = nothing
     end
@@ -378,14 +378,16 @@ function RunPlots(FinalHouseholdData, month, day; silhouettes = true)
         cols(4:3000),
         color = RGB(150/255,150/255,150/255), linealpha = 0.05,
         legend = :none,
-        ylim = [0,5],
-        title = "Original data and profiles for month $month and day $day")
+        ylim = [0,5])
+        # title = "Original data and profiles for month $month and day $day")
     @df FinalHouseholdData["HouseholdProfiles"][(month,day)] StatsPlots.plot!(:Hour,
         cols(2:ncol(FinalHouseholdData["HouseholdProfiles"][(1,1)])),
         color = RGB(192/255,0,0), linealpha = 0.5, lw = 2)
 
     PlotPCA = @df FinalHouseholdData["PCAOutput"][(month,day)] StatsPlots.scatter(:PC1, :PC2,
-        color = RGB(192/255,0,0), title = "PCA analysis for month $month and day $day", legend = :none)
+        color = RGB(192/255,0,0),
+        # title = "PCA analysis for month $month and day $day",
+        legend = :none)
 
     return Dict(
         "PlotSillhouettes" => PlotSillhouettes,
