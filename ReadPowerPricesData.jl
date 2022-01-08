@@ -79,8 +79,10 @@ function ChangeHourToPlus1(dfPriceDataRaw)
     # Some additional formatting
     dfPriceDataRaw.DeliveryDate = Dates.Date.(dfPriceDataRaw.DeliveryDateAndHour)
     dfPriceDataRaw.DeliveryHour = Dates.hour.(dfPriceDataRaw.DeliveryDateAndHour)
-    select!(dfPriceDataRaw, [:DeliveryDate, :DeliveryHour, :price, :delivery_date, :delivery_hour])
-    rename!(dfPriceDataRaw, [:DeliveryDate, :DeliveryHour, :Price, :OriginalDeliveryDate, :OriginalDeliveryHour])
+    dfPriceDataRaw.DeliveryDayOfWeek = Dates.dayofweek.(dfPriceDataRaw.DeliveryDate)
+    dfPriceDataRaw.TransformedPrice = log.(dfPriceDataRaw.price) / mean(log.(dfPriceDataRaw.price))
+    select!(dfPriceDataRaw, [:DeliveryDate, :DeliveryHour, :DeliveryDayOfWeek, :price, :TransformedPrice, :delivery_date, :delivery_hour])
+    rename!(dfPriceDataRaw, [:DeliveryDate, :DeliveryHour, :DeliveryDayOfWeek, :Price, :TransformedPrice, :OriginalDeliveryDate, :OriginalDeliveryHour])
     return dfPriceDataRaw
 end
 
