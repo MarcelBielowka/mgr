@@ -86,12 +86,14 @@ function GetWindPark(iTurbineMaxCapacity::Float64, iTurbineRatedSpeed::Float64,
     iTurbineCutinSpeed::Float64, iTurbineCutoffSpeed::Float64,
     WeatherData::WeatherDataHandler, iNumberOfTurbines::Int,
     cPolicyOutputLayerType::String, iLookBack::Int,
+    iHiddenNeuronsActor::Int, iHiddenNeuronsCritic::Int,
     iLearningRateActor::Float64, iLearningRateCritic::Float64, iβ::Float64)
 
     println("Constructor - creating the wind park. There will be $iNumberOfTurbines turbines")
 
     Brain = GetBrain(cPolicyOutputLayerType, (iLookBack+1) + 1,
-        iβ, iLearningRateActor, iLearningRateCritic)
+        iβ, iHiddenNeuronsActor, iHiddenNeuronsCritic,
+        iLearningRateActor, iLearningRateCritic)
 
     dfWindProductionData = DataFrames.DataFrame(
         date = WeatherData.dfWeatherData.date,
@@ -158,6 +160,7 @@ function GetWarehouse(
     iStorageMaxCapacity::Float64, iStorageChargeRate::Float64,
     iStorageDischargeRate::Float64, iNumberOfStorageCells::Int,
     cPolicyOutputLayerType::String, iLookBack::Int,
+    iHiddenNeuronsActor::Int, iHiddenNeuronsCritic::Int,
     iLearningRateActor::Float64, iLearningRateCritic::Float64, iβ::Float64)
 
     println("Constructor - creating the warehouse")
@@ -172,7 +175,8 @@ function GetWarehouse(
         WeatherData, iHeatCoefficient, iInsideTemp)
 
     Brain = GetBrain(cPolicyOutputLayerType, (iLookBack+1) + 1,
-        iβ, iLearningRateActor, iLearningRateCritic)
+        iβ, iHiddenNeuronsActor, iHiddenNeuronsCritic,
+        iLearningRateActor, iLearningRateCritic)
 
     return Warehouse(
         Brain,
@@ -202,6 +206,7 @@ function GetTestWarehouse(
     iStorageMaxCapacity::Float64, iStorageChargeRate::Float64,
     iStorageDischargeRate::Float64, iNumberOfStorageCells::Int,
     cPolicyOutputLayerType::String, iLookBack::Int,
+    iHiddenNeuronsActor::Int, iHiddenNeuronsCritic::Int,
     iLearningRateActor::Float64, iLearningRateCritic::Float64, iβ::Float64)
 
     println("Constructor - creating the warehouse")
@@ -215,7 +220,8 @@ function GetTestWarehouse(
         WeatherData, iHeatCoefficient, iInsideTemp)
 
     Brain = GetBrain(cPolicyOutputLayerType, (iLookBack+1) + 1,
-        iβ, iLearningRateActor, iLearningRateCritic)
+        iβ, iHiddenNeuronsActor, iHiddenNeuronsCritic,
+        iLearningRateActor, iLearningRateCritic)
 
     return Warehouse(
     Brain,
@@ -249,6 +255,7 @@ function Get_⌂(cHouseholdsDir::String,
     iStorageMaxCapacity::Float64, iStorageChargeRate::Float64,
     iStorageDischargeRate::Float64, iNumberOfStorageCells::Int,
     cPolicyOutputLayerType::String, iLookBack::Int,
+    iHiddenNeuronsActor::Int, iHiddenNeuronsCritic::Int,
     iLearningRateActor::Float64, iLearningRateCritic::Float64, iβ::Float64)
 
     println("Constructor - creating the households")
@@ -260,6 +267,7 @@ function Get_⌂(cHouseholdsDir::String,
     dfProfileWeighted.ProfileWeighted .= dfProfileWeighted.ProfileWeighted .* iNumberOfHouseholds
 
     Brain = GetBrain(cPolicyOutputLayerType, (iLookBack+1) + 1,
+        iHiddenNeuronsActor, iHiddenNeuronsCritic,
         iβ, iLearningRateActor, iLearningRateCritic)
 
     return ⌂(
@@ -292,7 +300,8 @@ mutable struct Brain
     cPolicyOutputLayerType::String
 end
 
-function GetBrain(cPolicyOutputLayerType, iDimState, iβ, ηₚ, ηᵥ)
+function GetBrain(cPolicyOutputLayerType, iDimState, iβ,
+        iHiddenNeuronsActor, iHiddenNeuronsCritic, ηₚ, ηᵥ)
     @assert any(["identity", "sigmoid"] .== cPolicyOutputLayerType) "The policy output layer type is not correct"
 
     if cPolicyOutputLayerType == "sigmoid"
@@ -305,10 +314,10 @@ function GetBrain(cPolicyOutputLayerType, iDimState, iβ, ηₚ, ηᵥ)
         #)
         policy_net = nothing
     else
-        policy_net = Chain(Dense(iDimState, 200, relu),
-                     Dense(200,200,relu),
-                     Dense(200,200,relu),
-                    Dense(200,1, sigmoid))
+        policy_net = Chain(Dense(iDimState, iHiddenNeuronsActor, relu),
+                     Dense(iHiddenNeuronsActor,iHiddenNeuronsActor,relu),
+                     Dense(iHiddenNeuronsActor,iHiddenNeuronsActor,relu),
+                    Dense(iHiddenNeuronsActor,1, sigmoid))
         #policy_net = Chain(
         #    Dense(iDimState, 2, identity)
         #)
@@ -319,10 +328,10 @@ function GetBrain(cPolicyOutputLayerType, iDimState, iβ, ηₚ, ηᵥ)
     #value_net = Chain(
     #    Dense(iDimState, 1, identity; bias = false)
     #)
-    value_net = Chain(Dense(iDimState, 128, relu),
+    value_net = Chain(Dense(iDimState, iHiddenNeuronsCritic, relu),
                     #Dense(128, 128, relu),
-                    Dense(128, 52, relu),
-                    Dense(52, 1, identity))
+                    Dense(iHiddenNeuronsCritic, iHiddenNeuronsCritic, relu),
+                    Dense(iHiddenNeuronsCritic, 1, identity))
     return Brain(iβ, 64, 1_200_000, 2_000, [], policy_net, value_net, ηₚ, ηᵥ, cPolicyOutputLayerType)
 end
 
