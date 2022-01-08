@@ -20,6 +20,57 @@ end
 #testStorage = GetEnergyStorage(10.5, 15.0, 9.50, 10)
 
 #########################################
+######## Brain class definition #########
+#########################################
+mutable struct Brain
+    β::Float64
+    batch_size::Int
+    memory_size::Int
+    min_memory_size::Int
+    memory::Array{Tuple,1}
+    policy_net::Chain
+    value_net::Chain
+    ηₚ::Float64
+    ηᵥ::Float64
+    cPolicyOutputLayerType::String
+end
+
+function GetBrain(cPolicyOutputLayerType, iDimState, iβ,
+        iHiddenNeuronsActor, iHiddenNeuronsCritic, ηₚ, ηᵥ)
+    @assert any(["identity", "sigmoid"] .== cPolicyOutputLayerType) "The policy output layer type is not correct"
+
+    if cPolicyOutputLayerType == "sigmoid"
+        #policy_net = Chain(Dense(iDimState, 200, relu),
+        #             Dense(200,200,relu),
+        #             Dense(200,200,relu),
+        #             Dense(200,2,sigmoid))
+        #policy_net = Chain(
+        #    Dense(iDimState, 1, sigmoid; bias = false)
+        #)
+        policy_net = nothing
+    else
+        policy_net = Chain(Dense(iDimState, iHiddenNeuronsActor, relu),
+                     Dense(iHiddenNeuronsActor,iHiddenNeuronsActor,relu),
+                     # Dense(iHiddenNeuronsActor,iHiddenNeuronsActor,relu),
+                    Dense(iHiddenNeuronsActor,1, sigmoid))
+        #policy_net = Chain(
+        #    Dense(iDimState, 2, identity)
+        #)
+    end
+    #policy_net = Chain(
+    #    Dense((iLookAhead + 1), 1, identity)
+    #)
+    #value_net = Chain(
+    #    Dense(iDimState, 1, identity; bias = false)
+    #)
+    value_net = Chain(Dense(iDimState, iHiddenNeuronsCritic, relu),
+                    #Dense(128, 128, relu),
+                    Dense(iHiddenNeuronsCritic, iHiddenNeuronsCritic, relu),
+                    Dense(iHiddenNeuronsCritic, 1, identity))
+    return Brain(iβ, 64, 1_200_000, 2_000, [], policy_net, value_net, ηₚ, ηᵥ, cPolicyOutputLayerType)
+end
+
+#########################################
 ### DayAhead handler class definition ###
 #########################################
 mutable struct DayAheadPricesHandler
@@ -224,7 +275,7 @@ function GetTestWarehouse(
         iLearningRateActor, iLearningRateCritic)
 
     return Warehouse(
-    Brain,
+        Brain,
         dfWarehouseEnergyConsumption,
         dfWarehouseEnergyConsumptionYearly,
         dfConsignmentHistory,
@@ -284,56 +335,6 @@ end
 
 #Test_⌂ = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, 100, 11.7, 7.0, 5.0, 10)
 
-#########################################
-######## Brain class definition #########
-#########################################
-mutable struct Brain
-    β::Float64
-    batch_size::Int
-    memory_size::Int
-    min_memory_size::Int
-    memory::Array{Tuple,1}
-    policy_net::Chain
-    value_net::Chain
-    ηₚ::Float64
-    ηᵥ::Float64
-    cPolicyOutputLayerType::String
-end
-
-function GetBrain(cPolicyOutputLayerType, iDimState, iβ,
-        iHiddenNeuronsActor, iHiddenNeuronsCritic, ηₚ, ηᵥ)
-    @assert any(["identity", "sigmoid"] .== cPolicyOutputLayerType) "The policy output layer type is not correct"
-
-    if cPolicyOutputLayerType == "sigmoid"
-        #policy_net = Chain(Dense(iDimState, 200, relu),
-        #             Dense(200,200,relu),
-        #             Dense(200,200,relu),
-        #             Dense(200,2,sigmoid))
-        #policy_net = Chain(
-        #    Dense(iDimState, 1, sigmoid; bias = false)
-        #)
-        policy_net = nothing
-    else
-        policy_net = Chain(Dense(iDimState, iHiddenNeuronsActor, relu),
-                     Dense(iHiddenNeuronsActor,iHiddenNeuronsActor,relu),
-                     Dense(iHiddenNeuronsActor,iHiddenNeuronsActor,relu),
-                    Dense(iHiddenNeuronsActor,1, sigmoid))
-        #policy_net = Chain(
-        #    Dense(iDimState, 2, identity)
-        #)
-    end
-    #policy_net = Chain(
-    #    Dense((iLookAhead + 1), 1, identity)
-    #)
-    #value_net = Chain(
-    #    Dense(iDimState, 1, identity; bias = false)
-    #)
-    value_net = Chain(Dense(iDimState, iHiddenNeuronsCritic, relu),
-                    #Dense(128, 128, relu),
-                    Dense(iHiddenNeuronsCritic, iHiddenNeuronsCritic, relu),
-                    Dense(iHiddenNeuronsCritic, 1, identity))
-    return Brain(iβ, 64, 1_200_000, 2_000, [], policy_net, value_net, ηₚ, ηᵥ, cPolicyOutputLayerType)
-end
 
 #########################################
 ####### Microgrid class definition ######
