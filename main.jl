@@ -69,28 +69,32 @@ Weather = GetWeatherDataHandler(cWindTempDataDir, cIrrDataDir,
 ####
 # Initiate the wind park
 ####
-MyWindPark = GetWindPark(2000.0, 11.5, 3.0, 20.0, Weather, 3)
+MyWindPark = GetWindPark(2000.0, 11.5, 3.0, 20.0, Weather, 3,
+    "identity", 24, 200, 128, 0.0001, 0.0001, 1.0)
 
 ####
 # Initiate the households
 ####
 Households = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, dPLHolidayCalendar,
     cWeatherPricesDataWindowStart, cWeatherPricesDataWindowEnd,
-    100, 13.5, 7.0, -5.0, 20)
+    100, 13.5, 7.0, -5.0, 20,
+    "identity", 24, 200, 128, 0.0001, 0.0001, 1.0)
 #Households.EnergyConsumption[(12,6)]
 
 ####
 # Initiate the warehouse
 ####
 #MyWarehouse = GetWarehouse(iWarehouseNumberOfSimulations, iWarehouseSimWindow, 2, 2019, 0.1, 20.0,
-#    0.55, 0.0035, 45, 300, Weather, 11.7, 1.5*11.75, 0.5*11.7, 10)
+#    0.55, 0.0035, 45, 300, Weather, 11.7, 1.5*11.75, 0.5*11.7, 10,
+#    "identity", 24, 200, 128, 0.0001, 0.0001, 1.0)
 #CSV.write("C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv", MyWarehouse.dfEnergyConsumption)
 #CSV.write("C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.csv", MyWarehouse.dfConsignmentHistory)
 
 dfRawEnergyConsumption = CSV.File("C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv") |> DataFrame
 dfRawConsHistory = CSV.File("C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.csv") |> DataFrame
 MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory, 2, 2019, 0.1, 20.0,
-    0.55, 0.0035, 45, 600, Weather, 13.5, 7.0, -5.0, 20)
+    0.55, 0.0035, 45, 600, Weather, 13.5, 7.0, -5.0, 20,
+    "identity", 24, 200, 128, 0.0001, 0.0001, 1.0)
 
 #########################################
 ########## Learning process #############
