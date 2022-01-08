@@ -74,6 +74,7 @@ end
 ####### Wind park class definition ######
 #########################################
 mutable struct WindPark
+    Brain::Brain
     iTurbineMaxCapacity::Float64
     iTurbineRatedSpeed::Float64
     iTurbineCutinSpeed::Float64
@@ -83,9 +84,14 @@ end
 
 function GetWindPark(iTurbineMaxCapacity::Float64, iTurbineRatedSpeed::Float64,
     iTurbineCutinSpeed::Float64, iTurbineCutoffSpeed::Float64,
-    WeatherData::WeatherDataHandler, iNumberOfTurbines::Int)
+    WeatherData::WeatherDataHandler, iNumberOfTurbines::Int,
+    cPolicyOutputLayerType::String, iLookBack::Int,
+    iLearningRateActor::Float64, iLearningRateCritic::Float64, iβ::Float64)
 
     println("Constructor - creating the wind park. There will be $iNumberOfTurbines turbines")
+
+    Brain = GetBrain(cPolicyOutputLayerType, (iLookBack+1) + 1,
+        iβ, iLearningRateActor, iLearningRateCritic)
 
     dfWindProductionData = DataFrames.DataFrame(
         date = WeatherData.dfWeatherData.date,
@@ -94,8 +100,11 @@ function GetWindPark(iTurbineMaxCapacity::Float64, iTurbineRatedSpeed::Float64,
             iTurbineRatedSpeed, iTurbineCutinSpeed, iTurbineCutoffSpeed
         ) .* iNumberOfTurbines
     )
-    return WindPark(iTurbineMaxCapacity, iTurbineRatedSpeed,
-        iTurbineCutinSpeed, iTurbineCutoffSpeed,
+    return WindPark(Brain,
+        iTurbineMaxCapacity,
+        iTurbineRatedSpeed,
+        iTurbineCutinSpeed,
+        iTurbineCutoffSpeed,
         dfWindProductionData)
 end
 
@@ -132,6 +141,7 @@ end
 ####### Warehouse class definition ######
 #########################################
 mutable struct Warehouse
+    Brain::Brain
     dfEnergyConsumption::DataFrame
     dfWarehouseEnergyConsumptionYearly::DataFrame
     dfConsignmentHistory::DataFrame
@@ -146,7 +156,9 @@ function GetWarehouse(
     iPVMaxCapacity::Float64, iPVγ_temp::Float64,
     iNoct::Int, iNumberOfPanels::Int, WeatherData::WeatherDataHandler,
     iStorageMaxCapacity::Float64, iStorageChargeRate::Float64,
-    iStorageDischargeRate::Float64, iNumberOfStorageCells::Int)
+    iStorageDischargeRate::Float64, iNumberOfStorageCells::Int,
+    cPolicyOutputLayerType::String, iLookBack::Int,
+    iLearningRateActor::Float64, iLearningRateCritic::Float64, iβ::Float64)
 
     println("Constructor - creating the warehouse")
 
@@ -159,7 +171,11 @@ function GetWarehouse(
     dictFinalData = ExtractFinalStorageData(WarehouseDataRaw, iNumberOfWarehouses, iYear,
         WeatherData, iHeatCoefficient, iInsideTemp)
 
+    Brain = GetBrain(cPolicyOutputLayerType, (iLookBack+1) + 1,
+        iβ, iLearningRateActor, iLearningRateCritic)
+
     return Warehouse(
+        Brain,
         dictFinalData["dfWarehouseEnergyConsumption"],
         dictFinalData["dfWarehouseEnergyConsumptionYearly"],
         dictFinalData["dfConsignmenstHistory"],
@@ -184,7 +200,9 @@ function GetTestWarehouse(
     iPVMaxCapacity::Float64, iPVγ_temp::Float64,
     iNoct::Int, iNumberOfPanels::Int, WeatherData::WeatherDataHandler,
     iStorageMaxCapacity::Float64, iStorageChargeRate::Float64,
-    iStorageDischargeRate::Float64, iNumberOfStorageCells::Int)
+    iStorageDischargeRate::Float64, iNumberOfStorageCells::Int,
+    cPolicyOutputLayerType::String, iLookBack::Int,
+    iLearningRateActor::Float64, iLearningRateCritic::Float64, iβ::Float64)
 
     println("Constructor - creating the warehouse")
 
@@ -196,7 +214,11 @@ function GetTestWarehouse(
         dfWarehouseEnergyConsumption, iNumberOfWarehouses, iYear,
         WeatherData, iHeatCoefficient, iInsideTemp)
 
+    Brain = GetBrain(cPolicyOutputLayerType, (iLookBack+1) + 1,
+        iβ, iLearningRateActor, iLearningRateCritic)
+
     return Warehouse(
+    Brain,
         dfWarehouseEnergyConsumption,
         dfWarehouseEnergyConsumptionYearly,
         dfConsignmentHistory,
@@ -213,6 +235,7 @@ end
 ###### Households class definition ######
 #########################################
 mutable struct ⌂
+    Brain::Brain
     dfEnergyConsumption::DataFrame
     dictCompleteHouseholdsData::Dict
     iNumberOfHouseholds::Int
@@ -224,7 +247,9 @@ function Get_⌂(cHouseholdsDir::String,
     cStartDate::String, cEndDate::String,
     iNumberOfHouseholds::Int,
     iStorageMaxCapacity::Float64, iStorageChargeRate::Float64,
-    iStorageDischargeRate::Float64, iNumberOfStorageCells::Int)
+    iStorageDischargeRate::Float64, iNumberOfStorageCells::Int,
+    cPolicyOutputLayerType::String, iLookBack::Int,
+    iLearningRateActor::Float64, iLearningRateCritic::Float64, iβ::Float64)
 
     println("Constructor - creating the households")
 
@@ -234,7 +259,11 @@ function Get_⌂(cHouseholdsDir::String,
     dfProfileWeighted = dictHouseholdsData["dfHouseholdProfilesWeighted"]
     dfProfileWeighted.ProfileWeighted .= dfProfileWeighted.ProfileWeighted .* iNumberOfHouseholds
 
+    Brain = GetBrain(cPolicyOutputLayerType, (iLookBack+1) + 1,
+        iβ, iLearningRateActor, iLearningRateCritic)
+
     return ⌂(
+        Brain,
         dfProfileWeighted,
         dictHouseholdsData,
         iNumberOfHouseholds,
