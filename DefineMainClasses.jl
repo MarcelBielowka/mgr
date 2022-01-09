@@ -280,7 +280,7 @@ function GetBrain(cPolicyOutputLayerType::String, iDimState::Int,
         policy_net = nothing
     else
         policy_net = Chain(Dense(iDimState, iHiddenLayerNeuronsActor, relu),
-                     Dense(iHiddenLayerNeuronsActor,iHiddenLayerNeuronsActor,relu),
+#                     Dense(iHiddenLayerNeuronsActor,iHiddenLayerNeuronsActor,relu),
                      Dense(iHiddenLayerNeuronsActor,iHiddenLayerNeuronsActor,relu),
                     Dense(iHiddenLayerNeuronsActor,1, sigmoid))
         #policy_net = Chain(
@@ -294,9 +294,9 @@ function GetBrain(cPolicyOutputLayerType::String, iDimState::Int,
     #    Dense(iDimState, 1, identity; bias = false)
     #)
     value_net = Chain(Dense(iDimState, iHiddenLayerNeuronsCritic, relu),
-                #Dense(128, 128, relu),
-                    Dense(iHiddenLayerNeuronsCritic, Int(iHiddenLayerNeuronsCritic/2), relu),
-                    Dense(Int(iHiddenLayerNeuronsCritic/2), 1, identity))
+#                    Dense(iHiddenLayerNeuronsCritic, Int(iHiddenLayerNeuronsCritic), relu),
+                    Dense(iHiddenLayerNeuronsCritic, iHiddenLayerNeuronsCritic, relu),
+                    Dense(iHiddenLayerNeuronsCritic, 1, identity))
     return Brain(iβ, 64, 1_200_000, 2_000, [], policy_net, value_net, ηₚ, ηᵥ, cPolicyOutputLayerType)
 end
 
@@ -322,7 +322,7 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     iHiddenLayerNeuronsActor::Int, iHiddenLayerNeuronsCritic::Int,
     iLearningRateActor::Float64, iLearningRateCritic::Float64, iβ::Float64)
 
-    Brain = GetBrain(cPolicyOutputLayerType, iLookBack+9,
+    Brain = GetBrain(cPolicyOutputLayerType, 2*(iLookBack+1) + 4,
          iHiddenLayerNeuronsActor, iHiddenLayerNeuronsCritic,
          iβ, iLearningRateActor, iLearningRateCritic)
 
@@ -343,7 +343,7 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
 
     return Microgrid(
         Brain,
-        repeat([-Inf], iLookBack+9),
+        repeat([-Inf], 2*(iLookBack+1) + 4),
         0.0,
         [],
         DayAheadPricesHandler,

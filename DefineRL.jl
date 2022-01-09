@@ -19,12 +19,12 @@ end
 
 function GetParamsForNormalisation(Microgrid::Microgrid)
     iOverallConsMismatch = Microgrid.dfTotalProduction.TotalProduction - Microgrid.dfTotalConsumption.TotalConsumption
-    iOverallPriceLevels = Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price
+    # iOverallPriceLevels = Microgrid.DayAheadPricesHandler.dfDayAheadPrices.Price
     return Dict(
     #    "ProductionScalingParams" => extrema(Microgrid.dfTotalProduction.TotalProduction),
     #    "ConsumptionScalingParams" => extrema(Microgrid.dfTotalConsumption.TotalConsumption),
         "ConsMismatchParams" => extrema(iOverallConsMismatch),
-        "PriceParams" => extrema(iOverallPriceLevels),
+        # "PriceParams" => extrema(iOverallPriceLevels),
         "ChargeParams" => (0, Microgrid.EnergyStorage.iMaxCapacity)
     )
 end
@@ -215,8 +215,8 @@ function CalculateReward(Microgrid::Microgrid, State::Vector, iLookBack::Int,
     # iMicrogridVolume = deepcopy(ActualAction) * State[1]
     # iMicrogridVolume = deepcopy(ActualAction)
     # iGridVolume = State[1] - iMicrogridVolume
-    iMicrogridVolume = State[iLookBack+1] * ActualAction
-    iGridVolume = State[iLookBack+1] - iMicrogridVolume
+    iMicrogridVolume = State[1] * ActualAction
+    iGridVolume = State[1] - iMicrogridVolume
     iGridShortVolumeCoefficient = 2 - iGridLongVolumeCoefficient
     # iMicrogridReward = Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.i30Centile[1]
     #iGridPrice = Microgrid.DayAheadPricesHandler.dfQuantilesOfPrices.iMedian[1]
@@ -343,7 +343,7 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookBack::Int,
     println("Learning: $bLearn")
     println("MG's brain type: ", Microgrid.Brain.cPolicyOutputLayerType)
     println("############################")
-    Random.seed!(72945)
+    # Random.seed!(376)
     iRewards = []
     iRewardsTimeStep = []
     dictParamsForNormalisation = GetParamsForNormalisation(Microgrid)
