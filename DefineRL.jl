@@ -466,7 +466,7 @@ function FineTuneTheMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     iHiddenLayerNeuronsActor::Vector{Int}, iHiddenLayerNeuronsCritic::Vector{Int})
 
     ### Some input validation ###
-    if iEpisodes < 10
+    if any(iEpisodes .< 0)
         println("Number of episodes cannot be lower than 10")
         return nothing
     end
