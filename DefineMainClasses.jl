@@ -483,3 +483,32 @@ function GetResultsHolder(
         ResultAfterTraining[1],
     )
 end
+
+
+function GetDataForPlottingFromResultsHolder(VectorResultsHolder::Vector{ResultsHolder})
+    dfDataForPlotting = DataFrames.DataFrame()
+
+    for i in 1:length(VectorResultsHolder)
+        iNumberOfEpisodes = VectorResultsHolder[i].iEpisodes
+        dfCurrentResult = DataFrames.DataFrame(
+            "cPolicyOutputLayerType" => repeat([VectorResultsHolder[i].cPolicyOutputLayerType], iNumberOfEpisodes),
+            "iEpisodes" => repeat([iNumberOfEpisodes], iNumberOfEpisodes),
+            "iLookBack" => repeat([VectorResultsHolder[i].iLookBack], iNumberOfEpisodes),
+            "iGridLongVolumeCoefficient" => repeat([VectorResultsHolder[i].iGridLongVolumeCoefficient], iNumberOfEpisodes),
+            "iβ" => repeat([VectorResultsHolder[i].iβ], iNumberOfEpisodes),
+            "iActorLearningRate" => repeat([VectorResultsHolder[i].iActorLearningRate], iNumberOfEpisodes),
+            "iCriticLearningRate" => repeat([VectorResultsHolder[i].iCriticLearningRate], iNumberOfEpisodes),
+            "iHiddenLayerNeuronsActor" => repeat([VectorResultsHolder[i].iHiddenLayerNeuronsActor], iNumberOfEpisodes),
+            "iHiddenLayerNeuronsCritic" => repeat([VectorResultsHolder[i].iHiddenLayerNeuronsCritic], iNumberOfEpisodes),
+            "iInitialTestResult" => VectorResultsHolder[i].InitialTestResult,
+            "iTrainResult" => VectorResultsHolder[i].TrainResult,
+            "iResultAfterTraining" => VectorResultsHolder[i].ResultAfterTraining
+        )
+
+        dfDataForPlotting = vcat(dfDataForPlotting, dfCurrentResult)
+
+    end
+
+    return dfDataForPlotting
+
+end
