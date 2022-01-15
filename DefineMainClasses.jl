@@ -459,7 +459,7 @@ function GetResultsHolder(
     FinalMicrogrid.Brain.memory = []
     FinalMicrogrid.RewardHistory = []
 
-    InitialTestResult = Run!(FinalMicrogrid,
+    ResultAfterTraining = Run!(FinalMicrogrid,
         iEpisodes, iLookBack,
         iGridLongVolumeCoefficient,
         dRunStartTest, dRunEndTest, false, false)

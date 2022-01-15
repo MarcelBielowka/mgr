@@ -457,13 +457,13 @@ end
 function FineTuneTheMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
     MyWarehouse::Warehouse, MyHouseholds::⌂,
-    cPolicyOutputLayerType::Vector{String}, iEpisodes::Int64,
-    dRunStartTrain::Int64, dRunEndTrain::Int64,
-    dRunStartTest::Int64, dRunEndTest::Int64,
-    iLookBack::Vector{Int64}, iGridLongVolumeCoefficient::Vector{Float64},
+    cPolicyOutputLayerType::Vector{String}, iEpisodes::Vector{Int},
+    dRunStartTrain::Int, dRunEndTrain::Int,
+    dRunStartTest::Int, dRunEndTest::Int,
+    iLookBack::Vector{Int}, iGridLongVolumeCoefficient::Vector{Float64},
     iβ::Vector{Float64},
     iActorLearningRate::Vector{Float64}, iCriticLearningRate::Vector{Float64},
-    iHiddenLayerNeuronsActor::Vector{Int64}, iHiddenLayerNeuronsCritic::Vector{Int64})
+    iHiddenLayerNeuronsActor::Vector{Int}, iHiddenLayerNeuronsCritic::Vector{Int})
 
     ### Some input validation ###
     if iEpisodes < 10
@@ -501,10 +501,10 @@ function FineTuneTheMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
         return nothing
     end
 
-    RawMicrogrids = Vector{Microgrid}()
-    dictOutputTuning = Dict{}()
+    AllTheResults = Vector{ResultsHolder}()
 
     for cCurrentPolicyOutputLayerType in cPolicyOutputLayerType,
+        iCurrentEpisodeLength in iEpisodes,
         iCurrentLookBack in iLookBack,
         iCurrentβ in iβ,
         iCurrentGridCoefficient in iGridLongVolumeCoefficient,
@@ -513,61 +513,30 @@ function FineTuneTheMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
         iCurrentHiddenLayerNeuronsActor in iHiddenLayerNeuronsActor,
         iCurrentHiddenLayerNeuronsCritic in iHiddenLayerNeuronsCritic
 
-        MyMicrogrid = GetMicrogrid(DayAheadPowerPrices, Weather,
-            MyWindPark, MyWarehouse, Households,
-            cCurrentPolicyOutputLayerType, iCurrentLookBack,
-            iCurrentHiddenLayerNeuronsActor, iCurrentHiddenLayerNeuronsCritic,
-            iCurrentActorLearningRate, iCurrentCriticLearningRate,
-            iCurrentβ)
-
-        RandomMicrogrid = deepcopy(MyMicrogrid)
-
-        # initial result
-        InitialTestResult = Run!(RandomMicrogrid,
-            iEpisodes, iCurrentLookBack,
+        CurrentResult = GetResultsHolder(
+            DayAheadPricesHandler,
+            WeatherDataHandler,
+            MyWindPark,
+            MyWarehouse,
+            MyHouseholds,
+            cCurrentPolicyOutputLayerType,
+            iCurrentEpisodeLength,
+            dRunStartTrain,
+            dRunEndTrain,
+            dRunStartTest,
+            dRunEndTest,
+            iCurrentLookBack,
             iCurrentGridCoefficient,
-            dRunStartTest, dRunEndTest, false, false)
+            iCurrentβ,
+            iCurrentActorLearningRate,
+            iCurrentCriticLearningRate,
+            iCurrentHiddenLayerNeuronsActor,
+            iCurrentHiddenLayerNeuronsCritic
+        )
+    push!(AllTheResults, CurrentResult)
 
-        # training
-        TrainResult = Run!(MyMicrogrid,
-            iEpisodes, iCurrentLookBack,
-            iCurrentGridCoefficient,
-            dRunStartTrain, dRunEndTrain, true, false)
-
-        FinalMicrogrid = deepcopy(MyMicrogrid)
-        FinalMicrogrid.Brain.memory = []
-        FinalMicrogrid.RewardHistory = []
-
-        # evaluation
-        ResultAfterTraining = Run!(FinalMicrogrid,
-            iEpisodes, iCurrentLookBack,
-            iCurrentGridCoefficient,
-            dRunStartTest, dRunEndTest, false, false)
-
-        push!(dictOutputTuning, (
-            Dict(
-                "cPolicyOutputLayerType" => cCurrentPolicyOutputLayerType,
-                "iLookBack" => iCurrentLookBack,
-                "iβ" => iCurrentβ,
-                "iGridCoefficient" => iCurrentGridCoefficient,
-                "iActorLearningRate" => iCurrentActorLearningRate,
-                "iCriticLearningRate" => iCurrentCriticLearningRate,
-                "iHiddenLayerNeuronsActor" => iCurrentHiddenLayerNeuronsActor,
-                "iHiddenLayerNeuronsCritic" => iCurrentHiddenLayerNeuronsCritic
-                )
-            ) => (
-                Dict(
-                    "RandomMicrogrid" => RandomMicrogrid,
-                    "MyMicrogrid" => MyMicrogrid,
-                    "FinalMicrogrid" => FinalMicrogrid,
-                    "InitialTestResult" => InitialTestResult,
-                    "TrainResult" => TrainResult,
-                    "ResultAfterTraining" => ResultAfterTraining
-                    )
-                )
-            )
     end
 
-    return dictOutputTuning
+    return AllTheResults
 
 end
