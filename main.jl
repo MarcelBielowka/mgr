@@ -77,6 +77,8 @@ MyWindPark = GetWindPark(2000.0, 11.5, 3.0, 20.0, Weather, 3)
 Households = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, dPLHolidayCalendar,
     cWeatherPricesDataWindowStart, cWeatherPricesDataWindowEnd,
     100, 13.5, 7.0, -5.0, 20)
+# TestHouseholds = deepcopy(Households)
+Households.dictHouseholdsData = Dict()
 #Households.EnergyConsumption[(12,6)]
 
 ####

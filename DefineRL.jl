@@ -10,9 +10,9 @@ function GetState(Microgrid::Microgrid, iLookBack::Int, iTimeStep::Int)
     Microgrid.State = [
         iProductionConsumptionMismatch
         iDayAheadPrices
-        ifelse(Microgrid.DayAheadPricesHandler.dfDayAheadPrices.DeliveryDayOfWeek[iTimeStep] == 6, 1, 0)
-        ifelse(Microgrid.DayAheadPricesHandler.dfDayAheadPrices.DeliveryDayOfWeek[iTimeStep] == 7, 1, 0)
-        ifelse(Microgrid.DayAheadPricesHandler.dfDayAheadPrices.DeliveryDayOfWeek[iTimeStep] == 1, 1, 0)
+        # ifelse(Microgrid.DayAheadPricesHandler.dfDayAheadPrices.DeliveryDayOfWeek[iTimeStep] == 6, 1, 0)
+        # ifelse(Microgrid.DayAheadPricesHandler.dfDayAheadPrices.DeliveryDayOfWeek[iTimeStep] == 7, 1, 0)
+        # ifelse(Microgrid.DayAheadPricesHandler.dfDayAheadPrices.DeliveryDayOfWeek[iTimeStep] == 1, 1, 0)
         Microgrid.EnergyStorage.iCurrentCharge
     ]
 end
@@ -154,7 +154,7 @@ function Learn!(Microgrid::Microgrid, step::Tuple, dictNormParams::Dict, iLookBa
         [(StateForLearning,y)],
         ADAM(Microgrid.Brain.ηᵥ)
     )
-    println("Abecadlo")
+    # println("Abecadlo")
 end
 
 function ChargeOrDischargeBattery!(Microgrid::Microgrid, Action::Float64, iLookBack::Int, bLog::Bool)
@@ -343,7 +343,7 @@ function Run!(Microgrid::Microgrid, iNumberOfEpisodes::Int, iLookBack::Int,
     println("Learning: $bLearn")
     println("MG's brain type: ", Microgrid.Brain.cPolicyOutputLayerType)
     println("############################")
-    # Random.seed!(376)
+    Random.seed!(72945)
     iRewards = []
     iRewardsTimeStep = []
     dictParamsForNormalisation = GetParamsForNormalisation(Microgrid)
@@ -532,7 +532,7 @@ function FineTuneTheMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
         TrainResult = Run!(MyMicrogrid,
             iEpisodes, iCurrentLookBack,
             iCurrentGridCoefficient,
-            dRunStartTrain, dRunEndTrain, true, true)
+            dRunStartTrain, dRunEndTrain, true, false)
 
         FinalMicrogrid = deepcopy(MyMicrogrid)
         FinalMicrogrid.Brain.memory = []

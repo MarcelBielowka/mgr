@@ -322,7 +322,7 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     iHiddenLayerNeuronsActor::Int, iHiddenLayerNeuronsCritic::Int,
     iLearningRateActor::Float64, iLearningRateCritic::Float64, iβ::Float64)
 
-    Brain = GetBrain(cPolicyOutputLayerType, 2*(iLookBack+1) + 4,
+    Brain = GetBrain(cPolicyOutputLayerType, 2*(iLookBack+1) + 1,
          iHiddenLayerNeuronsActor, iHiddenLayerNeuronsCritic,
          iβ, iLearningRateActor, iLearningRateCritic)
 
@@ -343,7 +343,7 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
 
     return Microgrid(
         Brain,
-        repeat([-Inf], 2*(iLookBack+1) + 4),
+        repeat([-Inf], 2*(iLookBack+1) + 1),
         0.0,
         [],
         DayAheadPricesHandler,
@@ -361,4 +361,125 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
                          1)
     )
 
+end
+
+
+mutable struct ResultsHolder
+    cPolicyOutputLayerType::String
+    iEpisodes::Int
+    iLookBack::Int
+    iGridLongVolumeCoefficient::Float64
+    iβ::Float64
+    iActorLearningRate::Float64
+    iCriticLearningRate::Float64
+    iHiddenLayerNeuronsActor::Int
+    iHiddenLayerNeuronsCritic::Int
+    RandomMicrogrid::Microgrid
+    MyMicrogrid::Microgrid
+    FinalMicrogrid::Microgrid
+    InitialTestResult::Vector{Float64}
+    TrainResult::Vector{Float64}
+    ResultAfterTraining::Vector{Float64}
+end
+
+function GetResultsHolder(
+        DayAheadPricesHandler::DayAheadPricesHandler,
+        WeatherDataHandler::WeatherDataHandler, MyWindPark::WindPark,
+        MyWarehouse::Warehouse, MyHouseholds::⌂,
+        cPolicyOutputLayerType::String, iEpisodes::Int,
+        dRunStartTrain::Int, dRunEndTrain::Int,
+        dRunStartTest::Int, dRunEndTest::Int,
+        iLookBack::Int, iGridLongVolumeCoefficient::Float64,
+        iβ::Float64,
+        iActorLearningRate::Float64, iCriticLearningRate::Float64,
+        iHiddenLayerNeuronsActor::Int, iHiddenLayerNeuronsCritic::Int
+    )
+
+    ### Some input validation ###
+    if any(iEpisodes .< 10)
+        println("Number of episodes cannot be lower than 10")
+        return nothing
+    end
+
+    if any(iLookBack .< 0)
+        println("Number of look backs cannot be lower than 0")
+        return nothing
+    end
+
+    if (any(iGridLongVolumeCoefficient .< 0) || any(iGridLongVolumeCoefficient .> 2))
+        println("Grid long volume coefficient must be within 0 and 2, preferably within 0 and 1")
+        return nothing
+    end
+
+    if (any(iHiddenLayerNeuronsActor .< 10) || any(iHiddenLayerNeuronsCritic .< 10))
+        println("Hidden layers must have more than 10 neurons")
+        return nothing
+    end
+
+    if any((iHiddenLayerNeuronsCritic .% 2) .!= 0)
+        println("The number of hidden layers of the critic must be dividable by 2")
+        return nothing
+    end
+
+    if (any(iActorLearningRate .< 0) || any(iCriticLearningRate .< 0))
+        println("Leargning rates can't be negative")
+        return nothing
+    end
+
+    if (any(iActorLearningRate .> 0.5) || any(iCriticLearningRate .> 0.5))
+        println("Leargning rates can't exceed 0.5")
+        return nothing
+    end
+
+    println("Initiating the microgrid to be trained")
+    MyMicrogrid = GetMicrogrid(DayAheadPowerPrices, Weather,
+        MyWindPark, MyWarehouse, Households,
+        cPolicyOutputLayerType, iLookBack,
+        iHiddenLayerNeuronsActor, iHiddenLayerNeuronsCritic,
+        iActorLearningRate, iCriticLearningRate,
+        iβ)
+
+    println("Initiating the reference microgrid")
+    RandomMicrogrid = deepcopy(MyMicrogrid)
+
+    println("Running the reference microgrid")
+    InitialTestResult = Run!(RandomMicrogrid,
+        iEpisodes, iLookBack,
+        iGridLongVolumeCoefficient,
+        dRunStartTest, dRunEndTest, false, false)
+
+    println("Training")
+    TrainResult = Run!(MyMicrogrid,
+        iEpisodes, iLookBack,
+        iGridLongVolumeCoefficient,
+        dRunStartTrain, dRunEndTrain, true, false)
+
+    println("Initiating the test microgrid")
+    FinalMicrogrid = deepcopy(MyMicrogrid)
+    FinalMicrogrid.Brain.memory = []
+    FinalMicrogrid.RewardHistory = []
+
+    InitialTestResult = Run!(FinalMicrogrid,
+        iEpisodes, iLookBack,
+        iGridLongVolumeCoefficient,
+        dRunStartTest, dRunEndTest, false, false)
+
+
+    return ResultsHolder(
+        cPolicyOutputLayerType,
+        iEpisodes,
+        iLookBack,
+        iGridLongVolumeCoefficient,
+        iβ,
+        iActorLearningRate,
+        iCriticLearningRate,
+        iHiddenLayerNeuronsActor,
+        iHiddenLayerNeuronsCritic,
+        RandomMicrogrid,
+        MyMicrogrid,
+        FinalMicrogrid,
+        InitialTestResult[1],
+        TrainResult[1],
+        ResultAfterTraining[1],
+    )
 end
