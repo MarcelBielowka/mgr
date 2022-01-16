@@ -1,0 +1,321 @@
+MyMicrogrid = GetMicrogrid(DayAheadPowerPrices, Weather,
+    MyWindPark, MyWarehouse, Households, "identity", 2,
+    100, 100, 0.0001, 0.0001, 1.0)
+RandomMicrogrid = deepcopy(MyMicrogrid)
+Random.seed!(72945)
+
+dRunStartTrain = @pipe Dates.Date("2019-04-01") |> Dates.dayofyear |> _*24 |> _- 23
+dRunEndTrain = @pipe Dates.Date("2019-09-30") |> Dates.dayofyear |> _*24 |> _-1
+dRunStartTest = dRunEndTrain + 1
+dRunEndTest = @pipe Dates.Date("2019-12-30") |> Dates.dayofyear |> _*24 |> _-1
+iEpisodeLength = dRunStartTest - dRunEndTest |> abs
+iEpisodeLengthTrain = dRunStartTrain - dRunEndTrain |> abs
+
+dRunStartTrain = @pipe Dates.Date("2019-08-01") |> Dates.dayofyear |> _*24 |> _- 23
+dRunEndTrain = @pipe Dates.Date("2019-08-20") |> Dates.dayofyear |> _*24 |> _-1
+dRunStartTest = dRunEndTrain + 1
+dRunEndTest = @pipe Dates.Date("2019-08-30") |> Dates.dayofyear |> _*24 |> _-1
+
+dRunStartTrainOct = @pipe Dates.Date("2019-09-01") |> Dates.dayofyear |> _*24 |> _- 23
+dRunEndTrainOct = @pipe Dates.Date("2019-09-20") |> Dates.dayofyear |> _*24 |> _-1
+dRunStartTestOct = dRunEndTrain + 1
+dRunEndTestOct = @pipe Dates.Date("2019-09-30") |> Dates.dayofyear |> _*24 |> _-1
+
+dRunStartTrainNov = @pipe Dates.Date("2019-11-01") |> Dates.dayofyear |> _*24 |> _- 23
+dRunEndTrainNov = @pipe Dates.Date("2019-11-20") |> Dates.dayofyear |> _*24 |> _-1
+dRunStartTestNov = dRunEndTrain + 1
+dRunEndTestNov = @pipe Dates.Date("2019-11-30") |> Dates.dayofyear |> _*24 |> _-1
+
+dRunStartTrainJun = @pipe Dates.Date("2019-06-01") |> Dates.dayofyear |> _*24 |> _- 23
+dRunEndTrainJun = @pipe Dates.Date("2019-06-20") |> Dates.dayofyear |> _*24 |> _-1
+dRunStartTestJun = dRunEndTrain + 1
+dRunEndTestJun = @pipe Dates.Date("2019-06-30") |> Dates.dayofyear |> _*24 |> _-1
+
+InitialTestResult = Run!(RandomMicrogrid, 1, 2, 0.5, dRunStartTest, dRunEndTest, false, false)
+@time TrainResult = Run!(MyMicrogrid, 100, 2, 0.5, dRunStartTrain, dRunEndTrain, true, true)
+
+abc = Juno.@enter Run!(MyMicrogrid, 1, 24, 0.5, dRunStartTrain, dRunEndTrain + 3, true, true)
+
+AugustMicrogrid = deepcopy(MyMicrogrid)
+JulyMicrogrid = deepcopy(MyMicrogrid)
+
+iLookBack = 2
+iEpisodes = length(MyMicrogrid.RewardHistory)
+StatsPlots.plot(MyMicrogrid.RewardHistory, title = "Learning history, look forward = $iLookBack",
+    label = "β = 1", legend = :topright)
+plot!(Microgrid990.RewardHistory, label = "β = 0.99")
+plot!(Microgrid995.RewardHistory, label = "β = 0.995")
+plot!(Microgrid999.RewardHistory, label = "β = 0.999")
+MyMicrogrid.State
+
+MyMicrogrid.Brain.memory
+
+TrainResult = Juno.@enter Run!(MyMicrogrid, 1, 1,
+    dRunStartTrain+8, dRunStartTrain+9, true, true)
+
+### August ###
+TuningEpisodesLength = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
+    MyWindPark, MyWarehouse, Households,
+    ["identity"], [25, 50, 75, 100],
+    dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
+    [2], [0.5], [0.999],
+    [0.0001], [0.0001],
+    [100], [100])
+EpisodesLengthAug = GetDataForPlottingFromResultsHolder(TuningEpisodesLength)
+
+TuningCommercialParams = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
+    MyWindPark, MyWarehouse, Households,
+    ["identity"], [100],
+    dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
+    [0, 2, 6, 12, 24], [0.5, 0.7, 0.3], [0.999],
+    [0.0001], [0.0001],
+    [100], [100])
+CommercialParamsAug = GetDataForPlottingFromResultsHolder(TuningCommercialParams)
+
+TuningBeta = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
+    MyWindPark, MyWarehouse, Households,
+    ["identity"], [100],
+    dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
+    [1], [0.5], [0.99, 0.995, 0.999, 1.0],
+    [0.0001], [0.0001],
+    [100], [100])
+BetaParamsAug = GetDataForPlottingFromResultsHolder(TuningBeta)
+
+TuningNNParams = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
+    MyWindPark, MyWarehouse, Households,
+    ["identity"], [100],
+    dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
+    [1], [0.5], [0.999],
+    [0.0001, 0.001], [0.0001, 0.001],
+    [50, 100, 200], [50, 100, 200])
+NNParamsAug = GetDataForPlottingFromResultsHolder(TuningNNParams)
+
+### November ###
+TuningCommercialParamsNov = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
+    MyWindPark, MyWarehouse, Households,
+    ["identity"], 100,
+    dRunStartTrainNov, dRunEndTrainNov, dRunStartTestNov, dRunEndTestNov,
+    [0, 2, 6, 12, 24], [0.5, 0.7, 0.3], [0.999],
+    [0.0001], [0.0001],
+    [100], [100])
+
+TuningBetaNov = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
+    MyWindPark, MyWarehouse, Households,
+    ["identity"], 100,
+    dRunStartTrainNov, dRunEndTrainNov, dRunStartTestNov, dRunEndTestNov,
+    [1], [0.5], [0.99, 0.995, 0.999, 1.0],
+    [0.0001], [0.0001],
+    [100], [100])
+
+TuningNNParamsNov = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
+    MyWindPark, MyWarehouse, Households,
+    ["identity"], 100,
+    dRunStartTrainNov, dRunEndTrainNov, dRunStartTestNov, dRunEndTestNov,
+    [1], [0.5], [0.999],
+    [0.0001, 0.001], [0.0001, 0.001],
+    [50, 100, 200], [50, 100, 200])
+
+### June ###
+TuningCommercialParamsJun = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
+    MyWindPark, MyWarehouse, Households,
+    ["identity"], 100,
+    dRunStartTrainJun, dRunEndTrainJun, dRunStartTestJun, dRunEndTestJun,
+    [0, 2, 6, 12, 24], [0.5, 0.7, 0.3], [0.999],
+    [0.0001], [0.0001],
+    [100], [100])
+
+TuningBetaJun = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
+    MyWindPark, MyWarehouse, Households,
+    ["identity"], 100,
+    dRunStartTrainJun, dRunEndTrainJun, dRunStartTestJun, dRunEndTestJun,
+    [1], [0.5], [0.99, 0.995, 0.999, 1.0],
+    [0.0001], [0.0001],
+    [100], [100])
+
+TuningNNParamsJun = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
+    MyWindPark, MyWarehouse, Households,
+    ["identity"], 100,
+    dRunStartTrainJun, dRunEndTrainJun, dRunStartTestJun, dRunEndTestJ,
+    [1], [0.5], [0.999],
+    [0.0001, 0.001], [0.0001, 0.001],
+    [50, 100, 200], [50, 100, 200])
+
+### October ###
+TuningCommercialParamsOct = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
+    MyWindPark, MyWarehouse, Households,
+    ["identity"], 100,
+    dRunStartTrainOct, dRunEndTrainOct, dRunStartTestOct, dRunEndTestOct,
+    [0, 2, 6, 12, 24], [0.5, 0.7, 0.3], [0.999],
+    [0.0001], [0.0001],
+    [100], [100])
+
+TuningBetaOct = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
+    MyWindPark, MyWarehouse, Households,
+    ["identity"], 100,
+    dRunStartTrainOct, dRunEndTrainOct, dRunStartTestOct, dRunEndTestO,
+    [1], [0.5], [0.99, 0.995, 0.999, 1.0],
+    [0.0001], [0.0001],
+    [100], [100])
+
+TuningNNParamsOct = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
+    MyWindPark, MyWarehouse, Households,
+    ["identity"], 100,
+    dRunStartTrainOct, dRunEndTrainOct, dRunStartTestOct, dRunEndTestOct,
+    [1], [0.5], [0.999],
+    [0.0001, 0.001], [0.0001, 0.001],
+    [50, 100, 200], [50, 100, 200])
+
+#plots episodes length
+EpisodesLengthAugStacked = stack(EpisodesLengthAug, [:iInitialTestResult, :iResultAfterTraining])
+
+tuv = @pipe EpisodesLengthAug |> groupby(_, :iEpisodes)
+
+@df filter(row -> row.iEpisodes == 25, EpisodesLengthAug) plot(
+    :iTrainResult,
+    color = RGB(100/255, 0, 0)
+)
+
+@df filter(row -> row.iEpisodes == 50, EpisodesLengthAug) plot!(
+    :iTrainResult,
+    color = RGB(192/255, 0, 0)
+)
+
+@df filter(row -> row.iEpisodes == 75, EpisodesLengthAug) plot!(
+    :iTrainResult,
+    color = RGB(100/255, 100/255, 100/255)
+)
+
+@df filter(row -> row.iEpisodes == 100, EpisodesLengthAug) plot!(
+    :iTrainResult,
+    color = RGB(192/255, 192/255, 192/255)
+)
+
+@df EpisodesLengthAugStacked groupedboxplot(string.(:iEpisodes), :value, group = :variable,
+    label = ["Result before training" "Result after training"], legend = :right,
+    color = [RGB(192/255, 192/255, 192/255) RGB(192/255, 0, 0)])
+
+# plots β
+BetaParamsAugStacked = stack(BetaParamsAug, [:iInitialTestResult, :iResultAfterTraining])
+BetaParamsAugStackedTraining = stack(BetaParamsAug, [:iTrainResult], :iβ)
+rename!(BetaParamsAugStackedTraining, [:iβ, :cName, :iTrainResult])
+
+@df BetaParamsAugStackedTraining StatsPlots.plot(
+    repeat(collect(1:1:100), 4),
+    :iTrainResult,
+    group = :iβ,
+    legend = :topleft,
+    color = [RGB(192/255, 0, 0) RGB(192/255, 192/255, 0) RGB(192/255, 192/255, 192/255) RGB(0, 0, 0)])
+
+#@df BetaParamsAug groupedboxplot(string.(:iβ), :iResultAfterTraining)
+#@df BetaParamsAug groupedboxplot!(string.(:iβ), :iInitialTestResult)
+
+#@df BetaParamsAug violin(string.(:iβ), :iResultAfterTraining, side = :left)
+#@df BetaParamsAug violin!(string.(:iβ), :iInitialTestResult, side = :right)
+
+@df BetaParamsAugStacked groupedboxplot(string.(:iβ), :value, group = :variable,
+    label = ["Result before training" "Result after training"], legend = :right,
+    color = [RGB(192/255, 192/255, 192/255) RGB(192/255, 0, 0)])
+
+# plots commercial params
+CommercialParamsAugTransformed = @pipe CommercialParamsAug |>
+    groupby(_, [:iGridLongVolumeCoefficient]) |>
+    DataFrames.transform(_, [:iTrainResult => minimum => :iTrainResultMin,
+                             :iTrainResult => maximum => :iTrainResultMax])
+insertcols!(CommercialParamsAugTransformed,
+    :iTrainResultNormalised =>
+    (CommercialParamsAugTransformed.iTrainResult .- CommercialParamsAugTransformed.iTrainResultMin) ./
+        (CommercialParamsAugTransformed.iTrainResultMax .- CommercialParamsAugTransformed.iTrainResultMin)
+    )
+@df CommercialParamsAugTransformed StatsPlots.plot(
+    repeat(collect(1:1:11), 15),
+    string.(:iGridLongVolumeCoefficient),
+    :iTrainResultNormalised,
+    line_z = :iLookBack,
+    group = (:iGridLongVolumeCoefficient, :iLookBack),
+    camera = (70, 50),
+    # vlinecolor = :iLookBack,
+    linecolor = :OrRd_8,
+    legend = :none
+)
+
+# plots NN
+NNParamsAugTransformed = @pipe NNParamsAug |>
+    groupby(_, [:iActorLearningRate, :iCriticLearningRate, :iHiddenLayerNeuronsActor, :iHiddenLayerNeuronsCritic, ]) |>
+    combine(_, :iResultAfterTraining => mean => :Avg)
+
+@df NNParamsAugTransformed StatsPlots.scatter(
+    string.(:iHiddenLayerNeuronsActor),
+    string.(:iHiddenLayerNeuronsCritic),
+    :Avg,
+    marker_z = :iActorLearningRate,
+    group = (:iCriticLearningRate),
+    marker = [:circle :square],
+    alpha = 0.5,
+    markersize = 7,
+    camera = (60, 30),
+    legend = :topleft,
+    color = :OrRd_8
+)
+
+p1data = filter(row -> (row.iActorLearningRate==0.0001 && row.iCriticLearningRate==0.0001 ), NNParamsAug)
+p2data = filter(row -> (row.iActorLearningRate==0.001 && row.iCriticLearningRate==0.0001 ), NNParamsAug)
+p3data = filter(row -> (row.iActorLearningRate==0.001 && row.iCriticLearningRate==0.001 ), NNParamsAug)
+p4data = filter(row -> (row.iActorLearningRate==0.0001 && row.iCriticLearningRate==0.001 ), NNParamsAug)
+
+p1 = @df p1data StatsPlots.plot(
+    repeat(collect(1:1:11), 9),
+    string.(:iHiddenLayerNeuronsCritic),
+    :iTrainResult,
+    line_z = :iHiddenLayerNeuronsActor,
+    group = (:iHiddenLayerNeuronsActor, :iHiddenLayerNeuronsCritic),
+    camera = (70, 30),
+    # vlinecolor = :iLookBack,
+    linecolor = :OrRd_8,
+    lw = 3,
+    legend = :none,
+    zlim = (-150, 800)
+)
+
+p2 = @df p2data StatsPlots.plot(
+    repeat(collect(1:1:11), 9),
+    string.(:iHiddenLayerNeuronsCritic),
+    :iTrainResult,
+    line_z = :iHiddenLayerNeuronsActor,
+    group = (:iHiddenLayerNeuronsActor, :iHiddenLayerNeuronsCritic),
+    camera = (70, 30),
+    # vlinecolor = :iLookBack,
+    linecolor = :OrRd_8,
+    lw = 3,
+    legend = :none,
+    zlim = (-150, 800)
+)
+
+p3 = @df p3data StatsPlots.plot(
+    repeat(collect(1:1:11), 9),
+    string.(:iHiddenLayerNeuronsCritic),
+    :iTrainResult,
+    line_z = :iHiddenLayerNeuronsActor,
+    group = (:iHiddenLayerNeuronsActor, :iHiddenLayerNeuronsCritic),
+    camera = (70, 30),
+    # vlinecolor = :iLookBack,
+    linecolor = :OrRd_8,
+    lw = 3,
+    legend = :none,
+    zlim = (-150, 800)
+)
+
+p4 = @df p4data StatsPlots.plot(
+    repeat(collect(1:1:11), 9),
+    string.(:iHiddenLayerNeuronsCritic),
+    :iTrainResult,
+    line_z = :iHiddenLayerNeuronsActor,
+    group = (:iHiddenLayerNeuronsActor, :iHiddenLayerNeuronsCritic),
+    camera = (70, 30),
+    # vlinecolor = :iLookBack,
+    linecolor = :OrRd_8,
+    lw = 3,
+    legend = :none,
+    zlim = (-150, 800)
+)
+
+plot(p1, p2, p3, p4, layout = (2,2))
