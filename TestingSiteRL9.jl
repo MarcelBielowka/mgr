@@ -76,7 +76,7 @@ TuningBeta = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
     MyWindPark, MyWarehouse, Households,
     ["identity"], [40],
     dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
-    [1], [0.5], [0.99, 0.995, 0.999, 1.0],
+    [2], [0.7], [0.99, 0.995, 0.999, 1.0],
     [0.0001], [0.0001],
     [100], [100])
 BetaParamsAug = GetDataForPlottingFromResultsHolder(TuningBeta)
@@ -85,7 +85,7 @@ TuningNNParams = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
     MyWindPark, MyWarehouse, Households,
     ["identity"], [40],
     dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
-    [1], [0.5], [0.999],
+    [2], [0.7], [0.999],
     [0.0001, 0.001], [0.0001, 0.001],
     [50, 100, 200], [50, 100, 200])
 NNParamsAug = GetDataForPlottingFromResultsHolder(TuningNNParams)
