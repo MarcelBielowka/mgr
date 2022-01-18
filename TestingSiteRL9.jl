@@ -65,16 +65,16 @@ EpisodesLengthAug = GetDataForPlottingFromResultsHolder(TuningEpisodesLength)
 
 TuningCommercialParams = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
     MyWindPark, MyWarehouse, Households,
-    ["identity"], [100],
+    ["identity"], [40],
     dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
-    [0, 2, 6, 12, 24], [0.5, 0.7, 0.3], [0.999],
+    [0, 2, 6, 12, 24], [0.9, 0.7, 0.5, 0.3], [0.999],
     [0.0001], [0.0001],
     [100], [100])
 CommercialParamsAug = GetDataForPlottingFromResultsHolder(TuningCommercialParams)
 
 TuningBeta = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
     MyWindPark, MyWarehouse, Households,
-    ["identity"], [100],
+    ["identity"], [40],
     dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
     [1], [0.5], [0.99, 0.995, 0.999, 1.0],
     [0.0001], [0.0001],
@@ -83,116 +83,53 @@ BetaParamsAug = GetDataForPlottingFromResultsHolder(TuningBeta)
 
 TuningNNParams = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
     MyWindPark, MyWarehouse, Households,
-    ["identity"], [100],
+    ["identity"], [40],
     dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
     [1], [0.5], [0.999],
     [0.0001, 0.001], [0.0001, 0.001],
     [50, 100, 200], [50, 100, 200])
 NNParamsAug = GetDataForPlottingFromResultsHolder(TuningNNParams)
 
-### November ###
-TuningCommercialParamsNov = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
-    MyWindPark, MyWarehouse, Households,
-    ["identity"], 100,
-    dRunStartTrainNov, dRunEndTrainNov, dRunStartTestNov, dRunEndTestNov,
-    [0, 2, 6, 12, 24], [0.5, 0.7, 0.3], [0.999],
-    [0.0001], [0.0001],
-    [100], [100])
-
-TuningBetaNov = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
-    MyWindPark, MyWarehouse, Households,
-    ["identity"], 100,
-    dRunStartTrainNov, dRunEndTrainNov, dRunStartTestNov, dRunEndTestNov,
-    [1], [0.5], [0.99, 0.995, 0.999, 1.0],
-    [0.0001], [0.0001],
-    [100], [100])
-
-TuningNNParamsNov = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
-    MyWindPark, MyWarehouse, Households,
-    ["identity"], 100,
-    dRunStartTrainNov, dRunEndTrainNov, dRunStartTestNov, dRunEndTestNov,
-    [1], [0.5], [0.999],
-    [0.0001, 0.001], [0.0001, 0.001],
-    [50, 100, 200], [50, 100, 200])
-
-### June ###
-TuningCommercialParamsJun = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
-    MyWindPark, MyWarehouse, Households,
-    ["identity"], 100,
-    dRunStartTrainJun, dRunEndTrainJun, dRunStartTestJun, dRunEndTestJun,
-    [0, 2, 6, 12, 24], [0.5, 0.7, 0.3], [0.999],
-    [0.0001], [0.0001],
-    [100], [100])
-
-TuningBetaJun = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
-    MyWindPark, MyWarehouse, Households,
-    ["identity"], 100,
-    dRunStartTrainJun, dRunEndTrainJun, dRunStartTestJun, dRunEndTestJun,
-    [1], [0.5], [0.99, 0.995, 0.999, 1.0],
-    [0.0001], [0.0001],
-    [100], [100])
-
-TuningNNParamsJun = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
-    MyWindPark, MyWarehouse, Households,
-    ["identity"], 100,
-    dRunStartTrainJun, dRunEndTrainJun, dRunStartTestJun, dRunEndTestJ,
-    [1], [0.5], [0.999],
-    [0.0001, 0.001], [0.0001, 0.001],
-    [50, 100, 200], [50, 100, 200])
-
-### October ###
-TuningCommercialParamsOct = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
-    MyWindPark, MyWarehouse, Households,
-    ["identity"], 100,
-    dRunStartTrainOct, dRunEndTrainOct, dRunStartTestOct, dRunEndTestOct,
-    [0, 2, 6, 12, 24], [0.5, 0.7, 0.3], [0.999],
-    [0.0001], [0.0001],
-    [100], [100])
-
-TuningBetaOct = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
-    MyWindPark, MyWarehouse, Households,
-    ["identity"], 100,
-    dRunStartTrainOct, dRunEndTrainOct, dRunStartTestOct, dRunEndTestO,
-    [1], [0.5], [0.99, 0.995, 0.999, 1.0],
-    [0.0001], [0.0001],
-    [100], [100])
-
-TuningNNParamsOct = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
-    MyWindPark, MyWarehouse, Households,
-    ["identity"], 100,
-    dRunStartTrainOct, dRunEndTrainOct, dRunStartTestOct, dRunEndTestOct,
-    [1], [0.5], [0.999],
-    [0.0001, 0.001], [0.0001, 0.001],
-    [50, 100, 200], [50, 100, 200])
-
 #plots episodes length
 EpisodesLengthAugStacked = stack(EpisodesLengthAug, [:iInitialTestResult, :iResultAfterTraining])
 
-tuv = @pipe EpisodesLengthAug |> groupby(_, :iEpisodes)
+tuv = @pipe EpisodesLengthAug |> groupby(_, :iEpisodes) |>
+    combine(_, :iResultAfterTraining => mean)
 
 @df filter(row -> row.iEpisodes == 25, EpisodesLengthAug) plot(
     :iTrainResult,
-    color = RGB(100/255, 0, 0)
+    color = RGB(100/255, 0, 0),
+    label = "25 episodes",
+    xlabel = "Number of episodes",
+    ylabel = "Cumulated reward at the end of episode"
 )
 
 @df filter(row -> row.iEpisodes == 50, EpisodesLengthAug) plot!(
     :iTrainResult,
-    color = RGB(192/255, 0, 0)
+    color = RGB(192/255, 0, 0),
+    label = "50 episodes"
 )
 
 @df filter(row -> row.iEpisodes == 75, EpisodesLengthAug) plot!(
     :iTrainResult,
-    color = RGB(100/255, 100/255, 100/255)
+    color = RGB(100/255, 100/255, 100/255),
+    label = "75 episodes"
 )
 
 @df filter(row -> row.iEpisodes == 100, EpisodesLengthAug) plot!(
     :iTrainResult,
-    color = RGB(192/255, 192/255, 192/255)
+    color = RGB(192/255, 192/255, 192/255),
+    label = "100 episodes"
 )
 
-@df EpisodesLengthAugStacked groupedboxplot(string.(:iEpisodes), :value, group = :variable,
+EpisodesRewardAverage = @df EpisodesLengthAugStacked groupedboxplot(string.(:iEpisodes), :value, group = :variable,
     label = ["Result before training" "Result after training"], legend = :right,
-    color = [RGB(192/255, 192/255, 192/255) RGB(192/255, 0, 0)])
+    color = [RGB(192/255, 192/255, 192/255) RGB(192/255, 0, 0)],
+    xlabel = "Number of episodes in the learning process",
+    ylabel = "Reward - testing period")
+
+savefig("C:/Users/Marcel/Desktop/mgr/graphs/EpisodesTuning.png")
+savefig(EpisodesRewardAverage, "C:/Users/Marcel/Desktop/mgr/graphs/EpisodesTuningAverage.png")
 
 # plots β
 BetaParamsAugStacked = stack(BetaParamsAug, [:iInitialTestResult, :iResultAfterTraining])
@@ -227,15 +164,27 @@ insertcols!(CommercialParamsAugTransformed,
         (CommercialParamsAugTransformed.iTrainResultMax .- CommercialParamsAugTransformed.iTrainResultMin)
     )
 @df CommercialParamsAugTransformed StatsPlots.plot(
-    repeat(collect(1:1:11), 15),
+    repeat(collect(1:1:50), 20),
     string.(:iGridLongVolumeCoefficient),
     :iTrainResultNormalised,
-    line_z = :iLookBack,
+    line_z = (:iLookBack),
     group = (:iGridLongVolumeCoefficient, :iLookBack),
-    camera = (70, 50),
+    camera = (75, 30),
     # vlinecolor = :iLookBack,
+    # linecolor = [RGB(30/255, 0, 0) RGB(100/255, 0, 0) RGB(192/255, 0, 0) RGB(30/255, 30/255, 30/255) RGB(100/255, 100/255, 100/255) RGB(140/255, 140/255, 140/255)],
     linecolor = :OrRd_8,
-    legend = :none
+    # legend = :none,
+    label = "",
+    lw = 2,
+    linealpha = 0.7,
+    xlabel = "",
+    xrotation = -45,
+    xguide_position = :right,
+    # framestyle = :zerolines,
+    # xguidefontsize = 18,
+    ylabel = "κ coefficient" ,
+    zlabel = "Reward in the episode, normalised",
+    size = (800, 600)
 )
 
 # plots NN
