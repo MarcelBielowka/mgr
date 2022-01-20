@@ -356,7 +356,7 @@ p5 = @df p4data StatsPlots.plot(
     colorbar_tickfontsize = 3,
     color = :sun)
 
-PlotAbc = plot(p1, p2, p3, p4, p5,
+PlotNNTrainingResults = plot(p1, p2, p3, p4, p5,
     layout = q, size = (800, 600),
     left_margin = 5Plots.mm,
     right_margin = 5Plots.mm,
@@ -365,4 +365,4 @@ PlotAbc = plot(p1, p2, p3, p4, p5,
 
 
 
-savefig(PlotNNParams, "C:/Users/Marcel/Desktop/mgr/graphs/NNParamsTuningFurther.png")
+savefig(PlotNNTrainingResults, "C:/Users/Marcel/Desktop/mgr/graphs/NNParamsTuningFurther.png")
