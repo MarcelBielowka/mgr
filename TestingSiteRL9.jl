@@ -11,26 +11,6 @@ dRunEndTest = @pipe Dates.Date("2019-12-30") |> Dates.dayofyear |> _*24 |> _-1
 iEpisodeLength = dRunStartTest - dRunEndTest |> abs
 iEpisodeLengthTrain = dRunStartTrain - dRunEndTrain |> abs
 
-dRunStartTrain = @pipe Dates.Date("2019-08-01") |> Dates.dayofyear |> _*24 |> _- 23
-dRunEndTrain = @pipe Dates.Date("2019-08-20") |> Dates.dayofyear |> _*24 |> _-1
-dRunStartTest = dRunEndTrain + 1
-dRunEndTest = @pipe Dates.Date("2019-08-30") |> Dates.dayofyear |> _*24 |> _-1
-
-dRunStartTrainOct = @pipe Dates.Date("2019-09-01") |> Dates.dayofyear |> _*24 |> _- 23
-dRunEndTrainOct = @pipe Dates.Date("2019-09-20") |> Dates.dayofyear |> _*24 |> _-1
-dRunStartTestOct = dRunEndTrain + 1
-dRunEndTestOct = @pipe Dates.Date("2019-09-30") |> Dates.dayofyear |> _*24 |> _-1
-
-dRunStartTrainNov = @pipe Dates.Date("2019-11-01") |> Dates.dayofyear |> _*24 |> _- 23
-dRunEndTrainNov = @pipe Dates.Date("2019-11-20") |> Dates.dayofyear |> _*24 |> _-1
-dRunStartTestNov = dRunEndTrain + 1
-dRunEndTestNov = @pipe Dates.Date("2019-11-30") |> Dates.dayofyear |> _*24 |> _-1
-
-dRunStartTrainJun = @pipe Dates.Date("2019-06-01") |> Dates.dayofyear |> _*24 |> _- 23
-dRunEndTrainJun = @pipe Dates.Date("2019-06-20") |> Dates.dayofyear |> _*24 |> _-1
-dRunStartTestJun = dRunEndTrain + 1
-dRunEndTestJun = @pipe Dates.Date("2019-06-30") |> Dates.dayofyear |> _*24 |> _-1
-
 InitialTestResult = Run!(RandomMicrogrid, 1, 2, 0.5, dRunStartTest, dRunEndTest, false, false)
 @time TrainResult = Run!(MyMicrogrid, 100, 2, 0.5, dRunStartTrain, dRunEndTrain, true, true)
 
@@ -53,7 +33,7 @@ MyMicrogrid.Brain.memory
 TrainResult = Juno.@enter Run!(MyMicrogrid, 1, 1,
     dRunStartTrain+8, dRunStartTrain+9, true, true)
 
-### August ###
+### Tuning the episode length ###
 TuningEpisodesLength = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
     MyWindPark, MyWarehouse, Households,
     ["identity"], [25, 50, 75, 100],
@@ -63,6 +43,7 @@ TuningEpisodesLength = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
     [100], [100])
 EpisodesLengthAug = GetDataForPlottingFromResultsHolder(TuningEpisodesLength)
 
+### Tuning commercial params ###
 TuningCommercialParams = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
     MyWindPark, MyWarehouse, Households,
     ["identity"], [40],
@@ -72,6 +53,7 @@ TuningCommercialParams = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather
     [100], [100])
 CommercialParamsAug = GetDataForPlottingFromResultsHolder(TuningCommercialParams)
 
+### Tuning β ###
 TuningBeta = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
     MyWindPark, MyWarehouse, Households,
     ["identity"], [40],
@@ -81,6 +63,7 @@ TuningBeta = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
     [100], [100])
 BetaParamsAug = GetDataForPlottingFromResultsHolder(TuningBeta)
 
+### Tuning neural network ###
 TuningNNParams = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
     MyWindPark, MyWarehouse, Households,
     ["identity"], [40],
@@ -90,6 +73,8 @@ TuningNNParams = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
     [50, 100, 200], [50, 100, 200])
 NNParamsAug = GetDataForPlottingFromResultsHolder(TuningNNParams)
 
+
+### Plotting ###
 #plots episodes length
 EpisodesLengthAugStacked = stack(EpisodesLengthAug, [:iInitialTestResult, :iResultAfterTraining])
 
@@ -361,8 +346,5 @@ PlotNNTrainingResults = plot(p1, p2, p3, p4, p5,
     left_margin = 5Plots.mm,
     right_margin = 5Plots.mm,
     legend = :none)
-
-
-
 
 savefig(PlotNNTrainingResults, "C:/Users/Marcel/Desktop/mgr/graphs/NNParamsTuningFurther.png")
