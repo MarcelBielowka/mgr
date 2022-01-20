@@ -214,19 +214,38 @@ NNParamsAugTransformed = @pipe NNParamsAug |>
     groupby(_, [:iActorLearningRate, :iCriticLearningRate, :iHiddenLayerNeuronsActor, :iHiddenLayerNeuronsCritic, ]) |>
     combine(_, :iResultAfterTraining => mean => :Avg)
 
-@df NNParamsAugTransformed StatsPlots.scatter(
+PlotNNParams = @df NNParamsAugTransformed StatsPlots.scatter(
     string.(:iHiddenLayerNeuronsActor),
     string.(:iHiddenLayerNeuronsCritic),
     :Avg,
     marker_z = :iActorLearningRate,
-    group = (:iCriticLearningRate),
-    marker = [:circle :square],
-    alpha = 0.5,
+    group = (:iActorLearningRate, :iCriticLearningRate),
+    marker = [:circle :square :star :utriangle],
+    alpha = 0.3,
     markersize = 7,
-    camera = (60, 30),
-    legend = :topleft,
-    color = :OrRd_8
+    camera = (50, 20),
+    legend = :left,
+    legendtitle = "Actor and critic learning rates",
+    legendtitlefontsize = 8,
+    legendfontsize = 8,
+    legendfontvalign = :center,
+    colorbar = :none,
+    color = :sun,
+    zlabel = "Average reward, testing period",
+    xlabel = "Number of neurons \n in hidden layer - actor",
+    ylabel = "Number of neurons \n in hidden layer - critic",
+    xguidefontsize= 8,
+    guidefonthalign = :left,
+    yguidefontsize = 8,
+    yguidefontvalign = :top,
+    size = (800, 600),
+    left_margin = 2Plots.mm,
+    right_margin = 5Plots.mm,
+    bottom_margin = 5Plots.mm,
+    zguidefontrotation = -30
 )
+
+savefig(PlotNNParams, "C:/Users/Marcel/Desktop/mgr/graphs/NNParamsTuning.png")
 
 p1data = filter(row -> (row.iActorLearningRate==0.0001 && row.iCriticLearningRate==0.0001 ), NNParamsAug)
 p2data = filter(row -> (row.iActorLearningRate==0.001 && row.iCriticLearningRate==0.0001 ), NNParamsAug)
@@ -234,59 +253,116 @@ p3data = filter(row -> (row.iActorLearningRate==0.001 && row.iCriticLearningRate
 p4data = filter(row -> (row.iActorLearningRate==0.0001 && row.iCriticLearningRate==0.001 ), NNParamsAug)
 
 p1 = @df p1data StatsPlots.plot(
-    repeat(collect(1:1:11), 9),
+    repeat(collect(1:1:40), 9),
     string.(:iHiddenLayerNeuronsCritic),
     :iTrainResult,
     line_z = :iHiddenLayerNeuronsActor,
     group = (:iHiddenLayerNeuronsActor, :iHiddenLayerNeuronsCritic),
-    camera = (70, 30),
-    # vlinecolor = :iLookBack,
-    linecolor = :OrRd_8,
+    camera = (70, 20),
+    linecolor = :sun,
     lw = 3,
     legend = :none,
-    zlim = (-150, 800)
+    title = "ηₐ = 0.0001, η̧ᵪ = 0.0001",
+    titlefontsize = 10,
+    ylabelfontsize = 7,
+    zlabelfontsize = 7,
+    ylabel = "Neurons in hidden layer - critic",
+    zlabel = "Reward in the episode",
+    zlim = (24000, 40000),
+    formatter = :plain
 )
 
 p2 = @df p2data StatsPlots.plot(
-    repeat(collect(1:1:11), 9),
+    repeat(collect(1:1:40), 9),
     string.(:iHiddenLayerNeuronsCritic),
     :iTrainResult,
     line_z = :iHiddenLayerNeuronsActor,
     group = (:iHiddenLayerNeuronsActor, :iHiddenLayerNeuronsCritic),
     camera = (70, 30),
     # vlinecolor = :iLookBack,
-    linecolor = :OrRd_8,
+    linecolor = :sun,
     lw = 3,
     legend = :none,
-    zlim = (-150, 800)
+    title = "ηₐ = 0.001, η̧ᵪ = 0.0001",
+    titlefontsize = 10,
+    ylabel = "Neurons in hidden layer - critic",
+    ylabelfontsize = 7,
+    zlabelfontsize = 7,
+    zlabel = "Reward in the episode",
+    zlim = (24000, 40000),
+    formatter = :plain
+    # zlim = (-150, 800)
 )
 
 p3 = @df p3data StatsPlots.plot(
-    repeat(collect(1:1:11), 9),
+    repeat(collect(1:1:40), 9),
     string.(:iHiddenLayerNeuronsCritic),
     :iTrainResult,
     line_z = :iHiddenLayerNeuronsActor,
     group = (:iHiddenLayerNeuronsActor, :iHiddenLayerNeuronsCritic),
     camera = (70, 30),
     # vlinecolor = :iLookBack,
-    linecolor = :OrRd_8,
+    linecolor = :sun,
     lw = 3,
     legend = :none,
-    zlim = (-150, 800)
+    title = "ηₐ = 0.0001, η̧ᵪ = 0.001",
+    titlefontsize = 10,
+    ylabelfontsize = 7,
+    zlabelfontsize = 7,
+    ylabel = "Neurons in hidden layer - critic",
+    zlabel = "Reward in the episode",
+    zlim = (24000, 40000),
+    formatter = :plain
+    # zlim = (-150, 800)
 )
 
 p4 = @df p4data StatsPlots.plot(
-    repeat(collect(1:1:11), 9),
+    repeat(collect(1:1:40), 9),
     string.(:iHiddenLayerNeuronsCritic),
     :iTrainResult,
     line_z = :iHiddenLayerNeuronsActor,
     group = (:iHiddenLayerNeuronsActor, :iHiddenLayerNeuronsCritic),
     camera = (70, 30),
     # vlinecolor = :iLookBack,
-    linecolor = :OrRd_8,
+    linecolor = :sun,
     lw = 3,
     legend = :none,
-    zlim = (-150, 800)
+    title = "ηₐ = 0.001, η̧ᵪ = 0.001",
+    titlefontsize = 10,
+    ylabelfontsize = 7,
+    zlabelfontsize = 7,
+    ylabel = "Neurons in hidden layer - critic",
+    zlabel = "Reward in the episode",
+    zlim = (24000, 40000),
+    formatter = :plain
+    # zlim = (-150, 800)
 )
 
-plot(p1, p2, p3, p4, layout = (2,2))
+q = @layout [
+         [grid(4,1)] b{0.4w}
+    ]
+
+p5 = @df p4data StatsPlots.plot(
+    :iHiddenLayerNeuronsActor,
+    :iHiddenLayerNeuronsCritic, xlim = (4,5),
+    group = (:iHiddenLayerNeuronsActor, :iHiddenLayerNeuronsCritic),
+    label = "",
+    legend = :topleft, framestyle = :none,
+    line_z = :iHiddenLayerNeuronsActor,
+    colorbar = true,
+    colorbar_ticks = [50 100 200],
+    colorbar_title = "Neurons in hidden layer - actor",
+    colorbar_titlefontsize = 10,
+    colorbar_tickfontsize = 3,
+    color = :sun)
+
+PlotAbc = plot(p1, p2, p3, p4, p5,
+    layout = q, size = (800, 600),
+    left_margin = 5Plots.mm,
+    right_margin = 5Plots.mm,
+    legend = :none)
+
+
+
+
+savefig(PlotNNParams, "C:/Users/Marcel/Desktop/mgr/graphs/NNParamsTuningFurther.png")
