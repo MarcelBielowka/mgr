@@ -348,3 +348,30 @@ PlotNNTrainingResults = plot(p1, p2, p3, p4, p5,
     legend = :none)
 
 savefig(PlotNNTrainingResults, "C:/Users/Marcel/Desktop/mgr/graphs/NNParamsTuningFurther.png")
+
+
+MembersTuning = FineTuneMembers(DayAheadPowerPrices, Weather,
+    2000.0, 11.5, 3.0, 20.0
+    [1, 3, 5],
+    dfRawEnergyConsumption, dfRawConsHistory, 2, 2019, 0.1, 20.0,
+    0.55, 0.0035, 45, [400, 600, 800],
+    13.5, 7.0, -5.0, [10, 20, 40, 80],
+    Households,
+    ["identity"], [40],
+    dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
+    [2], [0.7], [0.999],
+    [0.0001], [0.0001],
+    [100], [100])
+
+xyz = FineTuneMembers(DayAheadPowerPrices, Weather,
+    2000.0, 11.5, 3.0, 20.0,
+    [1, 3],
+    dfRawEnergyConsumption, dfRawConsHistory, 2, 2019, 0.1, 20.0,
+    0.55, 0.0035, 45, [400, 600],
+    13.5, 7.0, -5.0, [10, 20],
+    Households,
+    ["identity"], [11],
+    dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
+    [2], [0.7], [0.999],
+    [0.0001], [0.0001],
+    [100], [100])
