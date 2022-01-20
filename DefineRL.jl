@@ -538,5 +538,61 @@ function FineTuneTheMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
     end
 
     return AllTheResults
+end
 
+function FineTuneMembers(DayAheadPricesHandler::DayAheadPricesHandler,
+    WeatherDataHandler::WeatherDataHandler,
+    iTurbineMaxCapacity::Float64, iTurbineRatedSpeed::Float64,
+    iTurbineCutinSpeed::Float64, iTurbineCutoffSpeed::Float64,
+    iNumberOfTurbines::Vector{Int},
+    dfWarehouseEnergyConsumption::DataFrame, dfConsignmentHistory::DataFrame,
+    iNumberOfWarehouses::Int, iYear::Int,
+    iHeatCoefficient::Float64, iInsideTemp::Float64,
+    iPVMaxCapacity::Float64, iPVγ_temp::Float64,
+    iNoct::Int, iNumberOfPanels::Vector{Int},
+    iStorageMaxCapacity::Float64, iStorageChargeRate::Float64,
+    iStorageDischargeRate::Float64, iNumberOfStorageCells::Vector{Int},
+    MyHouseholds::⌂,
+    cPolicyOutputLayerType::Vector{String}, iEpisodes::Vector{Int},
+    dRunStartTrain::Int, dRunEndTrain::Int,
+    dRunStartTest::Int, dRunEndTest::Int,
+    iLookBack::Vector{Int}, iGridLongVolumeCoefficient::Vector{Float64},
+    iβ::Vector{Float64},
+    iActorLearningRate::Vector{Float64}, iCriticLearningRate::Vector{Float64},
+    iHiddenLayerNeuronsActor::Vector{Int}, iHiddenLayerNeuronsCritic::Vector{Int})
+
+    AllTheResults = Vector{MembersResultsHolder}()
+
+    for iCurrentTurbines in iNumberOfTurbines, iCurrentPanels in iNumberOfPanels, iCurrentCells in iNumberOfStorageCells
+        CurrentWindPark = GetWindPark(iTurbineMaxCapacity, iTurbineRatedSpeed,
+            iTurbineCutinSpeed, iTurbineCutoffSpeed, Weather, iCurrentTurbines)
+        CurrentWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory,
+            iNumberOfWarehouses, iYear, iHeatCoefficient, iInsideTemp,
+            iPVMaxCapacity, iPVγ_temp, iNoct,
+            iCurrentPanels, Weather,
+            iStorageMaxCapacity, iStorageChargeRate, iStorageDischargeRate, iCurrentCells)
+
+        Result = FineTuneTheMicrogrid(DayAheadPricesHandler,
+            WeatherDataHandler, CurrentWindPark,
+            CurrentWarehouse, MyHouseholds,
+            cPolicyOutputLayerType, iEpisodes,
+            dRunStartTrain, dRunEndTrain,
+            dRunStartTest, dRunEndTest,
+            iLookBack, iGridLongVolumeCoefficient,
+            iβ,
+            iActorLearningRate, iCriticLearningRate,
+            iHiddenLayerNeuronsActor, iHiddenLayerNeuronsCritic)
+
+        CurrentResult = GetMembersResultsHolder(
+            iCurrentTurbines,
+            iCurrentPanels,
+            iCurrentCells,
+            Result
+        )
+
+        push!(AllTheResults, CurrentResult)
+
+    end
+
+    return AllTheResults
 end

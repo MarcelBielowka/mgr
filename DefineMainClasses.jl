@@ -512,3 +512,22 @@ function GetDataForPlottingFromResultsHolder(VectorResultsHolder::Vector{Results
     return dfDataForPlotting
 
 end
+
+
+mutable struct MembersResultsHolder
+    iTurbines::Int
+    iPVPanels::Int
+    iStorageCells::Int
+    Result::ResultsHolder
+end
+
+function GetMembersResultsHolder(iTurbines::Int,
+        iPVPanels::Int, iStorageCells::Int, Result::ResultsHolder)
+
+    return MembersResultsHolder(
+        iTurbines,
+        iPVPanels,
+        iStorageCells,
+        Result
+    )
+end
