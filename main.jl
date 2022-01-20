@@ -88,6 +88,9 @@ Households.dictHouseholdsData = Dict()
 #    0.55, 0.0035, 45, 300, Weather, 11.7, 1.5*11.75, 0.5*11.7, 10)
 #CSV.write("C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv", MyWarehouse.dfEnergyConsumption)
 #CSV.write("C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.csv", MyWarehouse.dfConsignmentHistory)
+# Calculating the number of solar panels
+# width - 51 slots in the warehouse * 1.4m width of the slot / 2.274m width of the panel
+# length - 45 slots in the warehouse * 1.4m width of the slot / 3.134m length of the panel + spacing
 
 dfRawEnergyConsumption = CSV.File("C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv") |> DataFrame
 dfRawConsHistory = CSV.File("C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.csv") |> DataFrame
@@ -101,75 +104,3 @@ MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory, 2, 2019
 #########################################
 ########### Running process #############
 #########################################
-
-
-
-
-
-############################################################################################################################
-#############################################################
-## Old codes, decision what to do with them yet to be made ##
-#############################################################
-
-#########################################
-####### Extract households data #########
-#########################################
-#HouseholdsData = GetHouseholdsData(cHouseholdsDir, dUKHolidayCalendar)
-#HouseholdsData["HouseholdProfiles"][(11,2)]
-#DataFrame(Hour = HouseholdsData["HouseholdProfiles"][(2,6)][:,1],
-#    AverageProfile = @pipe HouseholdsData["HouseholdProfiles"][(2,6)][:,2:3] |>
-#    Matrix(_) |>
-#    mean(_, weights(HouseholdsData["ClusteringCounts"][(2,6)]), dims = 2) |> _[:,1]
-#)
-#HouseholdsData["HouseholdProfilesWeighted"][(5,3)]
-#test = deepcopy(HouseholdsData["HouseholdProfilesWeighted"])
-
-#[test[(i,j)].ProfileWeighted .*=100 for i in 1:12, j in 1:7]
-#test[(5,3)]
-
-#HouseholdsData["HouseholdProfiles"][(11,2)][:,2:3]
-#HouseholdsData["ClusteringCounts"][(11,2)]
-#########################################
-####### Extract warehouse data  #########
-#########################################
-#@time WarehouseDataRaw = pmap(SimWrapper,
-#    Base.Iterators.product(1:iWarehouseNumberOfSimulations, iWarehouseSimWindow, false))
-#WarehouseDataAggregated = ExtractFinalStorageData(WarehouseDataRaw)
-
-
-#########################################
-########### Extract weather data ########
-#########################################
-#WeatherDataDetails = ReadWeatherData(cWindTempDataDir, cIrrDataDir,
-#    FilterStart = cWeatherPricesDataWindowStart,
-#    FilterEnd = cWeatherPricesDataWindowEnd)
-#dfWeatherData = WeatherDataDetails["dfFinalWeatherData"]
-#dfWindProduction = DataFrames.DataFrame(
-#    date = dfWeatherData.date,
-#    WindProduction = WindProductionForecast.(2000, dfWeatherData.WindSpeed, 11.5, 3, 20)
-#)
-# Calculating the number of solar panels
-# width - 51 slots in the warehouse * 1.4m width of the slot / 2.274m width of the panel
-# length - 45 slots in the warehouse * 1.4m width of the slot / 3.134m length of the panel + spacing
-# plot(dfWindProduction.date, dfWindProduction.WindProduction)
-#dfSolarProduction = DataFrames.DataFrame(
-#    date = dfWeatherData.date,
-#    SolarProduction = SolarProductionForecast.(0.55, dfWeatherData.Irradiation,
-#        dfWeatherData.Temperature, 0.0035, 45)
-#)
-#test = deepcopy(dfSolarProduction)
-# plot(dfSolarProduction.date, dfSolarProduction.SolarProduction)
-
-#########################################
-######## Extract power prices data ######
-#########################################
-#dfPowerPriceData = ReadPrices(cPowerPricesDataDir,
-#    DeliveryFilterStart = cWeatherPricesDataWindowStart,
-#    DeliveryFilterEnd = cWeatherPricesDataWindowEnd)
-
-
-#########################################
-####### Select days for simulation ######
-#########################################
-#iDaysIndex = rand(1:Dates.value(FirstLastDay[2] - Dates.Date("2020-01-01")),
-#    Dates.value(FirstLastDay[2] - Dates.Date("2020-01-01")))
