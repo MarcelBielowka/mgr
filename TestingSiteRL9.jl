@@ -351,7 +351,7 @@ savefig(PlotNNTrainingResults, "C:/Users/Marcel/Desktop/mgr/graphs/NNParamsTunin
 
 
 MembersTuning = FineTuneMembers(DayAheadPowerPrices, Weather,
-    2000.0, 11.5, 3.0, 20.0
+    2000.0, 11.5, 3.0, 20.0,
     [1, 3, 5],
     dfRawEnergyConsumption, dfRawConsHistory, 2, 2019, 0.1, 20.0,
     0.55, 0.0035, 45, [400, 600, 800],
@@ -367,11 +367,51 @@ xyz = FineTuneMembers(DayAheadPowerPrices, Weather,
     2000.0, 11.5, 3.0, 20.0,
     [1, 3],
     dfRawEnergyConsumption, dfRawConsHistory, 2, 2019, 0.1, 20.0,
-    0.55, 0.0035, 45, [400, 600],
-    13.5, 7.0, -5.0, [10, 20],
+    0.55, 0.0035, 45, [400],
+    13.5, 7.0, -5.0, [10],
     Households,
     ["identity"], [11],
     dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
     [2], [0.7], [0.999],
     [0.0001], [0.0001],
     [100], [100])
+
+MembersTuning
+
+iTurbines = [MembersTuning[i].iTurbines for i in 1:length(MembersTuning)]
+iPVPanels = [MembersTuning[i].iPVPanels for i in 1:length(MembersTuning)]
+iStorageCells = [MembersTuning[i].iStorageCells for i in 1:length(MembersTuning)] .+20
+iResults = [MembersTuning[i].Result[1] for i in 1:length(MembersTuning)]
+
+iAverageResultAfterTraining = [mean(iResults[i].ResultAfterTraining) for i in 1:length(iResults)]
+
+TotalProd = [iResults[i].MyMicrogrid.dfTotalProduction for i in 1:length(iResults)]
+TotalCons = [iResults[i].MyMicrogrid.dfTotalConsumption for i in 1:length(iResults)]
+
+PlotImpactsOfConsittuents = Plots.scatter(iPVPanels,
+    iTurbines,
+    iStorageCells,
+    marker_z = iAverageResultAfterTraining,
+    # group = iStorageCells,
+    markershape = :hexagon,
+    markersize = 6,
+    alpha = 0.5,
+    # markershape = [:hexagon, :utriangle, :square, :star6],
+    legend = :none,
+    # markershape = iStorageCells,
+    color = :sun,
+    zformatter = :plain,
+    colorbar = true,
+    camera = (70, 40),
+    left_margin = 2Plots.mm,
+    right_margin = 8Plots.mm,
+    bottom_margin = 5Plots.mm,
+    colorbar_titlefontsize = 9,
+    colorbar_title = "\n\n\n\nAverage cumulative reward per episode",
+    ylabel = "N of wind turbines",
+    ylabelfontsize = 8,
+    zlabel = "Number of storage cells",
+    zlabelfontsize = 8
+    )
+
+savefig(PlotImpactsOfConsittuents, "C:/Users/Marcel/Desktop/mgr/graphs/Constituents.png")
