@@ -562,6 +562,7 @@ function FineTuneMembers(DayAheadPricesHandler::DayAheadPricesHandler,
     iHiddenLayerNeuronsActor::Vector{Int}, iHiddenLayerNeuronsCritic::Vector{Int})
 
     AllTheResults = Vector{MembersResultsHolder}()
+    # abc = Dict()
 
     for iCurrentTurbines in iNumberOfTurbines, iCurrentPanels in iNumberOfPanels, iCurrentCells in iNumberOfStorageCells
         CurrentWindPark = GetWindPark(iTurbineMaxCapacity, iTurbineRatedSpeed,
@@ -590,9 +591,18 @@ function FineTuneMembers(DayAheadPricesHandler::DayAheadPricesHandler,
             Result
         )
 
+        #CurrentResult = Dict(
+        #    "a" => iCurrentTurbines,
+        #    "b" => iCurrentPanels,
+        #    "c" => iCurrentCells,
+        #    "d" => Result
+        #)
+
         push!(AllTheResults, CurrentResult)
+        # push!(abc, iCurrentTurbines => CurrentResult)
 
     end
 
     return AllTheResults
+    # return abc
 end

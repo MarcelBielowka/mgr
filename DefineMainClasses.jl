@@ -514,7 +514,7 @@ function GetDataForPlottingFromResultsHolder(VectorResultsHolder::Vector{Results
 end
 
 
-mutable struct MembersResultsHolderCor
+mutable struct MembersResultsHolder
     iTurbines::Int
     iPVPanels::Int
     iStorageCells::Int
@@ -522,9 +522,9 @@ mutable struct MembersResultsHolderCor
 end
 
 function GetMembersResultsHolder(iTurbines::Int,
-        iPVPanels::Int, iStorageCells::Int, Result::ResultsHolder)
+        iPVPanels::Int, iStorageCells::Int, Result::Vector{ResultsHolder})
 
-    return MembersResultsHolderCor(
+    return MembersResultsHolder(
         iTurbines,
         iPVPanels,
         iStorageCells,
