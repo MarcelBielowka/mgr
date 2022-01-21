@@ -106,14 +106,13 @@ tuv = @pipe EpisodesLengthAug |> groupby(_, :iEpisodes) |>
     color = RGB(192/255, 192/255, 192/255),
     label = "100 episodes"
 )
+savefig("C:/Users/Marcel/Desktop/mgr/graphs/EpisodesTuning.png")
 
 EpisodesRewardAverage = @df EpisodesLengthAugStacked groupedboxplot(string.(:iEpisodes), :value, group = :variable,
     label = ["Result before training" "Result after training"], legend = :right,
     color = [RGB(192/255, 192/255, 192/255) RGB(192/255, 0, 0)],
     xlabel = "Number of episodes in the learning process",
-    ylabel = "Reward - testing period")
-
-savefig("C:/Users/Marcel/Desktop/mgr/graphs/EpisodesTuning.png")
+    ylabel = "Average cumulative reward in episode - testing period")
 savefig(EpisodesRewardAverage, "C:/Users/Marcel/Desktop/mgr/graphs/EpisodesTuningAverage.png")
 
 # plots β
@@ -349,13 +348,13 @@ PlotNNTrainingResults = plot(p1, p2, p3, p4, p5,
 
 savefig(PlotNNTrainingResults, "C:/Users/Marcel/Desktop/mgr/graphs/NNParamsTuningFurther.png")
 
-
+##### Members tuning
 MembersTuning = FineTuneMembers(DayAheadPowerPrices, Weather,
     2000.0, 11.5, 3.0, 20.0,
     [1, 3, 5],
     dfRawEnergyConsumption, dfRawConsHistory, 2, 2019, 0.1, 20.0,
     0.55, 0.0035, 45, [400, 600, 800],
-    13.5, 7.0, -5.0, [10, 20, 40, 80],
+    13.5, 7.0, -5.0, [0, 20, 40, 80, 160],
     Households,
     ["identity"], [40],
     dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
@@ -363,12 +362,12 @@ MembersTuning = FineTuneMembers(DayAheadPowerPrices, Weather,
     [0.0001], [0.0001],
     [100], [100])
 
-xyz = FineTuneMembers(DayAheadPowerPrices, Weather,
+MembersTuning = FineTuneMembers(DayAheadPowerPrices, Weather,
     2000.0, 11.5, 3.0, 20.0,
-    [1, 3],
+    [3],
     dfRawEnergyConsumption, dfRawConsHistory, 2, 2019, 0.1, 20.0,
     0.55, 0.0035, 45, [400],
-    13.5, 7.0, -5.0, [10],
+    13.5, 7.0, -5.0, [10, 20],
     Households,
     ["identity"], [11],
     dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
@@ -376,7 +375,10 @@ xyz = FineTuneMembers(DayAheadPowerPrices, Weather,
     [0.0001], [0.0001],
     [100], [100])
 
-MembersTuning
+FinalMicrogrids = [MembersTuning[i].Result[1].FinalMicrogrid for i in 1:length(MembersTuning)]
+LOEE_base = [FinalMicrogrids[i].Brain.memory[j][1][1] * (1 - FinalMicrogrids[i].Brain.memory[j][3]) for j in 1:length(FinalMicrogrids[1].Brain.memory), i in 1:length(MembersTuning)]
+LOEE = [sum(LOEE_base[:, i] .< 0)/length(LOEE_base[:, i]) for i in 1:size(LOEE_base,2)]
+LOLE = [sum((LOEE_base[:, i] .< 0) .* LOEE_base[:, i]) / length(LOEE_base[:, i]) for i in 1:size(LOEE_base,2)]
 
 iTurbines = [MembersTuning[i].iTurbines for i in 1:length(MembersTuning)]
 iPVPanels = [MembersTuning[i].iPVPanels for i in 1:length(MembersTuning)]
@@ -387,6 +389,24 @@ iAverageResultAfterTraining = [mean(iResults[i].ResultAfterTraining) for i in 1:
 
 TotalProd = [iResults[i].MyMicrogrid.dfTotalProduction for i in 1:length(iResults)]
 TotalCons = [iResults[i].MyMicrogrid.dfTotalConsumption for i in 1:length(iResults)]
+TotalNetLoadTrain = [TotalProd[i].TotalProduction[dRunStartTrain:dRunEndTrain] .-
+    TotalCons[i].TotalConsumption[dRunStartTrain:dRunEndTrain] for i in 1:length(iResults)]
+
+TotalNetLoadTest = [TotalProd[i].TotalProduction[dRunStartTest:dRunEndTest] .-
+    TotalCons[i].TotalConsumption[dRunStartTest:dRunEndTest] for i in 1:length(iResults)]
+
+CoverageTrain = [TotalProd[i].TotalProduction[dRunStartTrain:dRunEndTrain] .<
+    TotalCons[i].TotalConsumption[dRunStartTrain:dRunEndTrain] for i in 1:length(iResults)]
+
+CoverageTest = [TotalProd[i].TotalProduction[dRunStartTest:dRunEndTest] .<
+    TotalCons[i].TotalConsumption[dRunStartTest:dRunEndTest] for i in 1:length(iResults)]
+
+LOELTrain = [sum(CoverageTrain[i]) / length(CoverageTrain[i]) for i in 1:length(CoverageTrain)]
+
+LOELTest = [sum(CoverageTest[i]) / length(CoverageTest[i]) for i in 1:length(CoverageTest)]
+
+LOEETrain = [sum(CoverageTrain[i] .* TotalNetLoadTrain[i] ) / length(CoverageTrain[i]) for i in 1:length(CoverageTrain)]
+LOEETest = [sum(CoverageTest[i] .* TotalNetLoadTest[i] ) / length(CoverageTest[i]) for i in 1:length(CoverageTest)]
 
 PlotImpactsOfConsittuents = Plots.scatter(iPVPanels,
     iTurbines,
@@ -402,7 +422,7 @@ PlotImpactsOfConsittuents = Plots.scatter(iPVPanels,
     color = :sun,
     zformatter = :plain,
     colorbar = true,
-    camera = (70, 40),
+    camera = (75, 40),
     left_margin = 2Plots.mm,
     right_margin = 8Plots.mm,
     bottom_margin = 5Plots.mm,
@@ -415,3 +435,22 @@ PlotImpactsOfConsittuents = Plots.scatter(iPVPanels,
     )
 
 savefig(PlotImpactsOfConsittuents, "C:/Users/Marcel/Desktop/mgr/graphs/Constituents.png")
+
+scatter(iPVPanels,
+    iTurbines,
+    iStorageCells,
+    marker_z = LOELTest,
+    camera = (75, 40),
+    markershape = :hexagon,
+    markersize = 6,
+    alpha = 0.5,
+    legend = :none,
+    colorbar = true,
+    left_margin = 2Plots.mm,
+    right_margin = 8Plots.mm,
+    bottom_margin = 5Plots.mm,
+    color = f)
+f = cgrad(:sun, rev = true)
+
+
+LOLE
