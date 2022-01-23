@@ -428,18 +428,16 @@ for i in 1:length(MembersTuning)
     dfMeasures = vcat(dfMeasures, dfTemp)
 end
 
-k = GetResultsFromMembersResultsHolder(MembersTuning, 40, 4390, 2183)
+ResultsConstituents = GetResultsFromMembersResultsHolder(MembersTuning, 40, 4390, 2183)
 
-dfMeasures
-dfMeasures[:, 6:10]
-abc = @pipe dfMeasures |>
+ResultsConstituentsPerConfig = @pipe ResultsConstituents |>
     groupby(_, [:iEpisode, :iPVPanels, :iTurbines, :iStorageCells]) |>
     combine(_, :iLOLE => mean => :iLOLE,
                 :iLOEE => mean => :iLOEE,
                 :iLOLERandom => mean=> :iLOLERandom,
                 :iLOEERandom => mean=> :iLOEERandom)
 
-xyz = @pipe abc |>
+ResultsConstituentsAvg = @pipe ResultsConstituentsPerConfig |>
     groupby(_, [:iEpisode, :iPVPanels, :iTurbines, :iStorageCells]) |>
     combine(_, :iLOLE => mean => :iLOLE,
                 :iLOLE => std => :iLOLEStd,
@@ -457,27 +455,6 @@ iStorageCells = [MembersTuning[i].iStorageCells for i in 1:length(MembersTuning)
 iResults = [MembersTuning[i].Result[1] for i in 1:length(MembersTuning)]
 
 iAverageResultAfterTraining = [mean(iResults[i].ResultAfterTraining) for i in 1:length(iResults)]
-
-#TotalProd = [iResults[i].MyMicrogrid.dfTotalProduction for i in 1:length(iResults)]
-#TotalCons = [iResults[i].MyMicrogrid.dfTotalConsumption for i in 1:length(iResults)]
-#TotalNetLoadTrain = [TotalProd[i].TotalProduction[dRunStartTrain:dRunEndTrain] .-
-#    TotalCons[i].TotalConsumption[dRunStartTrain:dRunEndTrain] for i in 1:length(iResults)]
-
-#TotalNetLoadTest = [TotalProd[i].TotalProduction[dRunStartTest:dRunEndTest] .-
-#    TotalCons[i].TotalConsumption[dRunStartTest:dRunEndTest] for i in 1:length(iResults)]
-
-#CoverageTrain = [TotalProd[i].TotalProduction[dRunStartTrain:dRunEndTrain] .<
-#    TotalCons[i].TotalConsumption[dRunStartTrain:dRunEndTrain] for i in 1:length(iResults)]
-
-#CoverageTest = [TotalProd[i].TotalProduction[dRunStartTest:dRunEndTest] .<
-#    TotalCons[i].TotalConsumption[dRunStartTest:dRunEndTest] for i in 1:length(iResults)]
-
-#LOELTrain = [sum(CoverageTrain[i]) / length(CoverageTrain[i]) for i in 1:length(CoverageTrain)]
-
-#LOELTest = [sum(CoverageTest[i]) / length(CoverageTest[i]) for i in 1:length(CoverageTest)]
-
-#LOEETrain = [sum(CoverageTrain[i] .* TotalNetLoadTrain[i] ) / length(CoverageTrain[i]) for i in 1:length(CoverageTrain)]
-#LOEETest = [sum(CoverageTest[i] .* TotalNetLoadTest[i] ) / length(CoverageTest[i]) for i in 1:length(CoverageTest)]
 
 PlotImpactsOfConsittuents = Plots.scatter(
     string.(iPVPanels),
@@ -508,11 +485,15 @@ PlotImpactsOfConsittuents = Plots.scatter(
 
 savefig(PlotImpactsOfConsittuents, "C:/Users/Marcel/Desktop/mgr/graphs/Constituents.png")
 
+groupby(ResultsConstituentsAvg, [:iPVPanels, :iTurbines, :iStorageCells])[20]
+groupby(ResultsConstituentsAvg, [:iPVPanels, :iTurbines, :iStorageCells])[17]
+
+
 PlotLOLE = scatter(
-    string.(xyz.iPVPanels),
-    string.(xyz.iTurbines),
-    string.(xyz.iStorageCells),
-    marker_z = xyz.iLOLE,
+    string.(ResultsConstituentsAvg.iPVPanels),
+    string.(ResultsConstituentsAvg.iTurbines),
+    string.(ResultsConstituentsAvg.iStorageCells),
+    marker_z = ResultsConstituentsAvg.iLOLE,
     camera = (75, 40),
     markershape = :hexagon,
     markersize = 6,
@@ -531,10 +512,10 @@ PlotLOLE = scatter(
 savefig(PlotLOLE, "C:/Users/Marcel/Desktop/mgr/graphs/LOLE.png")
 
 PlotLOEE = scatter(
-    string.(xyz.iPVPanels),
-    string.(xyz.iTurbines),
-    string.(xyz.iStorageCells),
-    marker_z = xyz.iLOEE,
+    string.(ResultsConstituentsAvg.iPVPanels),
+    string.(ResultsConstituentsAvg.iTurbines),
+    string.(ResultsConstituentsAvg.iStorageCells),
+    marker_z = ResultsConstituentsAvg.iLOEE,
     camera = (75, 40),
     markershape = :hexagon,
     markersize = 6,
@@ -558,3 +539,40 @@ PlotTotalConstituents = plot(
     size = (1000, 800)
 )
 savefig(PlotTotalConstituents, "C:/Users/Marcel/Desktop/mgr/graphs/AllConstituents.png")
+
+FinalEpisodeDetails = filter(row -> row.iEpisode == 40, ResultsConstituents)
+t = groupby(FinalEpisodeDetails, [:iPVPanels, :iTurbines, :iStorageCells])
+
+HistogramRealisedActions = histogram([t[i].iAction for i in 1:20], layout = (4,5),
+# title = [keys(t[i] for i in 1:20)],
+    normalize = true,
+    legend = false,
+    xlim = (-0.2, 1.2),
+    xlabel = "Action taken",
+    xlabelfontsize = 6,
+    xrotation = 90,
+    # xticks = false,
+    ylim = (0,6),
+    yticks = false,
+    size = (1000, 800),
+    titlefontsize = 10,
+    color = RGB(192/255, 0, 0),
+    title = [(unique(t[i].iPVPanels)[1], unique(t[i].iTurbines)[1], unique(t[i].iStorageCells)[1]) for j in 1:1, i in 1:20])
+savefig(HistogramRealisedActions, "C:/Users/Marcel/Desktop/mgr/graphs/HistogramRealisedActions.png")
+
+HistogramIntendedAction = histogram([t[i].iIntendedAction for i in 1:20], layout = (4,5),
+# title = [keys(t[i] for i in 1:20)],
+    normalize = true,
+    legend = false,
+    xlim = (-0.2, 1.2),
+    xlabel = "Action intended",
+    xlabelfontsize = 6,
+    xrotation = 90,
+    # xticks = false,
+    ylim = (0,6),
+    yticks = false,
+    size = (1000, 800),
+    titlefontsize = 10,
+    color = RGB(192/255, 0, 0),
+    title = [(unique(t[i].iPVPanels)[1], unique(t[i].iTurbines)[1], unique(t[i].iStorageCells)[1]) for j in 1:1, i in 1:20])
+savefig(HistogramIntendedAction, "C:/Users/Marcel/Desktop/mgr/graphs/HistogramIntendedActions.png")
