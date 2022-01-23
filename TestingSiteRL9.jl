@@ -499,7 +499,7 @@ PlotImpactsOfConsittuents = Plots.scatter(
     right_margin = 8Plots.mm,
     bottom_margin = 5Plots.mm,
     colorbar_titlefontsize = 9,
-    colorbar_title = "\n\n\n\nAverage cumulative reward per episode",
+    colorbar_title = "\n\n\n\nAverage cumulative reward",
     ylabel = "N of wind turbines",
     ylabelfontsize = 8,
     zlabel = "Number of storage cells",
@@ -520,9 +520,16 @@ PlotLOLE = scatter(
     legend = :none,
     colorbar = true,
     color = cgrad(:sun, rev = true),
+    colorbar_title = "\n\n\n\nLoss of load expectation",
+    ylabel = "N of wind turbines",
+    ylabelfontsize = 8,
+    zlabel = "Number of storage cells",
+    zlabelfontsize = 8,
     left_margin = 2Plots.mm,
     right_margin = 8Plots.mm,
     bottom_margin = 5Plots.mm)
+savefig(PlotLOLE, "C:/Users/Marcel/Desktop/mgr/graphs/LOLE.png")
+
 PlotLOEE = scatter(
     string.(xyz.iPVPanels),
     string.(xyz.iTurbines),
@@ -537,14 +544,17 @@ PlotLOEE = scatter(
     color = :sun,
     left_margin = 2Plots.mm,
     right_margin = 8Plots.mm,
-    bottom_margin = 5Plots.mm)
+    bottom_margin = 5Plots.mm,
+    colorbar_title = "\n\n\n\nLoss of expected energy",
+    ylabel = "N of wind turbines",
+    ylabelfontsize = 8,
+    zlabel = "Number of storage cells",
+    zlabelfontsize = 8)
+savefig(PlotLOEE, "C:/Users/Marcel/Desktop/mgr/graphs/LOEE.png")
 
-abc = DataFrames.DataFrame(
-        iPVPanels = iPVPanels,
-        iTurbines = iTurbines,
-        iStorageCells = iStorageCells,
-        iLOEE = LOEE,
-        iLOEE_base = LOEE_no_battery,
-        iLOLE = LOLE,
-        iLOLE_base = LOLE_no_battery
+PlotTotalConstituents = plot(
+    PlotImpactsOfConsittuents, PlotLOLE, PlotLOEE,
+    layout = (3,1),
+    size = (1000, 800)
 )
+savefig(PlotTotalConstituents, "C:/Users/Marcel/Desktop/mgr/graphs/AllConstituents.png")
