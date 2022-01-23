@@ -531,3 +531,66 @@ function GetMembersResultsHolder(iTurbines::Int,
         Result
     )
 end
+
+function GetResultsFromMembersResultsHolder(MembersTuning::Vector{MembersResultsHolder},
+    iEpisodes::Int, iTrainingEpisodeLength::Int, iTestingEpisodeLength::Int)
+    dfData = DataFrame(iEpisode = Int[],
+        iPVPanels = Int[],
+        iTurbines = Int[],
+        iStorageCells = Int[],
+        iMismatch = Float64[],
+        iIntendedAction = Float64[],
+        iAction = Float64[],
+        iVolLoaded = Float64[],
+        iMismatchRandom = Float64[],
+        iActionRandom = Float64[],
+        iVolLoadedRandom = Float64[],
+        iLOEEBase = Float64[],
+        iLOEEBaseRandom = Float64[],
+        iLOLE = Float64[],
+        iLOEE = Float64[],
+        iLOLERandom = Float64[],
+        iLOEERandom = Float64[])
+
+    iEpisodeIndicator = [i for j in 1:iTestingEpisodeLength, i in 1:iEpisodes] |> vec
+
+    for i in 1:length(MembersTuning)
+        CurrentResult = MembersTuning[i]
+        iPVPanels = CurrentResult.iPVPanels
+        iTurbines = CurrentResult.iTurbines
+        iStorageCells = CurrentResult.iStorageCells
+        FinalMicrogrid = CurrentResult.Result[1].FinalMicrogrid
+        RandomMicrogrid = CurrentResult.Result[1].RandomMicrogrid
+        iMismatch = [FinalMicrogrid.Brain.memory[j][1][1] for j in 1:length(FinalMicrogrid.Brain.memory)]
+        iIntendedAction = [FinalMicrogrid.Brain.memory[j][2] for j in 1:length(FinalMicrogrid.Brain.memory)]
+        iAction = [FinalMicrogrid.Brain.memory[j][3] for j in 1:length(FinalMicrogrid.Brain.memory)]
+        iVolLoaded = iMismatch .* iAction
+        iMismatchRandom = [RandomMicrogrid.Brain.memory[j][1][1] for j in 1:length(RandomMicrogrid.Brain.memory)]
+        iActionRandom = [RandomMicrogrid.Brain.memory[j][3] for j in 1:length(RandomMicrogrid.Brain.memory)]
+        iVolLoadedRandom = iMismatchRandom .* iActionRandom
+        iLOEEBase = iMismatch .* (1 .- iAction)
+        iLOEEBaseRandom = iMismatchRandom .* (1 .- iActionRandom)
+        dfTemp = DataFrame(
+            iEpisode = iEpisodeIndicator,
+            iPVPanels = repeat([iPVPanels], length(FinalMicrogrid.Brain.memory)),
+            iTurbines = repeat([iTurbines], length(FinalMicrogrid.Brain.memory)),
+            iStorageCells = repeat([iStorageCells], length(FinalMicrogrid.Brain.memory)),
+            iMismatch = iMismatch,
+            iIntendedAction = iIntendedAction,
+            iAction = iAction,
+            iVolLoaded = iVolLoaded,
+            iMismatchRandom = iMismatchRandom,
+            iActionRandom = iActionRandom,
+            iVolLoadedRandom = iVolLoadedRandom,
+            iLOEEBase = iLOEEBase,
+            iLOEEBaseRandom = iLOEEBaseRandom,
+            iLOLE = (iLOEEBase .< 0),
+            iLOEE = (iLOEEBase .< 0) .* iLOEEBase,
+            iLOLERandom = (iLOEEBaseRandom .< 0),
+            iLOEERandom = (iLOEEBaseRandom .< 0) .* iLOEEBaseRandom
+        )
+        dfData = vcat(dfData, dfTemp)
+    end
+    return dfData
+
+end
