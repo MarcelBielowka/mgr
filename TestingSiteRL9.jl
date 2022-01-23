@@ -493,6 +493,10 @@ HistogramRealisedActions = histogram([t[i].iAction for i in 1:20], layout = (4,5
     size = (1000, 800),
     titlefontsize = 10,
     color = RGB(192/255, 0, 0),
+    left_margin = 2Plots.mm,
+    right_margin = 2Plots.mm,
+    bottom_margin = 2Plots.mm,
+    top_margin = 2Plots.mm,
     title = [(unique(t[i].iPVPanels)[1], unique(t[i].iTurbines)[1], unique(t[i].iStorageCells)[1]) for j in 1:1, i in 1:20])
 savefig(HistogramRealisedActions, "C:/Users/Marcel/Desktop/mgr/graphs/HistogramRealisedActions.png")
 
@@ -510,5 +514,9 @@ HistogramIntendedAction = histogram([t[i].iIntendedAction for i in 1:20], layout
     size = (1000, 800),
     titlefontsize = 10,
     color = RGB(192/255, 0, 0),
+    left_margin = 2Plots.mm,
+    right_margin = 2Plots.mm,
+    bottom_margin = 2Plots.mm,
+    top_margin = 2Plots.mm,
     title = [(unique(t[i].iPVPanels)[1], unique(t[i].iTurbines)[1], unique(t[i].iStorageCells)[1]) for j in 1:1, i in 1:20])
 savefig(HistogramIntendedAction, "C:/Users/Marcel/Desktop/mgr/graphs/HistogramIntendedActions.png")
