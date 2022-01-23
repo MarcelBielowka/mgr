@@ -58,7 +58,7 @@ TuningBeta = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
     MyWindPark, MyWarehouse, Households,
     ["identity"], [40],
     dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
-    [2], [0.7], [0.99, 0.995, 0.999, 1.0],
+    [2], [0.5], [0.99, 0.995, 0.999, 1.0],
     [0.0001], [0.0001],
     [100], [100])
 BetaParamsAug = GetDataForPlottingFromResultsHolder(TuningBeta)
@@ -112,7 +112,9 @@ EpisodesRewardAverage = @df EpisodesLengthAugStacked groupedboxplot(string.(:iEp
     label = ["Result before training" "Result after training"], legend = :right,
     color = [RGB(192/255, 192/255, 192/255) RGB(192/255, 0, 0)],
     xlabel = "Number of episodes in the learning process",
-    ylabel = "Average cumulative reward in episode - testing period")
+    ylabel = "Cumulated reward, testing period",
+    xlabelfontsize = 8,
+    ylabelfontsize = 8)
 savefig(EpisodesRewardAverage, "C:/Users/Marcel/Desktop/mgr/graphs/EpisodesTuningAverage.png")
 
 # plots β
@@ -132,7 +134,7 @@ PlotBetaTuning = @df BetaParamsAugStackedTraining StatsPlots.plot(
     ylabel = "Cumulated reward",
     color = [RGB(192/255, 0, 0) RGB(192/255, 192/255, 0) RGB(192/255, 192/255, 192/255) RGB(0, 0, 0)])
 
-savefig(PlotBetaTuning, "C:/Users/Marcel/Desktop/mgr/graphs/BetaTuning.png")
+savefig(PlotBetaTuning, "C:/Users/Marcel/Desktop/mgr/graphs/BetaTuningK5.png")
 
 #@df BetaParamsAug groupedboxplot(string.(:iβ), :iResultAfterTraining)
 #@df BetaParamsAug groupedboxplot!(string.(:iβ), :iInitialTestResult)
@@ -150,7 +152,7 @@ PlotBetaTuningAvg = @df BetaParamsAugStacked groupedboxplot(
     xlabel = "β",
     ylabel = "Cumulated reward, testing period"
     )
-savefig(PlotBetaTuningAvg, "C:/Users/Marcel/Desktop/mgr/graphs/BetaTuningAvg.png")
+savefig(PlotBetaTuningAvg, "C:/Users/Marcel/Desktop/mgr/graphs/BetaTuningAvgK5.png")
 
 # plots commercial params
 CommercialParamsAugTransformed = @pipe CommercialParamsAug |>
@@ -351,10 +353,10 @@ savefig(PlotNNTrainingResults, "C:/Users/Marcel/Desktop/mgr/graphs/NNParamsTunin
 ##### Members tuning
 MembersTuning = FineTuneMembers(DayAheadPowerPrices, Weather,
     2000.0, 11.5, 3.0, 20.0,
-    [1, 3, 5],
+    [3, 5],
     dfRawEnergyConsumption, dfRawConsHistory, 2, 2019, 0.1, 20.0,
-    0.55, 0.0035, 45, [400, 600, 800],
-    13.5, 7.0, -5.0, [0, 20, 40, 80, 160],
+    0.55, 0.0035, 45, [600, 1200],
+    13.5, 7.0, -5.0, [20, 60, 100, 140, 180],
     Households,
     ["identity"], [40],
     dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
@@ -362,23 +364,92 @@ MembersTuning = FineTuneMembers(DayAheadPowerPrices, Weather,
     [0.0001], [0.0001],
     [100], [100])
 
-MembersTuning = FineTuneMembers(DayAheadPowerPrices, Weather,
-    2000.0, 11.5, 3.0, 20.0,
-    [3],
-    dfRawEnergyConsumption, dfRawConsHistory, 2, 2019, 0.1, 20.0,
-    0.55, 0.0035, 45, [400],
-    13.5, 7.0, -5.0, [10, 20],
-    Households,
-    ["identity"], [11],
-    dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
-    [2], [0.7], [0.999],
-    [0.0001], [0.0001],
-    [100], [100])
+MembersTuning[2].Result[1]
 
 FinalMicrogrids = [MembersTuning[i].Result[1].FinalMicrogrid for i in 1:length(MembersTuning)]
-LOEE_base = [FinalMicrogrids[i].Brain.memory[j][1][1] * (1 - FinalMicrogrids[i].Brain.memory[j][3]) for j in 1:length(FinalMicrogrids[1].Brain.memory), i in 1:length(MembersTuning)]
-LOEE = [sum(LOEE_base[:, i] .< 0)/length(LOEE_base[:, i]) for i in 1:size(LOEE_base,2)]
-LOLE = [sum((LOEE_base[:, i] .< 0) .* LOEE_base[:, i]) / length(LOEE_base[:, i]) for i in 1:size(LOEE_base,2)]
+MyMicrogrids = [MembersTuning[i].Result[1].MyMicrogrid for i in 1:length(MembersTuning)]
+
+iMismatch = [FinalMicrogrids[1].Brain.memory[i][1][1] for i in 1:length(FinalMicrogrids[1].Brain.memory)]
+plot(iMismatch[1:2183])
+sum(iMismatch .< 0)/length(iMismatch)
+
+dfMeasures = DataFrame(iEpisode = Int[],
+    iPVPanels = Int[],
+    iTurbines = Int[],
+    iStorageCells = Int[],
+    iMismatch = Float64[],
+    iAction = Float64[],
+    iVolLoaded = Float64[],
+    iMismatchRandom = Float64[],
+    iActionRandom = Float64[],
+    iVolLoadedRandom = Float64[],
+    iLOEEBase = Float64[],
+    iLOEEBaseRandom = Float64[],
+    iLOLE = Float64[],
+    iLOEE = Float64[],
+    iLOLERandom = Float64[],
+    iLOEERandom = Float64[])
+dfTemp = deepcopy(dfMeasures)
+iEpisodeIndicator = [i for j in 1:2183, i in 1:40] |> vec
+
+for i in 1:length(MembersTuning)
+    CurrentResult = MembersTuning[i]
+    iPVPanels = CurrentResult.iPVPanels
+    iTurbines = CurrentResult.iTurbines
+    iStorageCells = CurrentResult.iStorageCells
+    FinalMicrogrid = CurrentResult.Result[1].FinalMicrogrid
+    RandomMicrogrid = CurrentResult.Result[1].RandomMicrogrid
+    iMismatch = [FinalMicrogrid.Brain.memory[j][1][1] for j in 1:length(FinalMicrogrid.Brain.memory)]
+    iAction = [FinalMicrogrid.Brain.memory[j][3] for j in 1:length(FinalMicrogrid.Brain.memory)]
+    iVolLoaded = iMismatch .* iAction
+    iMismatchRandom = [RandomMicrogrid.Brain.memory[j][1][1] for j in 1:length(RandomMicrogrid.Brain.memory)]
+    iActionRandom = [RandomMicrogrid.Brain.memory[j][3] for j in 1:length(RandomMicrogrid.Brain.memory)]
+    iVolLoadedRandom = iMismatchRandom .* iActionRandom
+    iLOEEBase = iMismatch .* (1 .- iAction)
+    iLOEEBaseRandom = iMismatchRandom .* (1 .- iActionRandom)
+    dfTemp = DataFrame(
+        iEpisode = iEpisodeIndicator,
+        iPVPanels = repeat([iPVPanels], length(FinalMicrogrid.Brain.memory)),
+        iTurbines = repeat([iTurbines], length(FinalMicrogrid.Brain.memory)),
+        iStorageCells = repeat([iStorageCells], length(FinalMicrogrid.Brain.memory)),
+        iMismatch = iMismatch,
+        iAction = iAction,
+        iVolLoaded = iVolLoaded,
+        iMismatchRandom = iMismatchRandom,
+        iActionRandom = iActionRandom,
+        iVolLoadedRandom = iVolLoadedRandom,
+        iLOEEBase = iLOEEBase,
+        iLOEEBaseRandom = iLOEEBaseRandom,
+        iLOLE = (iLOEEBase .< 0),
+        iLOEE = (iLOEEBase .< 0) .* iLOEEBase,
+        iLOLERandom = (iLOEEBaseRandom .< 0),
+        iLOEERandom = (iLOEEBaseRandom .< 0) .* iLOEEBaseRandom
+    )
+    dfMeasures = vcat(dfMeasures, dfTemp)
+end
+
+k = GetResultsFromMembersResultsHolder(MembersTuning, 40, 4390, 2183)
+
+dfMeasures
+dfMeasures[:, 6:10]
+abc = @pipe dfMeasures |>
+    groupby(_, [:iEpisode, :iPVPanels, :iTurbines, :iStorageCells]) |>
+    combine(_, :iLOLE => mean => :iLOLE,
+                :iLOEE => mean => :iLOEE,
+                :iLOLERandom => mean=> :iLOLERandom,
+                :iLOEERandom => mean=> :iLOEERandom)
+
+xyz = @pipe abc |>
+    groupby(_, [:iEpisode, :iPVPanels, :iTurbines, :iStorageCells]) |>
+    combine(_, :iLOLE => mean => :iLOLE,
+                :iLOLE => std => :iLOLEStd,
+                :iLOLERandom => mean => :iLOLERandom,
+                :iLOLERandom => std => :iLOLERandomStd,
+                :iLOEE => mean => :iLOEE,
+                :iLOEE => std => :iLOEEstd,
+                :iLOEERandom => mean => :iLOEERandom,
+                :iLOEERandom => std => :iLOEERandomstd,
+                )
 
 iTurbines = [MembersTuning[i].iTurbines for i in 1:length(MembersTuning)]
 iPVPanels = [MembersTuning[i].iPVPanels for i in 1:length(MembersTuning)]
@@ -387,30 +458,31 @@ iResults = [MembersTuning[i].Result[1] for i in 1:length(MembersTuning)]
 
 iAverageResultAfterTraining = [mean(iResults[i].ResultAfterTraining) for i in 1:length(iResults)]
 
-TotalProd = [iResults[i].MyMicrogrid.dfTotalProduction for i in 1:length(iResults)]
-TotalCons = [iResults[i].MyMicrogrid.dfTotalConsumption for i in 1:length(iResults)]
-TotalNetLoadTrain = [TotalProd[i].TotalProduction[dRunStartTrain:dRunEndTrain] .-
-    TotalCons[i].TotalConsumption[dRunStartTrain:dRunEndTrain] for i in 1:length(iResults)]
+#TotalProd = [iResults[i].MyMicrogrid.dfTotalProduction for i in 1:length(iResults)]
+#TotalCons = [iResults[i].MyMicrogrid.dfTotalConsumption for i in 1:length(iResults)]
+#TotalNetLoadTrain = [TotalProd[i].TotalProduction[dRunStartTrain:dRunEndTrain] .-
+#    TotalCons[i].TotalConsumption[dRunStartTrain:dRunEndTrain] for i in 1:length(iResults)]
 
-TotalNetLoadTest = [TotalProd[i].TotalProduction[dRunStartTest:dRunEndTest] .-
-    TotalCons[i].TotalConsumption[dRunStartTest:dRunEndTest] for i in 1:length(iResults)]
+#TotalNetLoadTest = [TotalProd[i].TotalProduction[dRunStartTest:dRunEndTest] .-
+#    TotalCons[i].TotalConsumption[dRunStartTest:dRunEndTest] for i in 1:length(iResults)]
 
-CoverageTrain = [TotalProd[i].TotalProduction[dRunStartTrain:dRunEndTrain] .<
-    TotalCons[i].TotalConsumption[dRunStartTrain:dRunEndTrain] for i in 1:length(iResults)]
+#CoverageTrain = [TotalProd[i].TotalProduction[dRunStartTrain:dRunEndTrain] .<
+#    TotalCons[i].TotalConsumption[dRunStartTrain:dRunEndTrain] for i in 1:length(iResults)]
 
-CoverageTest = [TotalProd[i].TotalProduction[dRunStartTest:dRunEndTest] .<
-    TotalCons[i].TotalConsumption[dRunStartTest:dRunEndTest] for i in 1:length(iResults)]
+#CoverageTest = [TotalProd[i].TotalProduction[dRunStartTest:dRunEndTest] .<
+#    TotalCons[i].TotalConsumption[dRunStartTest:dRunEndTest] for i in 1:length(iResults)]
 
-LOELTrain = [sum(CoverageTrain[i]) / length(CoverageTrain[i]) for i in 1:length(CoverageTrain)]
+#LOELTrain = [sum(CoverageTrain[i]) / length(CoverageTrain[i]) for i in 1:length(CoverageTrain)]
 
-LOELTest = [sum(CoverageTest[i]) / length(CoverageTest[i]) for i in 1:length(CoverageTest)]
+#LOELTest = [sum(CoverageTest[i]) / length(CoverageTest[i]) for i in 1:length(CoverageTest)]
 
-LOEETrain = [sum(CoverageTrain[i] .* TotalNetLoadTrain[i] ) / length(CoverageTrain[i]) for i in 1:length(CoverageTrain)]
-LOEETest = [sum(CoverageTest[i] .* TotalNetLoadTest[i] ) / length(CoverageTest[i]) for i in 1:length(CoverageTest)]
+#LOEETrain = [sum(CoverageTrain[i] .* TotalNetLoadTrain[i] ) / length(CoverageTrain[i]) for i in 1:length(CoverageTrain)]
+#LOEETest = [sum(CoverageTest[i] .* TotalNetLoadTest[i] ) / length(CoverageTest[i]) for i in 1:length(CoverageTest)]
 
-PlotImpactsOfConsittuents = Plots.scatter(iPVPanels,
-    iTurbines,
-    iStorageCells,
+PlotImpactsOfConsittuents = Plots.scatter(
+    string.(iPVPanels),
+    string.(iTurbines),
+    string.(iStorageCells),
     marker_z = iAverageResultAfterTraining,
     # group = iStorageCells,
     markershape = :hexagon,
@@ -436,21 +508,43 @@ PlotImpactsOfConsittuents = Plots.scatter(iPVPanels,
 
 savefig(PlotImpactsOfConsittuents, "C:/Users/Marcel/Desktop/mgr/graphs/Constituents.png")
 
-scatter(iPVPanels,
-    iTurbines,
-    iStorageCells,
-    marker_z = LOELTest,
+PlotLOLE = scatter(
+    string.(xyz.iPVPanels),
+    string.(xyz.iTurbines),
+    string.(xyz.iStorageCells),
+    marker_z = xyz.iLOLE,
     camera = (75, 40),
     markershape = :hexagon,
     markersize = 6,
     alpha = 0.5,
     legend = :none,
     colorbar = true,
+    color = cgrad(:sun, rev = true),
     left_margin = 2Plots.mm,
     right_margin = 8Plots.mm,
-    bottom_margin = 5Plots.mm,
-    color = f)
-f = cgrad(:sun, rev = true)
+    bottom_margin = 5Plots.mm)
+PlotLOEE = scatter(
+    string.(xyz.iPVPanels),
+    string.(xyz.iTurbines),
+    string.(xyz.iStorageCells),
+    marker_z = xyz.iLOEE,
+    camera = (75, 40),
+    markershape = :hexagon,
+    markersize = 6,
+    alpha = 0.5,
+    legend = :none,
+    colorbar = true,
+    color = :sun,
+    left_margin = 2Plots.mm,
+    right_margin = 8Plots.mm,
+    bottom_margin = 5Plots.mm)
 
-
-LOLE
+abc = DataFrames.DataFrame(
+        iPVPanels = iPVPanels,
+        iTurbines = iTurbines,
+        iStorageCells = iStorageCells,
+        iLOEE = LOEE,
+        iLOEE_base = LOEE_no_battery,
+        iLOLE = LOLE,
+        iLOLE_base = LOLE_no_battery
+)
