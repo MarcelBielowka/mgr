@@ -400,7 +400,7 @@ PlotImpactsOfConsittuents = Plots.scatter(
     # group = iStorageCells,
     markershape = :hexagon,
     markersize = 6,
-    alpha = 0.5,
+    alpha = 0.8,
     # markershape = [:hexagon, :utriangle, :square, :star6],
     legend = :none,
     # markershape = iStorageCells,
@@ -428,12 +428,12 @@ groupby(ResultsConstituentsAvg, [:iPVPanels, :iTurbines, :iStorageCells])[17]
 PlotLOLE = scatter(
     string.(ResultsConstituentsAvg.iPVPanels),
     string.(ResultsConstituentsAvg.iTurbines),
-    string.(ResultsConstituentsAvg.iStorageCells),
+    string.(ResultsConstituentsAvg.iStorageCells.+20),
     marker_z = ResultsConstituentsAvg.iLOLE,
     camera = (75, 40),
     markershape = :hexagon,
     markersize = 6,
-    alpha = 0.5,
+    alpha = 0.8,
     legend = :none,
     colorbar = true,
     color = cgrad(:sun, rev = true),
@@ -450,12 +450,12 @@ savefig(PlotLOLE, "C:/Users/Marcel/Desktop/mgr/graphs/LOLE.png")
 PlotLOEE = scatter(
     string.(ResultsConstituentsAvg.iPVPanels),
     string.(ResultsConstituentsAvg.iTurbines),
-    string.(ResultsConstituentsAvg.iStorageCells),
+    string.(ResultsConstituentsAvg.iStorageCells.+20),
     marker_z = ResultsConstituentsAvg.iLOEE,
     camera = (75, 40),
     markershape = :hexagon,
     markersize = 6,
-    alpha = 0.5,
+    alpha = 0.8,
     legend = :none,
     colorbar = true,
     color = :sun,
@@ -497,7 +497,7 @@ HistogramRealisedActions = histogram([t[i].iAction for i in 1:20], layout = (4,5
     right_margin = 2Plots.mm,
     bottom_margin = 2Plots.mm,
     top_margin = 2Plots.mm,
-    title = [(unique(t[i].iPVPanels)[1], unique(t[i].iTurbines)[1], unique(t[i].iStorageCells)[1]) for j in 1:1, i in 1:20])
+    title = [(unique(t[i].iPVPanels)[1], unique(t[i].iTurbines)[1], unique(t[i].iStorageCells.+20)[1]) for j in 1:1, i in 1:20])
 savefig(HistogramRealisedActions, "C:/Users/Marcel/Desktop/mgr/graphs/HistogramRealisedActions.png")
 
 HistogramIntendedAction = histogram([t[i].iIntendedAction for i in 1:20], layout = (4,5),
@@ -518,5 +518,5 @@ HistogramIntendedAction = histogram([t[i].iIntendedAction for i in 1:20], layout
     right_margin = 2Plots.mm,
     bottom_margin = 2Plots.mm,
     top_margin = 2Plots.mm,
-    title = [(unique(t[i].iPVPanels)[1], unique(t[i].iTurbines)[1], unique(t[i].iStorageCells)[1]) for j in 1:1, i in 1:20])
+    title = [(unique(t[i].iPVPanels)[1], unique(t[i].iTurbines)[1], unique(t[i].iStorageCells.+20)[1]) for j in 1:1, i in 1:20])
 savefig(HistogramIntendedAction, "C:/Users/Marcel/Desktop/mgr/graphs/HistogramIntendedActions.png")
