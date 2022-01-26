@@ -520,3 +520,27 @@ HistogramIntendedAction = histogram([t[i].iIntendedAction for i in 1:20], layout
     top_margin = 2Plots.mm,
     title = [(unique(t[i].iPVPanels)[1], unique(t[i].iTurbines)[1], unique(t[i].iStorageCells.+20)[1]) for j in 1:1, i in 1:20])
 savefig(HistogramIntendedAction, "C:/Users/Marcel/Desktop/mgr/graphs/HistogramIntendedActions.png")
+
+FinalEpisodeSingleConfigDetails = filter(row -> row.iStorageCells == 20,
+    FinalEpisodeDetails)
+insertcols!(FinalEpisodeSingleConfigDetails, :datapoint => repeat(collect(1:1:2183), 4))
+
+@df filter(row -> row.iPVPanels == 600, FinalEpisodeSingleConfigDetails) StatsPlots.plot(
+    :datapoint,
+    :iMismatch,
+    group = (:iTurbines),
+    alpha = 0.5,
+    size = (1200,1000),
+    color = [RGB(192/255, 0, 0) RGB(100/255, 100/255, 100/255)],
+    lw = 2
+)
+
+@df filter(row -> row.iTurbines == 3, FinalEpisodeSingleConfigDetails) StatsPlots.plot(
+    :datapoint,
+    :iMismatch,
+    group = (:iPVPanels),
+    alpha = 0.5,
+    size = (1200,1000),
+    color = [RGB(192/255, 0, 0) RGB(100/255, 100/255, 100/255)],
+    lw = 2
+)
