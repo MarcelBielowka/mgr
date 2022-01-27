@@ -525,22 +525,43 @@ FinalEpisodeSingleConfigDetails = filter(row -> row.iStorageCells == 20,
     FinalEpisodeDetails)
 insertcols!(FinalEpisodeSingleConfigDetails, :datapoint => repeat(collect(1:1:2183), 4))
 
-@df filter(row -> row.iPVPanels == 600, FinalEpisodeSingleConfigDetails) StatsPlots.plot(
+PlotMismatch1 = @df filter(row -> row.iPVPanels == 600, FinalEpisodeSingleConfigDetails) StatsPlots.plot(
     :datapoint,
     :iMismatch,
     group = (:iTurbines),
     alpha = 0.5,
-    size = (1200,1000),
+    size = (800,600),
     color = [RGB(192/255, 0, 0) RGB(100/255, 100/255, 100/255)],
-    lw = 2
+    lw = 2,
+    legendtitle = "Number of wind turbines",
+    legendtitlefontsize = 8,
+    legendfontsize = 6,
+    xlabel = "Time step, testing period",
+    xlabelfontsize = 6,
+    ylabelfontsize = 6,
+    ylabel = "Net load, [kWh]",
+    title = "Net load change across testing period, number of PV panels = 600",
+    titlefontsize = 12
 )
 
-@df filter(row -> row.iTurbines == 3, FinalEpisodeSingleConfigDetails) StatsPlots.plot(
+PlotMismatch2 = @df filter(row -> row.iTurbines == 3, FinalEpisodeSingleConfigDetails) StatsPlots.plot(
     :datapoint,
     :iMismatch,
     group = (:iPVPanels),
     alpha = 0.5,
-    size = (1200,1000),
+    size = (800,600),
     color = [RGB(192/255, 0, 0) RGB(100/255, 100/255, 100/255)],
-    lw = 2
+    lw = 2,
+    legendtitle = "Number of PV panels",
+    legendtitlefontsize = 8,
+    legendfontsize = 6,
+    xlabelfontsize = 6,
+    ylabelfontsize = 6,
+    xlabel = "Time step, testing period",
+    ylabel = "Net load, [kWh]",
+    title = "Net load change across testing period, number of turbines = 3",
+    titlefontsize = 12
 )
+
+PlotNetLoad = plot(PlotMismatch1, PlotMismatch2, layout = (2,1))
+savefig(PlotNetLoad, "C:/Users/Marcel/Desktop/mgr/graphs/PlotNetLoad.png")
