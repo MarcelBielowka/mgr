@@ -189,9 +189,9 @@ savefig(PlotIrradiationProductionInterplay, "C:/Users/Marcel/Desktop/mgr/graphs/
 ######## Households data graphs #########
 #########################################
 ### Using the functions from the households.jl file ###
-HouseholdsJanSunPlots = RunPlots(Households.dictCompleteHouseholdsData, 1, 7)
-HouseholdsJulSunPlots = RunPlots(Households.dictCompleteHouseholdsData, 7, 7; silhouettes = false)
-HouseholdsJulMonPlots = RunPlots(Households.dictCompleteHouseholdsData, 7, 1; silhouettes = false)
+HouseholdsJanSunPlots = RunPlots(Households.dictHouseholdsData, 1, 7)
+HouseholdsJulSunPlots = RunPlots(Households.dictHouseholdsData, 7, 7; silhouettes = false)
+HouseholdsJulMonPlots = RunPlots(Households.dictHouseholdsData, 7, 1; silhouettes = false)
 
 savefig(HouseholdsJanSunPlots["PlotDataAndProfiles"],
         "C:/Users/Marcel/Desktop/mgr/graphs/ProfileJanSun.png")
