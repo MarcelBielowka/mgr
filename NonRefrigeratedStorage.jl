@@ -2,9 +2,6 @@ using Pipe: @pipe
 using DataStructures, Random, Distributions, StatsPlots, DataFrames
 using Distributed
 
-# using JuliaInterpreter
-# push!(JuliaInterpreter.compiled_modules, Base)
-
 # Corridors are assigned each third column - surrounded by two stacks of racks
 function AssignCorridors(Map, HandlingRoadString)
     FinalMap = deepcopy(Map)

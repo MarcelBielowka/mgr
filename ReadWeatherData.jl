@@ -3,9 +3,6 @@ using Plots, Dates, Distributions, Random, StatsPlots
 using Pipe, Statistics, Missings
 include("SolarAngle.jl")
 
-#using JuliaInterpreter
-#push!(JuliaInterpreter.compiled_modules, Base)
-
 ## read and clean data
 
 function ReadWindAndTempData(cFileWind::String; FilterStart = nothing, FilterEnd = nothing)
@@ -56,16 +53,6 @@ function RemedyMissingWindTempData(dfWindData)
         "WindTempDataNoMissing" => dfWindDataClean
     )
 end
-
-#dfWindTempData = ReadWindAndTempData("C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv")
-#dfWindTempData = ReadWindAndTempData("C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv",
-#    FilterStart = "2019-01-01")
-#dfWindTempData = ReadWindAndTempData("C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv",
-#    FilterEnd = "2017-12-31")
-#Redemption = RemedyMissingWindTempData(dfWindTempData)
-#dfMissingDataWind = Redemption["GroupedMissingDataWind"]
-#dfMissingDataTemp = Redemption["GroupedMissingDataTemp"]
-#dfWindTempDataFinal = Redemption["WindTempDataNoMissing"]
 
 function ReadIrradiationData(cFileIrr::String; FilterStart = nothing, FilterEnd = nothing)
     dfWeatherData = CSV.File(cFileIrr) |>
@@ -121,15 +108,6 @@ function RemedyMissingIrradiationData(dfIrrData)
     )
 end
 
-#dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv")
-#dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
-#    FilterStart = "2019-01-01")
-#dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
-#    FilterEnd = "2018-12-31")
-#dfIrradiationData = ReadIrradiationData("C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
-#    FilterStart = "2012-01-01", FilterEnd = "2017-12-31")
-#dfIrradiationData = RemedyMissingIrradiationData(dfIrradiationData)["IrradiationDataNoMissing"]
-
 function ReadWeatherData(cFileWind::String, cFileIrr::String; FilterStart = nothing, FilterEnd = nothing)
     println("Reading temperature and wind speed data")
     dfRawWindTempData = ReadWindAndTempData(cFileWind, FilterStart = FilterStart, FilterEnd = FilterEnd)
@@ -156,9 +134,6 @@ function ReadWeatherData(cFileWind::String, cFileIrr::String; FilterStart = noth
     )
 end
 
-#test = ReadWeatherData("C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv",
-#                       "C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv",
-#                       FilterStart = "2019-01-01")
 
 ##
 # wind production
@@ -239,7 +214,6 @@ function Plotting(dfData, dfDataWithoutMissing)
         color = RGB(192/255,192/255,192/255), xticks = :none,
         title = "Monthly average of Irradiation")
 
-    # plot(plot1,plot2,plot3,plot4, layout = (2,2))
     FinalPlot4 = plot(plot4,plot5,plot6, layout = (3,1))
 
     plot7 = @df dfWeatherDataGrouped StatsPlots.plot(:Date, :WindSpeedMonthStd,
@@ -255,7 +229,6 @@ function Plotting(dfData, dfDataWithoutMissing)
         color = RGB(192/255,192/255,192/255), xticks = :none,
         title = "Monthly std of Irradiation")
 
-    # plot(plot1,plot2,plot3,plot4, layout = (2,2))
     FinalPlot5 = plot(plot5,plot6,plot7, layout = (3,1))
 
     MonthsAsStrings = ["Jan" "Feb" "Mar" "Apr" "May" "Jun" "Jul" "Aug" "Sep" "Oct" "Nov" "Dec"]
@@ -290,4 +263,3 @@ function Plotting(dfData, dfDataWithoutMissing)
 
     return plot1, plot2, plot3, FinalPlot4, FinalPlot5, plot10, plot11, plot12
 end
-    # jeden kolor dla barow + srednia wieloletnia dla danego miesiaca -

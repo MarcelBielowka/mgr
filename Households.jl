@@ -5,8 +5,6 @@ using CSV, DataFrames, Dates, Pipe, Statistics
 using Clustering, StatsPlots, Random
 using FreqTables, Impute, Distances
 using MultivariateStats
-#cd("C:/Users/Marcel/Desktop/mgr/kody")
-#cMasterDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
 
 ###############################################
 ###### The very households weightlifting ######
