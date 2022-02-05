@@ -17,7 +17,6 @@ function GetEnergyStorage(iMaxCapacity::Float64, iChargeRate::Float64, iDischarg
                   iChargeRate * iNumberOfCells,
                   iDischargeRate * iNumberOfCells)
 end
-#testStorage = GetEnergyStorage(10.5, 15.0, 9.50, 10)
 
 #########################################
 ### DayAhead handler class definition ###
@@ -43,9 +42,6 @@ function GetDayAheadPricesHandler(cPowerPricesDataDir::String,
     return DayAheadPricesHandler(dfDayAheadPrices, dfQuantilesOfPrices)
 end
 
-#testDA = GetDayAheadPricesHandler(cPowerPricesDataDir, cWeatherPricesDataWindowStart,
-#    cWeatherPricesDataWindowEnd)
-
 
 #########################################
 ### Weather handler class definition ####
@@ -66,10 +62,6 @@ function GetWeatherDataHandler(cWindTempDataDir::String, cIrrDataDir::String,
         dictWeatherDataDetails["dfFinalWeatherData"]
     )
 end
-
-#TestWeather = GetWeatherDataHandler(cWindTempDataDir, cIrrDataDir,
-#    cWeatherPricesDataWindowStart, cWeatherPricesDataWindowEnd)
-
 
 #########################################
 ####### Wind park class definition ######
@@ -100,9 +92,6 @@ function GetWindPark(iTurbineMaxCapacity::Float64, iTurbineRatedSpeed::Float64,
         dfWindProductionData)
 end
 
-#testWindPark = GetWindPark(2000.0, 11.5, 3.0, 20.0, TestWeather, 1)
-#testWindPark2 = GetWindPark(2000.0, 11.5, 3.0, 20.0, TestWeather, 10)
-
 #########################################
 ##### Solar panels class definition #####
 #########################################
@@ -125,8 +114,6 @@ function GetSolarPanels(iPVMaxCapacity::Float64, iPVγ_temp::Float64,
         iPVMaxCapacity, iPVγ_temp, iNoct, dfSolarProductionData
     )
 end
-
-# testPanel = GetSolarPanels(0.55, 0.0035, 45, Weather, 600)
 
 
 #########################################
@@ -171,9 +158,6 @@ function GetWarehouse(
                          iNumberOfStorageCells)
     )
 end
-
-#TestWarehouse = GetWarehouse(iWarehouseNumberOfSimulations, iWarehouseSimWindow,
-#    0.55, 0.0035, 45, 600, Weather, 11.7, 1.5*11.75, 0.5*11.7, 10)
 
 #########################################
 ####### Test warehouse constructor ######
@@ -231,7 +215,6 @@ function Get_⌂(cHouseholdsDir::String,
 
     dictHouseholdsData = GetHouseholdsData(cHouseholdsDir, dOriginalHolidayCalendar,
         dDestinationHolidayCalendar, cStartDate, cEndDate)
-    # dictProfileWeighted = dictHouseholdsData["HouseholdProfilesWeighted"]
     dfProfileWeighted = dictHouseholdsData["dfHouseholdProfilesWeighted"]
     dfProfileWeighted.ProfileWeighted .= dfProfileWeighted.ProfileWeighted .* iNumberOfHouseholds
 
@@ -245,8 +228,6 @@ function Get_⌂(cHouseholdsDir::String,
                          iNumberOfStorageCells)
     )
 end
-
-#Test_⌂ = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, 100, 11.7, 7.0, 5.0, 10)
 
 #########################################
 ######## Brain class definition #########
@@ -270,31 +251,13 @@ function GetBrain(cPolicyOutputLayerType::String, iDimState::Int,
     @assert any(["identity", "sigmoid"] .== cPolicyOutputLayerType) "The policy output layer type is not correct"
 
     if cPolicyOutputLayerType == "sigmoid"
-        #policy_net = Chain(Dense(iDimState, 200, relu),
-        #             Dense(200,200,relu),
-        #             Dense(200,200,relu),
-        #             Dense(200,2,sigmoid))
-        #policy_net = Chain(
-        #    Dense(iDimState, 1, sigmoid; bias = false)
-        #)
         policy_net = nothing
     else
         policy_net = Chain(Dense(iDimState, iHiddenLayerNeuronsActor, relu),
-#                     Dense(iHiddenLayerNeuronsActor,iHiddenLayerNeuronsActor,relu),
                      Dense(iHiddenLayerNeuronsActor,iHiddenLayerNeuronsActor,relu),
                     Dense(iHiddenLayerNeuronsActor,1, sigmoid))
-        #policy_net = Chain(
-        #    Dense(iDimState, 1, identity)
-        #)
     end
-    #policy_net = Chain(
-    #    Dense((iLookAhead + 1), 1, identity)
-    #)
-    #value_net = Chain(
-    #    Dense(iDimState, 1, identity; bias = false)
-    #)
     value_net = Chain(Dense(iDimState, iHiddenLayerNeuronsCritic, relu),
-#                    Dense(iHiddenLayerNeuronsCritic, Int(iHiddenLayerNeuronsCritic), relu),
                     Dense(iHiddenLayerNeuronsCritic, iHiddenLayerNeuronsCritic, relu),
                     Dense(iHiddenLayerNeuronsCritic, 1, identity))
     return Brain(iβ, 64, 1_200_000, 2_000, [], policy_net, value_net, ηₚ, ηᵥ, cPolicyOutputLayerType)
@@ -330,7 +293,6 @@ function GetMicrogrid(DayAheadPricesHandler::DayAheadPricesHandler,
         MyWarehouse.SolarPanels.dfSolarProductionData, on = :date)
     insertcols!(dfTotalProduction,
         :TotalProduction => dfTotalProduction.WindProduction .+ dfTotalProduction.dfSolarProduction)
-    # dfTotalProduction = dfTotalProduction[1:8759,:]
     dfTotalConsumption = DataFrames.DataFrame(
         date = MyHouseholds.dfEnergyConsumption.date,
         HouseholdConsumption = MyHouseholds.dfEnergyConsumption.ProfileWeighted,
