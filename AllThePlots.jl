@@ -7,7 +7,10 @@ describe(Weather.dfWeatherData.WindSpeed)
 describe(Weather.dfWeatherData.Irradiation)
 dfPowerPricesTable = describe(Weather.dfWeatherData[!, [:Temperature, :WindSpeed, :Irradiation]])
 
-# Power prices graph
+#########################################
+######### Power prices graphs ###########
+#########################################
+### Power prices graph ###
 PlotPowerPrices = plot(Dates.DateTime.(Dates.year.(DayAheadPowerPrices.dfDayAheadPrices.DeliveryDate),
                                        Dates.month.(DayAheadPowerPrices.dfDayAheadPrices.DeliveryDate),
                                        Dates.day.(DayAheadPowerPrices.dfDayAheadPrices.DeliveryDate),
@@ -19,6 +22,7 @@ PlotPowerPrices = plot(Dates.DateTime.(Dates.year.(DayAheadPowerPrices.dfDayAhea
                        legend = :none)
 savefig(PlotPowerPrices, "C:/Users/Marcel/Desktop/mgr/graphs/PowerPrices.png")
 
+### W21 & 22 power prices graph ###
 dfCutOutPowerData = filter(row -> (week(row.DeliveryDate) >= 20 && week(row.DeliveryDate) <= 21),DayAheadPowerPrices.dfDayAheadPrices)
 PlotWeekPowerPrices = plot(
                       Dates.DateTime.(Dates.year.(dfCutOutPowerData.DeliveryDate),
@@ -44,6 +48,11 @@ PlotWeekPowerPrices = plot(
                       )
 savefig(PlotWeekPowerPrices, "C:/Users/Marcel/Desktop/mgr/graphs/PowerPricesWeek.png")
 
+
+#########################################
+##### Metheorological data graphs #######
+#########################################
+### Coplete sample ###
 PlotTemperature = StatsPlots.plot(
         Weather.dfWeatherData.date,
         Weather.dfWeatherData.Temperature,
@@ -83,6 +92,7 @@ PlotWindSpeed = StatsPlots.plot(
 PlotWeatherData = plot(PlotTemperature, PlotIrradiation, PlotWindSpeed, layout = (3,1))
 savefig(PlotWeatherData, "C:/Users/Marcel/Desktop/mgr/graphs/PlotWeatherData.png")
 
+###Week 20 and 21 ###
 dfCutOutWeatherData = filter(row -> (week(row.date) >= 20 && week(row.date) <= 21),Weather.dfWeatherData)
 PlotTemperatureCutOut = StatsPlots.plot(
        dfCutOutWeatherData.date,
@@ -120,11 +130,13 @@ PlotWindSpeedCutOut = StatsPlots.plot(
        xtickfontsize = 6,
        ytickfontsize = 6
 )
-
 PlotWeatherDataWeekly = plot(PlotTemperatureCutOut, PlotIrradiationCutOut, PlotWindSpeedCutOut, layout = (3,1))
 savefig(PlotWeatherDataWeekly, "C:/Users/Marcel/Desktop/mgr/graphs/PlotWeatherDataWeekly.png")
 
-
+#########################################
+######## Production data graphs #########
+#########################################
+### Complete production ###
 PlotProduction = plot(
         MyWindPark.dfWindParkProductionData.date,
         MyWindPark.dfWindParkProductionData.WindProduction,
@@ -150,7 +162,7 @@ plot!(
 )
 savefig(PlotProduction, "C:/Users/Marcel/Desktop/mgr/graphs/PlotProduction.png")
 
-
+### Interplay of solar irradiation and solar power production ###
 dfDailyPatternOfSolarProduction = filter(row -> (week(row.date) >= 20 && week(row.date) <= 21),
         MyWarehouse.SolarPanels.dfSolarProductionData)
 PlotWeeklySolarProduction = plot(
@@ -173,7 +185,10 @@ PlotWeeklySolarProduction = plot(
 PlotIrradiationProductionInterplay = plot(PlotWeeklySolarProduction, PlotIrradiationCutOut, layout = (2,1))
 savefig(PlotIrradiationProductionInterplay, "C:/Users/Marcel/Desktop/mgr/graphs/PlotIrradiationProductionInterplay.png")
 
-### Households ###
+#########################################
+######## Households data graphs #########
+#########################################
+### Using the functions from the households.jl file ###
 HouseholdsJanSunPlots = RunPlots(Households.dictCompleteHouseholdsData, 1, 7)
 HouseholdsJulSunPlots = RunPlots(Households.dictCompleteHouseholdsData, 7, 7; silhouettes = false)
 HouseholdsJulMonPlots = RunPlots(Households.dictCompleteHouseholdsData, 7, 1; silhouettes = false)
@@ -187,8 +202,10 @@ savefig(HouseholdsJulMonPlots["PlotDataAndProfiles"],
 savefig(HouseholdsJanSunPlots["PlotSillhouettes"],
         "C:/Users/Marcel/Desktop/mgr/graphs/HouseholdsSillhouettes.png")
 
-### Warehouse ###
-# Consignment stream
+#########################################
+######## Warehouse data graphs ##########
+#########################################
+### Consignment stream ###
 dfConsInData = DataFrame(:Hour => collect(keys(ArrivalsDict)), :ConsArriving => collect(values(ArrivalsDict)))
 dfConsOutData = DataFrame(:Hour => collect(keys(DeparturesDict)), :ConsDeparting => collect(values(DeparturesDict)))
 dfConsData = @pipe DataFrames.innerjoin(dfConsInData, dfConsOutData, on = :Hour) |>
@@ -206,6 +223,7 @@ PlotExpectedConsignmentsStream = @df dfConsData StatsPlots.plot(:Hour, :Number, 
 savefig(PlotExpectedConsignmentsStream,
         "C:/Users/Marcel/Desktop/mgr/graphs/ExpectedConsignmentsStream.png")
 
+### Weekly power consumption ###
 PlotWarehouseConsumption = plot(MyWarehouse.dfEnergyConsumption.Consumption[1:24*7],
         lw = 2,
         color = RGB(192/255,0,0),

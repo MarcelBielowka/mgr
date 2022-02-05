@@ -35,6 +35,13 @@ iMicrogridPrice = 200.0
 cWeatherPricesDataWindowStart = "2019-01-01"
 cWeatherPricesDataWindowEnd = "2019-12-31"
 
+dRunStartTrain = @pipe Dates.Date("2019-04-01") |> Dates.dayofyear |> _*24 |> _- 23
+dRunEndTrain = @pipe Dates.Date("2019-09-30") |> Dates.dayofyear |> _*24 |> _-1
+dRunStartTest = dRunEndTrain + 1
+dRunEndTest = @pipe Dates.Date("2019-12-30") |> Dates.dayofyear |> _*24 |> _-1
+iEpisodeLength = dRunStartTest - dRunEndTest |> abs
+iEpisodeLengthTrain = dRunStartTrain - dRunEndTrain |> abs
+
 #########################################
 ##### Setup for parallelisation  ########
 #########################################
@@ -98,9 +105,61 @@ MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory, 2, 2019
     0.55, 0.0035, 45, 600, Weather, 13.5, 7.0, -5.0, 20)
 
 #########################################
-########## Learning process #############
+##### Learning process - tuning #########
 #########################################
+### Tuning the episode length ###
+TuningEpisodesLength = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
+    MyWindPark, MyWarehouse, Households,
+    ["identity"], [25, 50, 75, 100],
+    dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
+    [2], [0.5], [0.999],
+    [0.0001], [0.0001],
+    [100], [100])
+EpisodesLengthAug = GetDataForPlottingFromResultsHolder(TuningEpisodesLength)
+
+### Tuning β ###
+TuningBeta = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
+    MyWindPark, MyWarehouse, Households,
+    ["identity"], [40],
+    dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
+    [2], [0.5], [0.99, 0.995, 0.999, 1.0],
+    [0.0001], [0.0001],
+    [100], [100])
+BetaParamsAug = GetDataForPlottingFromResultsHolder(TuningBeta)
+
+### Tuning commercial params ###
+TuningCommercialParams = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
+    MyWindPark, MyWarehouse, Households,
+    ["identity"], [40],
+    dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
+    [0, 2, 6, 12, 24], [0.9, 0.7, 0.5, 0.3], [0.999],
+    [0.0001], [0.0001],
+    [100], [100])
+CommercialParamsAug = GetDataForPlottingFromResultsHolder(TuningCommercialParams)
+
+### Tuning neural network hyperparams ###
+TuningNNParams = @time FineTuneTheMicrogrid(DayAheadPowerPrices, Weather,
+    MyWindPark, MyWarehouse, Households,
+    ["identity"], [40],
+    dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
+    [2], [0.7], [0.999],
+    [0.0001, 0.001], [0.0001, 0.001],
+    [50, 100, 200], [50, 100, 200])
+NNParamsAug = GetDataForPlottingFromResultsHolder(TuningNNParams)
 
 #########################################
-########### Running process #############
+######## Members sensitibity ############
 #########################################
+MembersTuning = FineTuneMembers(DayAheadPowerPrices, Weather,
+    2000.0, 11.5, 3.0, 20.0,
+    [3, 5],
+    dfRawEnergyConsumption, dfRawConsHistory, 2, 2019, 0.1, 20.0,
+    0.55, 0.0035, 45, [600, 1200],
+    13.5, 7.0, -5.0, [20, 60, 100, 140, 180],
+    Households,
+    ["identity"], [40],
+    dRunStartTrain, dRunEndTrain, dRunStartTest, dRunEndTest,
+    [2], [0.7], [0.999],
+    [0.0001], [0.0001],
+    [100], [100])
+ResultsConstituents = GetResultsFromMembersResultsHolder(MembersTuning, 40, 4390, 2183)
