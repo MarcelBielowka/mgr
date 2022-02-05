@@ -1,7 +1,3 @@
-# add project and manifset?
-# project.toml - dependencies expressed directly
-# amnifest.toml - dependencies of dependencies
-
 using JuliaInterpreter
 push!(JuliaInterpreter.compiled_modules, Base)
 using Pipe: @pipe
@@ -34,7 +30,6 @@ iWarehouseSimWindow = 40
 iMicrogridPrice = 200.0
 cWeatherPricesDataWindowStart = "2019-01-01"
 cWeatherPricesDataWindowEnd = "2019-12-31"
-
 dRunStartTrain = @pipe Dates.Date("2019-04-01") |> Dates.dayofyear |> _*24 |> _- 23
 dRunEndTrain = @pipe Dates.Date("2019-09-30") |> Dates.dayofyear |> _*24 |> _-1
 dRunStartTest = dRunEndTrain + 1
@@ -84,9 +79,7 @@ MyWindPark = GetWindPark(2000.0, 11.5, 3.0, 20.0, Weather, 3)
 Households = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, dPLHolidayCalendar,
     cWeatherPricesDataWindowStart, cWeatherPricesDataWindowEnd,
     100, 13.5, 7.0, -5.0, 20)
-# TestHouseholds = deepcopy(Households)
-Households.dictHouseholdsData = Dict()
-#Households.EnergyConsumption[(12,6)]
+# Households.dictHouseholdsData = Dict()
 
 ####
 # Initiate the warehouse
