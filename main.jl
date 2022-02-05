@@ -106,7 +106,7 @@ Households = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, dPLHolidayCalendar,
 ####
 if bUseWarehouseBackUpData
     dfRawEnergyConsumption = CSV.File(cBackUpLocationWarehouseEnergyCons) |> DataFrame
-    dfRawConsHistory = CSV.File(cBackUpLocationConsignmentHist) |> DataFrame
+    dfRawConsHistory = CSV.File(cBackUpLocationWarehouseConsignmentHist) |> DataFrame
     MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory, 2, 2019, 0.1, 20.0,
         0.55, 0.0035, 45, 600, Weather, 13.5, 7.0, -5.0, 20)
 else
