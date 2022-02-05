@@ -19,17 +19,33 @@ include("DefineRL.jl")
 ##### Static variables definition  ######
 #########################################
 Random.seed!(72945)
+# Location where the data files are stored
 cHouseholdsDir = "C:/Users/Marcel/Desktop/mgr/data/LdnHouseDataSplit"
 cPowerPricesDataDir = "C://Users//Marcel//Desktop//mgr//data//POLPX_DA_all.csv"
 cWindTempDataDir = "C:/Users/Marcel/Desktop/mgr/data/weather_data_temp_wind.csv"
 cIrrDataDir = "C:/Users/Marcel/Desktop/mgr/data/weather_data_irr.csv"
+cBackUpLocationWarehouseEnergyCons = "C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv"
+cBackUpLocationWarehouseConsignmentHist =  "C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.csv"
+
+# Holiday calendars, which are needed to attribute household data to correct holiday calendar
 dUKHolidayCalendar = Dates.Date.(["2013-01-01", "2013-03-29", "2013-04-01", "2013-05-06", "2013-05-27", "2013-08-26", "2013-12-25", "2013-12-26"])
 dPLHolidayCalendar = Dates.Date.(["2019-01-01", "2019-04-22", "2019-05-01", "2019-05-03", "2019-06-20", "2019-08-15", "2019-11-01", "2019-11-11", "2019-12-25", "2019-12-26"])
+
+# warehouse simulation data
+bUseWarehouseBackUpData = true
 iWarehouseNumberOfSimulations = 100
 iWarehouseSimWindow = 40
 iMicrogridPrice = 200.0
+ArrivalsDict = zip(0:23,
+    floor.([0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0] .* 2)) |> collect |> Dict
+DeparturesDict = zip(0:23,
+    floor.([0, 0, 0, 0, 0, 0, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 0, 0] .* 2)) |> collect |> Dict
+
+# filters on data extraction
 cWeatherPricesDataWindowStart = "2019-01-01"
 cWeatherPricesDataWindowEnd = "2019-12-31"
+
+# details on microgrid runs
 dRunStartTrain = @pipe Dates.Date("2019-04-01") |> Dates.dayofyear |> _*24 |> _- 23
 dRunEndTrain = @pipe Dates.Date("2019-09-30") |> Dates.dayofyear |> _*24 |> _-1
 dRunStartTest = dRunEndTrain + 1
@@ -40,17 +56,21 @@ iEpisodeLengthTrain = dRunStartTrain - dRunEndTrain |> abs
 #########################################
 ##### Setup for parallelisation  ########
 #########################################
-Distributed.nprocs()
-Distributed.addprocs(4)
-Distributed.nprocs()
-Distributed.nworkers()
-@everywhere include("NonRefrigeratedStorage.jl")
-@everywhere ArrivalsDict = zip(0:23,
-    floor.([0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0] .* 2)) |> collect |> Dict
-@everywhere DeparturesDict = zip(0:23,
-    floor.([0, 0, 0, 0, 0, 0, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 0, 0] .* 2)) |> collect |> Dict
-@everywhere DistWeightCon = Distributions.Normal(1300, 200)
-@everywhere DistInitFill = Distributions.Uniform(0.2, 0.5)
+if !bUseWarehouseBackUpData
+    Distributed.nprocs()
+    Distributed.addprocs(4)
+    Distributed.nprocs()
+    Distributed.nworkers()
+    @everywhere include("NonRefrigeratedStorage.jl")
+    @everywhere ArrivalsDict = zip(0:23,
+        floor.([0, 0, 0, 0, 0, 0, 48, 28, 38, 48, 48, 48, 58, 68, 68, 68, 58, 48, 48, 38, 38, 16, 2, 0] .* 2)) |> collect |> Dict
+    @everywhere DeparturesDict = zip(0:23,
+        floor.([0, 0, 0, 0, 0, 0, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 0, 0] .* 2)) |> collect |> Dict
+    @everywhere DistWeightCon = Distributions.Normal(1300, 200)
+    @everywhere DistInitFill = Distributions.Uniform(0.2, 0.5)
+else
+    println("Already prepared files will be used for warehouse simulation data")
+end
 
 #########################################
 ## Classes definition, data extraction ##
@@ -84,18 +104,20 @@ Households = Get_⌂(cHouseholdsDir, dUKHolidayCalendar, dPLHolidayCalendar,
 ####
 # Initiate the warehouse
 ####
-#MyWarehouse = GetWarehouse(iWarehouseNumberOfSimulations, iWarehouseSimWindow, 2, 2019, 0.1, 20.0,
-#    0.55, 0.0035, 45, 300, Weather, 11.7, 1.5*11.75, 0.5*11.7, 10)
-#CSV.write("C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv", MyWarehouse.dfEnergyConsumption)
-#CSV.write("C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.csv", MyWarehouse.dfConsignmentHistory)
+if bUseWarehouseBackUpData
+    dfRawEnergyConsumption = CSV.File(cBackUpLocationWarehouseEnergyCons) |> DataFrame
+    dfRawConsHistory = CSV.File(cBackUpLocationConsignmentHist) |> DataFrame
+    MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory, 2, 2019, 0.1, 20.0,
+        0.55, 0.0035, 45, 600, Weather, 13.5, 7.0, -5.0, 20)
+else
+    MyWarehouse = GetWarehouse(iWarehouseNumberOfSimulations, iWarehouseSimWindow, 2, 2019, 0.1, 20.0,
+        0.55, 0.0035, 45, 300, Weather, 11.7, 1.5*11.75, 0.5*11.7, 10)
+    CSV.write(cBackUpLocationWarehouseEnergyCons, MyWarehouse.dfEnergyConsumption)
+    CSV.write(cBackUpLocationConsignmentHist, MyWarehouse.dfConsignmentHistory)
+end
 # Calculating the number of solar panels
 # width - 51 slots in the warehouse * 1.4m width of the slot / 2.274m width of the panel
 # length - 45 slots in the warehouse * 1.4m width of the slot / 3.134m length of the panel + spacing
-
-dfRawEnergyConsumption = CSV.File("C:/Users/Marcel/Desktop/mgr/data/WarehouseEnergyConsumption.csv") |> DataFrame
-dfRawConsHistory = CSV.File("C:/Users/Marcel/Desktop/mgr/data/ConsignmentHist.csv") |> DataFrame
-MyWarehouse = GetTestWarehouse(dfRawEnergyConsumption, dfRawConsHistory, 2, 2019, 0.1, 20.0,
-    0.55, 0.0035, 45, 600, Weather, 13.5, 7.0, -5.0, 20)
 
 #########################################
 ##### Learning process - tuning #########
