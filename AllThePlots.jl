@@ -162,6 +162,62 @@ plot!(
 )
 savefig(PlotProduction, "C:/Users/Marcel/Desktop/mgr/graphs/PlotProduction.png")
 
+PlotWindProduction = plot(
+        MyWindPark.dfWindParkProductionData.date,
+        MyWindPark.dfWindParkProductionData.WindProduction,
+        color = RGB(100/255, 100/255, 100/255),
+        alpha = 0.7,
+        legend = :none,
+        xlabel = "Delivery date",
+        ylabel = "Wind power production [kWh]",
+        xguidefontsize = 9,
+        yguidefontsize = 9,
+        leftmargin = 3Plots.mm,
+        rightmargin = 3Plots.mm
+)
+
+PlotSolarProduction = plot(
+        MyWarehouse.SolarPanels.dfSolarProductionData.date,
+        MyWarehouse.SolarPanels.dfSolarProductionData.dfSolarProduction,
+        color = RGB(192/255,0,0),
+        alpha = 0.7,
+        legend = :none,
+        xlabel = "Delivery date",
+        ylabel = "Solar power production [kWh]",
+        xguidefontsize = 9,
+        yguidefontsize = 9,
+        leftmargin = 3Plots.mm,
+        rightmargin = 3Plots.mm
+)
+
+PlotSolarProductionScaled = plot(
+        MyWarehouse.SolarPanels.dfSolarProductionData.date,
+        MyWarehouse.SolarPanels.dfSolarProductionData.dfSolarProduction,
+        color = RGB(192/255,0,0),
+        alpha = 0.7,
+        legend = :none,
+        xlabel = "Delivery date",
+        ylabel = "Solar power production [kWh]",
+        xguidefontsize = 9,
+        yguidefontsize = 9,
+        leftmargin = 3Plots.mm,
+        rightmargin = 3Plots.mm,
+        ylim = (0, 6000)
+)
+
+PlotProductionSeparateGraphs = plot(PlotWindProduction, PlotSolarProduction,
+        layout = (2,1),
+        size = (800, 600)
+)
+
+PlotProductionSeparateGraphsScaled = plot(PlotWindProduction, PlotSolarProductionScaled,
+        layout = (2,1),
+        size = (800, 600)
+)
+
+savefig(PlotProductionSeparateGraphs, "C:/Users/Marcel/Desktop/mgr/graphs/PlotProductionSeparateGraphs.png")
+savefig(PlotProductionSeparateGraphsScaled, "C:/Users/Marcel/Desktop/mgr/graphs/PlotProductionSeparateGraphsScaled.png")
+
 ### Interplay of solar irradiation and solar power production ###
 dfDailyPatternOfSolarProduction = filter(row -> (week(row.date) >= 20 && week(row.date) <= 21),
         MyWarehouse.SolarPanels.dfSolarProductionData)
